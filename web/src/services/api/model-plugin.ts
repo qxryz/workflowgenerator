@@ -1,6 +1,7 @@
 import axios, { type AxiosRequestConfig } from "axios";
 
 import { sanitizeImageRequestPayload } from "@/lib/model-providers";
+import { normalizeCredentialUrl } from "@/lib/secure-url";
 import { buildApiUrl, type AiConfig, type ModelCapability } from "@/stores/use-config-store";
 
 type RequestOptions = { signal?: AbortSignal };
@@ -38,8 +39,8 @@ function pluginHeaders(extra?: Record<string, string>, hasJsonBody = false): Rec
 }
 
 function pluginUrl(config: AiConfig, path: string) {
-    if (/^https?:/i.test(path)) return normalizePluginUrl(path);
-    return buildApiUrl(config.baseUrl, path.startsWith("/") ? path : `/${path}`);
+    const resolved = /^https?:/i.test(path) ? normalizePluginUrl(path) : buildApiUrl(config.baseUrl, path.startsWith("/") ? path : `/${path}`);
+    return normalizeCredentialUrl(resolved, "模型请求地址");
 }
 
 /** Template scripts commonly append `/v1`. Keep a configured base URL ending in

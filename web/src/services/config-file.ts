@@ -24,6 +24,24 @@ export function stripConfigCredentials(config: AiConfig): AiConfig {
     };
 }
 
+export function sanitizeImportedConfig(config: AiConfig) {
+    let strippedScripts = 0;
+    const channels = config.channels.map((channel) => ({
+        ...channel,
+        apiKey: "",
+        models: channel.models.map((model) => {
+            if (!("script" in model)) return { ...model };
+            const { script: _script, ...safeModel } = model;
+            strippedScripts += 1;
+            return safeModel;
+        }),
+    }));
+    return {
+        config: { ...config, apiKey: "", channels },
+        strippedScripts,
+    };
+}
+
 export function exportAppConfig() {
     const { config, webdav } = useConfigStore.getState();
     const { sources, schedule } = usePromptSourceStore.getState();
@@ -46,6 +64,11 @@ export async function importAppConfig(file: File) {
         throw new Error("配置文件格式不正确");
     }
     if (data.app !== "infinite-canvas" || data.version !== 1 || !data.config || !data.webdav || !data.promptSources) throw new Error("配置文件格式不正确");
-    useConfigStore.setState({ config: normalizeAiConfig(data.config), webdav: data.webdav });
+    const sanitized = sanitizeImportedConfig(data.config);
+    useConfigStore.setState({
+        config: normalizeAiConfig(sanitized.config),
+        webdav: { ...data.webdav, password: "" },
+    });
     usePromptSourceStore.setState(data.promptSources);
+    return { strippedScripts: sanitized.strippedScripts };
 }

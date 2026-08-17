@@ -12,6 +12,7 @@ WorkflowGenerator 不读取私有仓库凭据，也不加载远程网页。私�
 ```text
 dist/
 ├── catalog.json
+├── catalog.json.sig
 ├── skills/
 ├── prompts/
 └── assets/
@@ -48,8 +49,17 @@ Skill 内容文件是 UTF-8 Markdown。资产支持文本、图片、视频和�
 1. 从已确认发布的内容生成 `dist/`。
 2. 计算每个内容文件的 SHA-256 与字节数。
 3. 校验目录结构、ID、类型和哈希。
-4. 只把 `dist/` 推送到公开只读分发分支，例如 `author-library-dist`。
-5. 不把草稿、整理记录、私有仓库历史或写入凭据带入分发分支。
+4. 使用与桌面更新相同的长期 Minisign 私钥签名 `catalog.json`，生成 `catalog.json.sig`；私钥只放在私有仓库的 Actions Secret 中。
+5. 只把 `dist/` 推送到公开只读分发分支，例如 `author-library-dist`。
+6. 不把草稿、整理记录、私有仓库历史或写入凭据带入分发分支。
+
+签名命令可以直接使用 Tauri CLI：
+
+```bash
+tauri signer sign dist/catalog.json
+```
+
+应用会先用内置公钥验证目录签名，再读取条目和各文件的 SHA-256。目录或签名被改动时不会安装内容。
 
 应用默认读取：
 

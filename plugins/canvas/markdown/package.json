@@ -12,6 +12,7 @@
     "devDependencies": {
         "@infinite-canvas/plugin-sdk": "file:../sdk",
         "@types/react": "19.1.12",
+        "marked": "^16.3.0",
         "typescript": "^5"
     }
 }

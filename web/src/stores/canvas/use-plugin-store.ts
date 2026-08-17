@@ -13,6 +13,7 @@ export type InstalledPlugin = {
     enabled: boolean;
     local?: boolean; // 自动发现于 web/public/plugins 的本地插件(默认关闭,启用时按 url 重新拉取)
     official?: boolean; // 从官方注册表安装(用于在管理器里归类)
+    sha256?: string; // 签名官方清单中固定的源码摘要
     installedAt: string;
 };
 

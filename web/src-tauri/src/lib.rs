@@ -2,6 +2,7 @@ mod app_storage;
 
 use base64::{engine::general_purpose::STANDARD as BASE64, Engine};
 use portable_pty::{native_pty_system, CommandBuilder, MasterPty, PtySize};
+use rfd::{MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};
 use sha2::{Digest, Sha256};
 use std::{
     collections::{HashMap, HashSet},
@@ -17,6 +18,176 @@ use std::{
     time::{Duration, UNIX_EPOCH},
 };
 use tauri::{AppHandle, Emitter, Manager, State};
+
+const PUBLISHER_MINISIGN_PUBLIC_KEY: &str =
+    "RWSF/lzGZohk+sJRybkcDaxqLrkxOcM2sw47TT2WAXqqJ8kHZphSxVC3";
+
+fn verify_publisher_payload(payload: &[u8], signature_text: &str) -> Result<(), String> {
+    let public_key = minisign_verify::PublicKey::from_base64(PUBLISHER_MINISIGN_PUBLIC_KEY)
+        .map_err(|_| "发布者公钥无效".to_string())?;
+    let signature = minisign_verify::Signature::decode(signature_text)
+        .map_err(|_| "发布签名格式无效".to_string())?;
+    public_key
+        .verify(payload, &signature, false)
+        .map_err(|_| "发布签名校验失败".to_string())
+}
+
+#[tauri::command]
+fn native_verify_publisher_signature(
+    payload_base64: String,
+    signature: String,
+) -> Result<bool, String> {
+    const MAX_SIGNED_PAYLOAD_BYTES: usize = 8 * 1024 * 1024;
+    if signature.len() > 16 * 1024 {
+        return Err("发布签名文件过大".into());
+    }
+    let payload = BASE64
+        .decode(payload_base64)
+        .map_err(|_| "发布内容无法解码".to_string())?;
+    if payload.len() > MAX_SIGNED_PAYLOAD_BYTES {
+        return Err("发布内容过大".into());
+    }
+    verify_publisher_payload(&payload, &signature)?;
+    Ok(true)
+}
+
+fn validate_credential_url(value: &str, label: &str) -> Result<reqwest::Url, String> {
+    let parsed = reqwest::Url::parse(value.trim()).map_err(|_| format!("{label}无效"))?;
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err(format!("{label}不能在网址中包含账号或密码"));
+    }
+    let loopback_http = parsed.scheme() == "http"
+        && parsed.host_str().is_some_and(|host| {
+            host.eq_ignore_ascii_case("localhost")
+                || host
+                    .parse::<std::net::IpAddr>()
+                    .is_ok_and(|address| address.is_loopback())
+        });
+    if parsed.scheme() != "https" && !loopback_http {
+        return Err(format!("{label}必须使用 HTTPS；本机 localhost 可使用 HTTP"));
+    }
+    Ok(parsed)
+}
+
+async fn read_limited_response_bytes(
+    mut response: reqwest::Response,
+    max_bytes: usize,
+    read_error: &str,
+    too_large: &str,
+) -> Result<(reqwest::StatusCode, reqwest::header::HeaderMap, Vec<u8>), String> {
+    if response
+        .content_length()
+        .is_some_and(|length| length as usize > max_bytes)
+    {
+        return Err(too_large.into());
+    }
+    let status = response.status();
+    let headers = response.headers().clone();
+    let mut bytes = Vec::with_capacity(
+        response
+            .content_length()
+            .unwrap_or_default()
+            .min(max_bytes as u64) as usize,
+    );
+    while let Some(chunk) = response
+        .chunk()
+        .await
+        .map_err(|error| format!("{read_error}：{error}"))?
+    {
+        if bytes.len().saturating_add(chunk.len()) > max_bytes {
+            return Err(too_large.into());
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok((status, headers, bytes))
+}
+
+fn is_public_remote_address(address: std::net::IpAddr) -> bool {
+    match address {
+        std::net::IpAddr::V4(ip) => {
+            let [a, b, c, _] = ip.octets();
+            !(a == 0
+                || a == 10
+                || a == 127
+                || (a == 100 && (64..=127).contains(&b))
+                || (a == 169 && b == 254)
+                || (a == 172 && (16..=31).contains(&b))
+                || (a == 192 && b == 168)
+                || (a == 192 && b == 0 && c == 0)
+                || (a == 192 && b == 0 && c == 2)
+                || (a == 198 && (b == 18 || b == 19))
+                || (a == 198 && b == 51 && c == 100)
+                || (a == 203 && b == 0 && c == 113)
+                || a >= 224)
+        }
+        std::net::IpAddr::V6(ip) => {
+            if let Some(ipv4) = ip.to_ipv4_mapped() {
+                return is_public_remote_address(std::net::IpAddr::V4(ipv4));
+            }
+            let first = ip.segments()[0];
+            !(ip.is_unspecified()
+                || ip.is_loopback()
+                || ip.is_multicast()
+                || (first & 0xfe00) == 0xfc00
+                || (first & 0xffc0) == 0xfe80
+                || (ip.segments()[0] == 0x2001 && ip.segments()[1] == 0x0db8))
+        }
+    }
+}
+
+async fn request_public_remote_media(
+    mut url: reqwest::Url,
+) -> Result<(reqwest::Response, reqwest::Url), String> {
+    const MAX_REDIRECTS: usize = 5;
+    for redirect_count in 0..=MAX_REDIRECTS {
+        if url.scheme() != "https" || !url.username().is_empty() || url.password().is_some() {
+            return Err("媒体地址必须使用不含账号信息的 HTTPS 地址".into());
+        }
+        let host = url
+            .host_str()
+            .ok_or_else(|| "媒体地址缺少服务器名称".to_string())?;
+        let port = url.port_or_known_default().unwrap_or(443);
+        let resolved: Vec<std::net::SocketAddr> = tokio::net::lookup_host((host, port))
+            .await
+            .map_err(|_| "无法解析媒体服务器地址".to_string())?
+            .collect();
+        if resolved.is_empty()
+            || resolved
+                .iter()
+                .any(|address| !is_public_remote_address(address.ip()))
+        {
+            return Err("媒体地址指向本机或内网，已停止下载".into());
+        }
+        let client = reqwest::Client::builder()
+            .timeout(Duration::from_secs(120))
+            .redirect(reqwest::redirect::Policy::none())
+            .no_proxy()
+            .resolve_to_addrs(host, &resolved)
+            .build()
+            .map_err(|error| format!("无法创建媒体下载请求：{error}"))?;
+        let response = client
+            .get(url.clone())
+            .send()
+            .await
+            .map_err(|error| format!("下载生成结果失败：{error}"))?;
+        if response.status().is_redirection() {
+            if redirect_count == MAX_REDIRECTS {
+                return Err("媒体下载重定向次数过多".into());
+            }
+            let location = response
+                .headers()
+                .get(reqwest::header::LOCATION)
+                .and_then(|value| value.to_str().ok())
+                .ok_or_else(|| "媒体下载返回了无效重定向".to_string())?;
+            url = url
+                .join(location)
+                .map_err(|_| "媒体下载返回了无效重定向".to_string())?;
+            continue;
+        }
+        return Ok((response, url));
+    }
+    Err("媒体下载重定向次数过多".into())
+}
 
 struct TerminalSession {
     master: Box<dyn MasterPty + Send>,
@@ -131,14 +302,11 @@ async fn native_fetch_model_list(
     api_key: String,
 ) -> Result<serde_json::Value, String> {
     const MAX_MODEL_LIST_BYTES: usize = 4 * 1024 * 1024;
-    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| "模型列表地址无效".to_string())?;
-    if !matches!(parsed.scheme(), "http" | "https") {
-        return Err("模型列表仅支持 HTTP 或 HTTPS 地址".into());
-    }
+    let parsed = validate_credential_url(&url, "模型列表地址")?;
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(30))
-        .redirect(reqwest::redirect::Policy::limited(3))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|error| format!("无法创建模型列表请求：{error}"))?;
     let response = client
@@ -148,20 +316,13 @@ async fn native_fetch_model_list(
         .send()
         .await
         .map_err(|error| format!("读取模型列表失败：{error}"))?;
-    let status = response.status();
-    if response
-        .content_length()
-        .is_some_and(|length| length as usize > MAX_MODEL_LIST_BYTES)
-    {
-        return Err("模型列表响应过大，已取消读取".into());
-    }
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|error| format!("读取模型列表失败：{error}"))?;
-    if bytes.len() > MAX_MODEL_LIST_BYTES {
-        return Err("模型列表响应过大，已取消读取".into());
-    }
+    let (status, _, bytes) = read_limited_response_bytes(
+        response,
+        MAX_MODEL_LIST_BYTES,
+        "读取模型列表失败",
+        "模型列表响应过大，已取消读取",
+    )
+    .await?;
     let payload: serde_json::Value = serde_json::from_slice(&bytes)
         .map_err(|_| format!("模型列表响应格式无效（HTTP {status}）"))?;
     if !status.is_success() {
@@ -195,14 +356,11 @@ async fn post_model_json(
     api_key: &str,
     body: serde_json::Value,
 ) -> Result<serde_json::Value, String> {
-    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| "模型请求地址无效".to_string())?;
-    if !matches!(parsed.scheme(), "http" | "https") {
-        return Err("模型请求仅支持 HTTP 或 HTTPS 地址".into());
-    }
+    let parsed = validate_credential_url(url, "模型请求地址")?;
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(1200))
-        .redirect(reqwest::redirect::Policy::limited(3))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|error| format!("无法创建模型请求：{error}"))?;
     let response = client
@@ -226,16 +384,13 @@ async fn native_model_raw_json_post(
 }
 
 async fn post_model_raw_json(url: &str, api_key: &str, body: &str) -> Result<String, String> {
-    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| "模型请求地址无效".to_string())?;
-    if !matches!(parsed.scheme(), "http" | "https") {
-        return Err("模型请求仅支持 HTTP 或 HTTPS 地址".into());
-    }
+    let parsed = validate_credential_url(url, "模型请求地址")?;
     serde_json::from_str::<serde_json::Value>(body)
         .map_err(|_| "模型请求 JSON 无效".to_string())?;
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(1200))
-        .redirect(reqwest::redirect::Policy::limited(3))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|error| format!("无法创建模型请求：{error}"))?;
     let response = client
@@ -282,10 +437,7 @@ async fn post_model_multipart(
     fields: HashMap<String, String>,
 ) -> Result<String, String> {
     const MAX_MODEL_UPLOAD_BYTES: usize = 64 * 1024 * 1024;
-    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| "模型请求地址无效".to_string())?;
-    if !matches!(parsed.scheme(), "http" | "https") {
-        return Err("模型请求仅支持 HTTP 或 HTTPS 地址".into());
-    }
+    let parsed = validate_credential_url(url, "模型请求地址")?;
     if file_field.trim().is_empty() || file_name.trim().is_empty() {
         return Err("模型上传文件信息不完整".into());
     }
@@ -308,7 +460,7 @@ async fn post_model_multipart(
 
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(1200))
-        .redirect(reqwest::redirect::Policy::limited(3))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|error| format!("无法创建模型请求：{error}"))?;
     let response = client
@@ -324,13 +476,10 @@ async fn post_model_multipart(
 
 #[tauri::command]
 async fn native_model_json_get(url: String, api_key: String) -> Result<serde_json::Value, String> {
-    let parsed = reqwest::Url::parse(url.trim()).map_err(|_| "模型请求地址无效".to_string())?;
-    if !matches!(parsed.scheme(), "http" | "https") {
-        return Err("模型请求仅支持 HTTP 或 HTTPS 地址".into());
-    }
+    let parsed = validate_credential_url(&url, "模型请求地址")?;
     let client = reqwest::Client::builder()
         .timeout(Duration::from_secs(120))
-        .redirect(reqwest::redirect::Policy::limited(3))
+        .redirect(reqwest::redirect::Policy::none())
         .build()
         .map_err(|error| format!("无法创建模型请求：{error}"))?;
     let response = client
@@ -352,20 +501,13 @@ async fn read_model_json_response(
 
 async fn read_model_json_text_response(response: reqwest::Response) -> Result<String, String> {
     const MAX_MODEL_RESPONSE_BYTES: usize = 16 * 1024 * 1024;
-    let status = response.status();
-    if response
-        .content_length()
-        .is_some_and(|length| length as usize > MAX_MODEL_RESPONSE_BYTES)
-    {
-        return Err("模型响应过大，已取消读取".into());
-    }
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|error| format!("读取模型响应失败：{error}"))?;
-    if bytes.len() > MAX_MODEL_RESPONSE_BYTES {
-        return Err("模型响应过大，已取消读取".into());
-    }
+    let (status, _, bytes) = read_limited_response_bytes(
+        response,
+        MAX_MODEL_RESPONSE_BYTES,
+        "读取模型响应失败",
+        "模型响应过大，已取消读取",
+    )
+    .await?;
     let payload: serde_json::Value =
         serde_json::from_slice(&bytes).map_err(|_| format!("模型响应格式无效（HTTP {status}）"))?;
     if !status.is_success() {
@@ -393,7 +535,10 @@ async fn read_model_json_text_response(response: reqwest::Response) -> Result<St
 
 #[cfg(test)]
 mod native_model_request_tests {
-    use super::{post_model_json, post_model_multipart, post_model_raw_json, BASE64};
+    use super::{
+        is_public_remote_address, post_model_json, post_model_multipart, post_model_raw_json,
+        validate_credential_url, BASE64,
+    };
     use base64::Engine;
     use std::{
         collections::HashMap,
@@ -402,6 +547,36 @@ mod native_model_request_tests {
         sync::mpsc,
         thread,
     };
+
+    #[test]
+    fn credential_urls_require_https_except_for_loopback_development() {
+        assert!(validate_credential_url("https://api.example.com/v1", "模型请求地址").is_ok());
+        assert!(validate_credential_url("http://127.0.0.1:11434/v1", "模型请求地址").is_ok());
+        assert!(validate_credential_url("http://localhost:11434/v1", "模型请求地址").is_ok());
+        assert!(validate_credential_url("http://api.example.com/v1", "模型请求地址").is_err());
+        assert!(
+            validate_credential_url("https://user:pass@api.example.com/v1", "模型请求地址")
+                .is_err()
+        );
+    }
+
+    #[test]
+    fn remote_media_rejects_private_and_reserved_addresses() {
+        use std::net::{IpAddr, Ipv4Addr, Ipv6Addr};
+        assert!(!is_public_remote_address(IpAddr::V4(Ipv4Addr::new(
+            127, 0, 0, 1
+        ))));
+        assert!(!is_public_remote_address(IpAddr::V4(Ipv4Addr::new(
+            10, 0, 0, 1
+        ))));
+        assert!(!is_public_remote_address(IpAddr::V4(Ipv4Addr::new(
+            169, 254, 169, 254
+        ))));
+        assert!(!is_public_remote_address(IpAddr::V6(Ipv6Addr::LOCALHOST)));
+        assert!(is_public_remote_address(IpAddr::V4(Ipv4Addr::new(
+            1, 1, 1, 1
+        ))));
+    }
 
     #[test]
     fn posts_seedream_json_natively_and_returns_provider_payload() {
@@ -682,43 +857,25 @@ async fn native_fetch_remote_media(
         .unwrap_or(MAX_REMOTE_MEDIA_BYTES)
         .min(MAX_REMOTE_MEDIA_BYTES);
     let parsed = reqwest::Url::parse(url.trim()).map_err(|_| "媒体地址无效".to_string())?;
-    if !matches!(parsed.scheme(), "http" | "https") {
-        return Err("媒体地址仅支持 HTTP 或 HTTPS".into());
+    let (response, final_url) = request_public_remote_media(parsed).await?;
+    if !response.status().is_success() {
+        return Err(format!("下载生成结果失败：HTTP {}", response.status()));
     }
-    let client = reqwest::Client::builder()
-        .timeout(Duration::from_secs(120))
-        .redirect(reqwest::redirect::Policy::limited(5))
-        .build()
-        .map_err(|error| format!("无法创建媒体下载请求：{error}"))?;
-    let response = client
-        .get(parsed.clone())
-        .send()
-        .await
-        .map_err(|error| format!("下载生成结果失败：{error}"))?
-        .error_for_status()
-        .map_err(|error| format!("下载生成结果失败：{error}"))?;
-    if response
-        .content_length()
-        .is_some_and(|length| length as usize > max_remote_media_bytes)
-    {
-        return Err("生成结果文件过大，无法保存".into());
-    }
-    let reported_mime_type = response
-        .headers()
+    let (_, headers, bytes) = read_limited_response_bytes(
+        response,
+        max_remote_media_bytes,
+        "读取生成结果失败",
+        "生成结果文件过大，无法保存",
+    )
+    .await?;
+    let reported_mime_type = headers
         .get(reqwest::header::CONTENT_TYPE)
         .and_then(|value| value.to_str().ok())
         .and_then(|value| value.split(';').next())
         .map(|value| value.trim().to_ascii_lowercase());
-    let bytes = response
-        .bytes()
-        .await
-        .map_err(|error| format!("读取生成结果失败：{error}"))?;
-    if bytes.len() > max_remote_media_bytes {
-        return Err("生成结果文件过大，无法保存".into());
-    }
     verify_remote_media_checksum(&bytes, expected_sha256.as_deref())?;
     let mime_type =
-        normalize_remote_media_type(reported_mime_type.as_deref(), &parsed, &key, &bytes)
+        normalize_remote_media_type(reported_mime_type.as_deref(), &final_url, &key, &bytes)
             .ok_or_else(|| "生成结果媒体格式无法识别".to_string())?;
     app_storage::save_remote_media(&storage, bucket, key, mime_type, &bytes)
 }
@@ -954,6 +1111,21 @@ fn start_terminal_session(
         if !Path::new(directory).is_dir() {
             return Err("工作位置不存在或不可访问".into());
         }
+    }
+    let requested_directory = cwd
+        .as_deref()
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("应用当前目录");
+    let confirmation = MessageDialog::new()
+        .set_level(MessageLevel::Warning)
+        .set_title("允许打开本机终端？")
+        .set_description(format!(
+            "终端中的命令可以读取和修改本机文件。\n\n工作位置：{requested_directory}\n\n仅在你刚刚主动打开终端时继续。"
+        ))
+        .set_buttons(MessageButtons::YesNo)
+        .show();
+    if confirmation != MessageDialogResult::Yes {
+        return Err("已取消打开终端".into());
     }
     let Some(_start_guard) = reserve_terminal_start(&sessions, &session_id)? else {
         return Ok(());
@@ -2161,6 +2333,7 @@ pub fn run() {
             native_model_json_get,
             native_model_multipart_post,
             native_fetch_remote_media,
+            native_verify_publisher_signature,
             app_storage::native_store_get,
             app_storage::native_store_set,
             app_storage::native_store_remove,

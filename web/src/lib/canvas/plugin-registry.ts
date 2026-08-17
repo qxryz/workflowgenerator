@@ -1,4 +1,5 @@
 import { PLUGIN_REGISTRY_URL } from "@/constant/env";
+import { fetchSignedPublisherText } from "@/services/publisher-signature";
 import directorDeskPackage from "../../../../plugins/canvas/director-desk/package.json";
 
 export const DIRECTOR_DESK_BUNDLED_PLUGIN_URL = "builtin:director-desk";
@@ -12,9 +13,10 @@ export type OfficialPluginEntry = {
     icon?: string;
     url: string;
     bundled?: boolean;
+    sha256?: string;
 };
 
-type RawEntry = { id?: string; name?: string; version?: string; description?: string; icon?: string; entry?: string; url?: string };
+type RawEntry = { id?: string; name?: string; version?: string; description?: string; icon?: string; entry?: string; url?: string; sha256?: string };
 type RawManifest = { plugins?: RawEntry[] };
 
 export const BUNDLED_OFFICIAL_PLUGINS: OfficialPluginEntry[] = [
@@ -50,13 +52,11 @@ function mergeOfficialPlugins(remote: OfficialPluginEntry[]) {
 // 拉取官方插件清单;entry(相对文件名)按清单地址解析成绝对 URL,再走既有 URL 安装流程
 export async function fetchOfficialPlugins(registryUrl: string = PLUGIN_REGISTRY_URL): Promise<OfficialPluginEntry[]> {
     try {
-        const response = await fetch(registryUrl, { headers: { accept: "application/json" } });
-        if (!response.ok) throw new Error(`获取官方插件列表失败 (HTTP ${response.status})`);
-        const data = (await response.json()) as RawManifest;
+        const data = JSON.parse(await fetchSignedPublisherText(registryUrl, 1024 * 1024, "官方插件列表过大")) as RawManifest;
         const list = Array.isArray(data?.plugins) ? data.plugins : [];
         return mergeOfficialPlugins(
             list
-                .filter((item): item is RawEntry & { id: string } => Boolean(item && item.id && (item.entry || item.url)))
+                .filter((item): item is RawEntry & { id: string; sha256: string } => Boolean(item && item.id && (item.entry || item.url) && /^[a-f0-9]{64}$/u.test(item.sha256 || "")))
                 .map((item) => ({
                     id: item.id,
                     name: item.name || item.id,
@@ -64,6 +64,7 @@ export async function fetchOfficialPlugins(registryUrl: string = PLUGIN_REGISTRY
                     description: item.description,
                     icon: item.icon,
                     url: item.url ? item.url : new URL(item.entry as string, registryUrl).toString(),
+                    sha256: item.sha256,
                 })),
         );
     } catch {

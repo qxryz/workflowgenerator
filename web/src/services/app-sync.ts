@@ -5,6 +5,7 @@ import { withMediaStorageFence } from "@/services/media-retention-policy";
 import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
 import { portableCanvasProject } from "@/lib/canvas/canvas-portability";
 import { downloadWebdavFile, uploadWebdavFile, WEBDAV_MANIFEST_FILE_NAME } from "@/services/webdav-sync";
+import { validateRemoteSyncFiles, type AppSyncFile } from "@/services/app-sync-validation";
 import type { Asset } from "@/stores/use-asset-store";
 import { useAssetStore } from "@/stores/use-asset-store";
 import type { WebdavSyncConfig } from "@/stores/use-config-store";
@@ -15,13 +16,6 @@ export type AppSyncDomainKey = "canvas" | "assets";
 type DomainKey = AppSyncDomainKey;
 type CanvasDomainData = { projects: CanvasProject[] };
 type AssetDomainData = { assets: Asset[] };
-
-type AppSyncFile = {
-    storageKey: string;
-    path: string;
-    mimeType: string;
-    bytes: number;
-};
 
 type DomainManifest<T> = {
     app: "infinite-canvas";
@@ -74,7 +68,8 @@ export type AppSyncProgressEvent = {
 export type AppSyncProgress = (event: AppSyncProgressEvent) => void;
 
 const FILE_CONCURRENCY = 3;
-const storageKeyPattern = /^(image|video|audio|file|video-reference|audio-reference):/;
+const storageKeyPattern = /^(image|video|audio|file|video-reference|audio-reference):[A-Za-z0-9_-]{1,128}$/u;
+const MAX_SYNC_MANIFEST_BYTES = 8 * 1024 * 1024;
 
 export async function syncAppDataToWebdav(config: WebdavSyncConfig, onProgress?: AppSyncProgress): Promise<AppSyncResult> {
     emitProgress(onProgress, { stage: "等待本地数据加载" });
@@ -163,7 +158,7 @@ async function syncDomain<T>(config: WebdavSyncConfig, onProgress: AppSyncProgre
 }
 
 async function readDomainManifest<T>(config: WebdavSyncConfig, domain: DomainKey, emptyData: T): Promise<DomainManifest<T> | null> {
-    const file = await downloadWebdavFile(config, domainPath(domain, WEBDAV_MANIFEST_FILE_NAME));
+    const file = await downloadWebdavFile(config, domainPath(domain, WEBDAV_MANIFEST_FILE_NAME), MAX_SYNC_MANIFEST_BYTES);
     if (!file) return null;
     const data = JSON.parse(await file.text()) as DomainManifest<T>;
     if (data.app !== "infinite-canvas" || data.domain !== domain) throw new Error(`${domain} 同步清单不是当前应用的数据`);
@@ -173,7 +168,7 @@ async function readDomainManifest<T>(config: WebdavSyncConfig, domain: DomainKey
         domain,
         exportedAt: data.exportedAt || new Date().toISOString(),
         data: data.data || emptyData,
-        files: Array.isArray(data.files) ? data.files : [],
+        files: validateRemoteSyncFiles(domain, data.files),
     };
 }
 
@@ -199,8 +194,9 @@ async function downloadMissingFiles<T>(config: WebdavSyncConfig, domain: DomainK
     }
     let downloaded = 0;
     await runWithConcurrency(tasks, FILE_CONCURRENCY, async (remoteFile) => {
-        const blob = await downloadWebdavFile(config, remoteFile.path);
+        const blob = await downloadWebdavFile(config, remoteFile.path, remoteFile.bytes);
         if (!blob) return;
+        if (blob.size !== remoteFile.bytes) throw new Error("WebDAV 文件大小与同步清单不一致");
         const typedBlob = blob.type ? blob : blob.slice(0, blob.size, remoteFile.mimeType);
         await (remoteFile.storageKey.startsWith("image:") ? setImageBlob(remoteFile.storageKey, typedBlob) : setMediaBlob(remoteFile.storageKey, typedBlob));
         downloaded += 1;

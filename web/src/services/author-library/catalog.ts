@@ -1,4 +1,6 @@
 import { createDesktopJsonStore } from "@/services/desktop-storage";
+import { readResponseText } from "@/lib/limited-response";
+import { fetchSignedPublisherText } from "@/services/publisher-signature";
 import { parseAuthorLibraryCatalog, type AuthorLibraryCatalog } from "./contract";
 
 const authorLibraryEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
@@ -8,7 +10,7 @@ const fallbackCatalogPath = "/author-library/catalog.json";
 const maxCatalogBytes = 2 * 1024 * 1024;
 const catalogTimeoutMs = 10_000;
 const catalogStore = createDesktopJsonStore({
-    namespace: "author-library-cache-v1",
+    namespace: "author-library-cache-v2",
     legacy: { name: "infinite-canvas", storeName: "author_library_cache" },
 });
 
@@ -26,7 +28,7 @@ export type AuthorLibrarySnapshot = CachedCatalog & {
 export async function fetchAuthorLibraryCatalog(): Promise<AuthorLibrarySnapshot> {
     const remoteUrl = absoluteCatalogUrl(AUTHOR_LIBRARY_CATALOG_URL);
     try {
-        const catalog = await requestCatalog(remoteUrl);
+        const catalog = await requestCatalog(remoteUrl, true);
         const cached = { catalog, sourceUrl: remoteUrl, fetchedAt: Date.now() };
         await catalogStore.setItem("catalog", cached);
         return { ...cached, stale: false };
@@ -42,7 +44,7 @@ export async function fetchAuthorLibraryCatalog(): Promise<AuthorLibrarySnapshot
         const fallbackUrl = absoluteCatalogUrl(fallbackCatalogPath);
         if (fallbackUrl !== remoteUrl) {
             try {
-                const catalog = await requestCatalog(fallbackUrl);
+                const catalog = await requestCatalog(fallbackUrl, false);
                 return { catalog, sourceUrl: fallbackUrl, fetchedAt: 0, stale: false };
             } catch {
                 // The remote error is more useful than a bundled fallback error.
@@ -52,16 +54,18 @@ export async function fetchAuthorLibraryCatalog(): Promise<AuthorLibrarySnapshot
     }
 }
 
-async function requestCatalog(url: string) {
+async function requestCatalog(url: string, requireSignature: boolean) {
     const controller = new AbortController();
     const timeout = globalThis.setTimeout(() => controller.abort(), catalogTimeoutMs);
     try {
-        const response = await fetch(url, { cache: "no-store", signal: controller.signal });
-        if (!response.ok) throw new Error(`请求失败（${response.status}）`);
-        const declaredLength = Number(response.headers.get("content-length") || 0);
-        if (declaredLength > maxCatalogBytes) throw new Error("目录文件过大");
-        const text = await response.text();
-        if (new TextEncoder().encode(text).byteLength > maxCatalogBytes) throw new Error("目录文件过大");
+        let text: string;
+        if (requireSignature) {
+            text = await fetchSignedPublisherText(url, maxCatalogBytes, "目录文件过大", catalogTimeoutMs);
+        } else {
+            const response = await fetch(url, { cache: "no-store", signal: controller.signal });
+            if (!response.ok) throw new Error(`请求失败（${response.status}）`);
+            text = await readResponseText(response, maxCatalogBytes, "目录文件过大", catalogTimeoutMs);
+        }
         return parseAuthorLibraryCatalog(JSON.parse(text), url);
     } catch (error) {
         if (error instanceof SyntaxError) throw new Error("目录文件不是有效 JSON");

@@ -4,6 +4,7 @@ import { App } from "antd";
 
 import { createPresetChannel, useConfigStore } from "@/stores/use-config-store";
 import { usePromptSourceScheduler } from "@/hooks/use-prompt-source-scheduler";
+import { readLinkedConfig } from "@/lib/link-config";
 
 export function ClientRootInit({ children }: { children: ReactNode }) {
     const { message } = App.useApp();
@@ -16,16 +17,20 @@ export function ClientRootInit({ children }: { children: ReactNode }) {
 
     useEffect(() => {
         if (handledConfigParams.current) return;
-        const searchParams = new URLSearchParams(window.location.search);
-        const baseUrl = searchParams.get("baseUrl") || searchParams.get("baseurl");
-        const apiKey = searchParams.get("apiKey") || searchParams.get("apikey");
-        if (!baseUrl && !apiKey) return;
+        const linked = readLinkedConfig(window.location.search);
+        if (!linked.hadParams) return;
         handledConfigParams.current = true;
-        searchParams.delete("baseUrl");
-        searchParams.delete("baseurl");
-        searchParams.delete("apiKey");
-        searchParams.delete("apikey");
-        window.history.replaceState(null, "", `${window.location.pathname}${searchParams.size ? `?${searchParams}` : ""}${window.location.hash}`);
+        window.history.replaceState(null, "", `${window.location.pathname}${linked.cleanedSearch ? `?${linked.cleanedSearch}` : ""}${window.location.hash}`);
+        if (linked.invalidBaseUrl) {
+            message.warning("链接中的接口地址不安全，未导入");
+            return;
+        }
+        if (!linked.baseUrl) {
+            message.warning("链接中的 API Key 不会被导入，请在设置中填写");
+            openConfigDialog(false);
+            return;
+        }
+        const linkedBaseUrl = linked.baseUrl;
         const firstChannel = config.channels[0];
         updateConfig(
             "channels",
@@ -34,17 +39,17 @@ export function ClientRootInit({ children }: { children: ReactNode }) {
                       index === 0
                           ? {
                                 ...channel,
-                                ...(baseUrl ? { baseUrl } : {}),
-                                ...(apiKey ? { apiKey } : {}),
+                                baseUrl: linkedBaseUrl,
+                                apiKey: "",
                             }
                           : channel,
                   )
-                : [{ ...createPresetChannel("free"), ...(baseUrl ? { baseUrl } : {}), apiKey: apiKey || "" }],
+                : [{ ...createPresetChannel("free"), baseUrl: linkedBaseUrl, apiKey: "" }],
         );
-        if (baseUrl) updateConfig("baseUrl", baseUrl);
-        if (apiKey) updateConfig("apiKey", apiKey);
+        updateConfig("baseUrl", linkedBaseUrl);
+        updateConfig("apiKey", "");
         openConfigDialog(false);
-        message.success("已导入本地直连配置");
+        message.success(linked.hadApiKey ? "已导入接口地址；API Key 请在设置中填写" : "已导入本地直连配置");
     }, [config.channels, message, openConfigDialog, updateConfig]);
 
     return <>{children}</>;

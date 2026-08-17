@@ -2,10 +2,10 @@ storyai-3d-director-desk
 https://github.com/jiguang132/storyai-3d-director-desk
 
 This distribution incorporates and modifies source code from the project above.
-The local personal-use build also includes the upstream UE Mannequin
-(Retopology) asset. Its separate attribution and Sketchfab Standard license
-notice are stored at models/ue-mannequin-retopology.license.txt and are not
-covered by this MIT license.
+It also includes the upstream UE Mannequin (Retopology) asset. Its separate
+attribution and Sketchfab Standard license notice are stored at
+models/ue-mannequin-retopology.license.txt and are not covered by this MIT
+license.
 
 Copyright (c) 2026 YZ
 

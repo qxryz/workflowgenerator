@@ -226,8 +226,8 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
 
     const loadConfigFile = async (file: File) => {
         try {
-            await importAppConfig(file);
-            message.success("配置与用户偏好已导入");
+            const result = await importAppConfig(file);
+            message.success(result.strippedScripts ? "配置已导入；其中的自定义脚本已移除" : "配置与用户偏好已导入");
         } catch (error) {
             message.error(error instanceof Error ? error.message : "配置文件读取失败");
         } finally {

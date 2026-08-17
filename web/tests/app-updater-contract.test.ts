@@ -7,11 +7,11 @@ import { isNewerVersion } from "../src/lib/release.ts";
 const readSource = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 test("version comparison accepts release tags and rejects older or invalid versions", () => {
-    assert.equal(isNewerVersion("v0.15.0", "0.14.0"), true);
-    assert.equal(isNewerVersion("0.14.1", "0.14.0"), true);
-    assert.equal(isNewerVersion("0.14.0", "0.14.0"), false);
-    assert.equal(isNewerVersion("0.13.9", "0.14.0"), false);
-    assert.equal(isNewerVersion("latest", "0.14.0"), false);
+    assert.equal(isNewerVersion("v0.2.0", "0.1.0"), true);
+    assert.equal(isNewerVersion("0.1.1", "0.1.0"), true);
+    assert.equal(isNewerVersion("0.1.0", "0.1.0"), false);
+    assert.equal(isNewerVersion("0.0.9", "0.1.0"), false);
+    assert.equal(isNewerVersion("latest", "0.1.0"), false);
 });
 
 test("desktop updater checks this repository and saves state before installation", () => {
@@ -54,10 +54,15 @@ test("version tags build downloadable and signed updater artifacts", () => {
     const releaseConfig = JSON.parse(readSource("../src-tauri/tauri.release.conf.json")) as { bundle: { createUpdaterArtifacts: boolean } };
     assert.match(workflow, /tags: \["v\*"\]/u);
     assert.match(workflow, /cat \.\.\/VERSION/u);
-    assert.match(workflow, /tauri-apps\/tauri-action@v1/u);
+    assert.match(workflow, /tauri-apps\/tauri-action@[0-9a-f]{40} # v1/u);
+    assert.doesNotMatch(workflow, /tauri-apps\/tauri-action@v1(?:\s|$)/u);
     assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY/u);
     assert.match(workflow, /--bundles app,dmg/u);
     assert.match(workflow, /uploadUpdaterJson: true/u);
+    assert.match(workflow, /attestations: write/u);
+    assert.match(workflow, /actions\/attest-build-provenance@[0-9a-f]{40} # v3/u);
+    assert.match(workflow, /SHA256SUMS/u);
+    assert.match(workflow, /shasum -a 256/u);
     assert.equal(releaseConfig.bundle.createUpdaterArtifacts, true);
 });
 

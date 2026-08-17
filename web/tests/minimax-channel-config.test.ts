@@ -32,6 +32,10 @@ after(() => server.close());
 
 const configModule = await server.ssrLoadModule("/src/stores/use-config-store.ts");
 const fileModule = await server.ssrLoadModule("/src/services/config-file.ts");
+const linkConfigModule = await server.ssrLoadModule("/src/lib/link-config.ts");
+const webdavModule = await server.ssrLoadModule("/src/services/webdav-sync.ts");
+const limitedResponseModule = await server.ssrLoadModule("/src/lib/limited-response.ts");
+const syncValidationModule = await server.ssrLoadModule("/src/services/app-sync-validation.ts");
 
 function miniMaxConfig(vendor: "minimax-token-plan" | "minimax-api", overrides: Record<string, unknown> = {}) {
     const channel = configModule.createModelChannel({
@@ -266,6 +270,72 @@ test("configuration export strips each vendor channel Key without mutating saved
     assert.equal(stripped.channels[1].apiKey, "");
     assert.equal(config.channels[0].apiKey, "plan-key");
     assert.equal(config.channels[1].apiKey, "payg-key");
+});
+
+test("configuration import strips executable model scripts and credentials", () => {
+    const config = miniMaxConfig("minimax-api", {
+        models: [{ name: "MiniMax-M3", capability: "text", script: "globalThis.pwned = true" }],
+    });
+    const result = fileModule.sanitizeImportedConfig(config);
+
+    assert.equal(result.strippedScripts, 1);
+    assert.equal(result.config.channels[0].apiKey, "");
+    assert.equal(result.config.apiKey, "");
+    assert.equal(Object.hasOwn(result.config.channels[0].models[0], "script"), false);
+    assert.equal(config.channels[0].models[0].script, "globalThis.pwned = true");
+});
+
+test("a linked endpoint can never import or inherit an API Key", () => {
+    const linked = linkConfigModule.readLinkedConfig(
+        "?baseUrl=https%3A%2F%2Fgateway.example%2Fv1&apiKey=secret-from-link&keep=1",
+    );
+
+    assert.equal(linked.baseUrl, "https://gateway.example/v1");
+    assert.equal(linked.hadApiKey, true);
+    assert.equal(linked.cleanedSearch, "keep=1");
+    assert.equal(linkConfigModule.readLinkedConfig("?baseUrl=http%3A%2F%2Fevil.example").baseUrl, undefined);
+    assert.equal(linkConfigModule.readLinkedConfig("?baseUrl=http%3A%2F%2F127.0.0.1%3A11434").baseUrl, "http://127.0.0.1:11434/");
+});
+
+test("WebDAV URLs require secure transport and cannot escape their configured root", () => {
+    const config = { url: "https://dav.example/root", directory: "Workflow Folder", username: "", password: "" };
+    assert.equal(
+        webdavModule.buildWebdavUrl(config, "canvas/manifest.json"),
+        "https://dav.example/root/Workflow%20Folder/canvas/manifest.json",
+    );
+    assert.throws(() => webdavModule.buildWebdavUrl(config, "../outside.json"), /路径不安全/u);
+    assert.throws(() => webdavModule.buildWebdavUrl(config, "%2e%2e/outside.json"), /路径不安全/u);
+    assert.throws(() => webdavModule.buildWebdavUrl({ ...config, directory: "safe\\outside" }, "file"), /路径不安全/u);
+    assert.throws(() => webdavModule.buildWebdavUrl({ ...config, url: "http://dav.example/root" }, "file"), /HTTPS/u);
+});
+
+test("streamed downloads stop as soon as the byte limit is crossed", async () => {
+    const body = new ReadableStream({
+        start(controller) {
+            controller.enqueue(new Uint8Array([1, 2, 3, 4]));
+            controller.enqueue(new Uint8Array([5, 6, 7, 8]));
+            controller.close();
+        },
+    });
+    const response = new Response(body);
+    await assert.rejects(() => limitedResponseModule.readResponseBytes(response, 6, "too large"), /too large/u);
+});
+
+test("WebDAV manifests cannot choose local keys, out-of-domain paths, or unbounded files", () => {
+    const valid = { storageKey: "image:abc_123", path: "assets/files/image_abc.png", mimeType: "image/png", bytes: 1024 };
+    assert.deepEqual(syncValidationModule.validateRemoteSyncFiles("assets", [valid]), [valid]);
+    assert.throws(
+        () => syncValidationModule.validateRemoteSyncFiles("assets", [{ ...valid, path: "canvas/files/image_abc.png" }]),
+        /越界文件路径/u,
+    );
+    assert.throws(
+        () => syncValidationModule.validateRemoteSyncFiles("assets", [{ ...valid, path: "assets/files/../manifest.json" }]),
+        /路径不安全/u,
+    );
+    assert.throws(
+        () => syncValidationModule.validateRemoteSyncFiles("assets", [{ ...valid, bytes: 300 * 1024 * 1024 }]),
+        /文件大小/u,
+    );
 });
 
 test("legacy combined MiniMax channel migrates to two independent vendors without losing credentials", () => {

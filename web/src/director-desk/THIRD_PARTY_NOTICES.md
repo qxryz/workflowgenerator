@@ -29,15 +29,12 @@ SOFTWARE.
 
 ## UE Mannequin (Retopology)
 
-The local desktop verification build includes the rigged model used by the
-upstream director desk:
+This repository includes the rigged model used by the upstream director desk:
 
 - Title: UE Mannequin (Retopology)
 - Author: William Luque — https://sketchfab.com/luquewilliam230
 - Source: https://sketchfab.com/3d-models/ue-mannequin-retopology-5394d9f894374a2ab7c57a21929ce4c2
 - License: Sketchfab Standard — https://sketchfab.com/licenses
 
-This asset is included at the user's direction for personal, local use. It is
-not covered by the upstream project's MIT license. Do not publish or distribute
-a build containing the asset without separately confirming that the intended
-distribution complies with the asset license.
+This asset is not covered by the upstream project's MIT license. Its use and
+redistribution remain subject to the Sketchfab Standard license linked above.

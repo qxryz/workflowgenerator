@@ -7,6 +7,7 @@ import { useAssetStore, type Asset } from "@/stores/use-asset-store";
 import { useAuthorPromptStore, type InstalledAuthorPrompt } from "@/stores/use-author-prompt-store";
 import { useSkillStore } from "@/stores/use-skill-store";
 import type { AuthorAssetItem, AuthorLibraryItem, AuthorPromptItem, AuthorSkillItem } from "./contract";
+import { readResponseBytes } from "@/lib/limited-response";
 
 export type AuthorLibraryInstallResult = {
     destination: "skill" | "prompt" | "asset";
@@ -209,10 +210,7 @@ async function fetchVerifiedBytes(item: AuthorLibraryItem, maxBytes: number) {
     try {
         const response = await fetch(item.contentUrl, { cache: "no-store", signal: controller.signal });
         if (!response.ok) throw new Error(`「${item.title}」下载失败（${response.status}）`);
-        const declaredLength = Number(response.headers.get("content-length") || 0);
-        if (declaredLength > maxBytes) throw new Error(`「${item.title}」文件过大，无法保存`);
-        const bytes = new Uint8Array(await response.arrayBuffer());
-        if (bytes.byteLength > maxBytes) throw new Error(`「${item.title}」文件过大，无法保存`);
+        const bytes = await readResponseBytes(response, maxBytes, `「${item.title}」文件过大，无法保存`, 120_000);
         if ((await digestHex(bytes)) !== item.sha256) throw new Error(`「${item.title}」校验失败，已停止保存`);
         return bytes;
     } catch (error) {

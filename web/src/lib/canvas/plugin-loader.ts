@@ -3,6 +3,10 @@ import { bundledOfficialPluginId, isBundledOfficialPluginUrl, loadBundledOfficia
 import { getPluginRuntime } from "@/lib/canvas/plugin-runtime";
 import { usePluginStore, type InstalledPlugin } from "@/stores/canvas/use-plugin-store";
 import type { CanvasPlugin } from "@/types/canvas-plugin";
+import { readResponseBytes } from "@/lib/limited-response";
+
+const MAX_PLUGIN_SOURCE_BYTES = 5 * 1024 * 1024;
+export const UNTRUSTED_PLUGINS_ENABLED = Boolean(import.meta.env?.DEV && import.meta.env?.VITE_ENABLE_UNSAFE_PLUGINS === "true");
 
 const cleanups = new Map<string, () => void>();
 const activePlugins = new Map<string, CanvasPlugin>();
@@ -91,21 +95,43 @@ export async function loadBundledPlugin(url: string) {
     return plugin;
 }
 
-async function fetchPluginSource(url: string) {
-    const response = await fetch(url);
-    if (!response.ok) throw new Error(`下载失败 (HTTP ${response.status})`);
-    return response.text();
+async function digestHex(bytes: Uint8Array) {
+    const input = new ArrayBuffer(bytes.byteLength);
+    new Uint8Array(input).set(bytes);
+    const digest = await crypto.subtle.digest("SHA-256", input);
+    return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
-async function loadPlugin(url: string, source?: string, bustCache = false) {
+async function fetchPluginSource(url: string, expectedSha256?: string) {
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(`下载失败 (HTTP ${response.status})`);
+    const bytes = await readResponseBytes(response, MAX_PLUGIN_SOURCE_BYTES, "插件文件过大，已停止安装");
+    if (expectedSha256 && (await digestHex(bytes)) !== expectedSha256.toLowerCase()) throw new Error("插件文件校验失败，已停止安装");
+    try {
+        return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+    } catch {
+        throw new Error("插件文件不是有效的 UTF-8 文本");
+    }
+}
+
+async function loadPlugin(url: string, source?: string, bustCache = false, expectedSha256?: string) {
     if (isBundledOfficialPluginUrl(url)) return { plugin: await loadBundledPlugin(url), source: "" };
-    const resolvedSource = source ?? (await fetchPluginSource(bustCache ? withCacheBust(url) : url));
+    const resolvedSource = source ?? (await fetchPluginSource(bustCache ? withCacheBust(url) : url, expectedSha256));
+    if (source && expectedSha256) {
+        const bytes = new TextEncoder().encode(source);
+        if ((await digestHex(bytes)) !== expectedSha256.toLowerCase()) throw new Error("插件缓存校验失败，请重新安装");
+    }
     return { plugin: await evaluatePluginSource(resolvedSource), source: resolvedSource };
 }
 
 async function loadInstalledPlugin(record: InstalledPlugin) {
     if (isBundledOfficialPluginUrl(record.url)) return loadBundledPlugin(record.url);
     const source = record.local ? await fetchPluginSource(withCacheBust(record.url)) : record.source;
+    if (record.official && !record.sha256 && !isBundledOfficialPluginUrl(record.url)) throw new Error("官方插件缺少完整性信息，请重新安装");
+    if (record.sha256) {
+        const bytes = new TextEncoder().encode(source);
+        if ((await digestHex(bytes)) !== record.sha256.toLowerCase()) throw new Error("插件缓存校验失败，请重新安装");
+    }
     const plugin = await evaluatePluginSource(source);
     if (plugin.id !== record.id) throw new Error(`插件 id 不匹配: 期望 ${record.id}`);
     return plugin;
@@ -120,15 +146,17 @@ function withCacheBust(url: string) {
 // 随应用提供的官方插件可以 enabled=false 安装,由用户再明确启用。
 // bustCache=true 时下载绕过 HTTP/CDN 缓存(升级场景必需,避免拿到旧产物),
 // 但落库的 url 始终保持干净(不带 ?t=),便于后续再次更新。
-export async function installPluginFromUrl(url: string, opts?: { official?: boolean; bustCache?: boolean; enabled?: boolean }) {
-    const loadedPlugin = await loadPlugin(url, undefined, opts?.bustCache);
+export async function installPluginFromUrl(url: string, opts?: { official?: boolean; bustCache?: boolean; enabled?: boolean; expectedSha256?: string }) {
+    if (!opts?.official && !UNTRUSTED_PLUGINS_ENABLED) throw new Error("当前版本只允许安装经过签名校验的官方插件");
+    if (opts?.official && !isBundledOfficialPluginUrl(url) && !opts.expectedSha256) throw new Error("官方插件缺少完整性信息");
+    const loadedPlugin = await loadPlugin(url, undefined, opts?.bustCache, opts?.expectedSha256);
     const { plugin, source } = loadedPlugin;
     const previous = activePlugins.get(plugin.id);
     const enabled = opts?.enabled ?? !isBundledOfficialPluginUrl(url);
     try {
         deactivatePlugin(plugin.id); // 覆盖旧版本
         if (enabled) activatePlugin(plugin);
-        usePluginStore.getState().upsert({ id: plugin.id, name: plugin.name || plugin.id, version: plugin.version || "0.0.0", description: plugin.description, url, source, enabled, official: opts?.official });
+        usePluginStore.getState().upsert({ id: plugin.id, name: plugin.name || plugin.id, version: plugin.version || "0.0.0", description: plugin.description, url, source, enabled, official: opts?.official, sha256: opts?.expectedSha256 });
         return plugin;
     } catch (error) {
         if (activePlugins.get(plugin.id) === plugin) {
@@ -149,9 +177,9 @@ export async function installPluginFromUrl(url: string, opts?: { official?: bool
     }
 }
 
-export async function updatePlugin(record: InstalledPlugin) {
+export async function updatePlugin(record: InstalledPlugin, expectedSha256?: string) {
     // 升级必须拿到最新产物,强制绕过缓存
-    return installPluginFromUrl(record.url, { official: record.official, bustCache: true, enabled: record.enabled });
+    return installPluginFromUrl(record.url, { official: record.official, bustCache: true, enabled: record.enabled, expectedSha256: expectedSha256 || record.sha256 });
 }
 
 export async function setPluginEnabled(record: InstalledPlugin, enabled: boolean) {
@@ -163,6 +191,7 @@ export async function setPluginEnabled(record: InstalledPlugin, enabled: boolean
         }
         return;
     }
+    if (!record.official && !UNTRUSTED_PLUGINS_ENABLED) throw new Error("当前版本只允许启用经过签名校验的官方插件");
     const plugin = await loadInstalledPlugin(record);
     activatePlugin(plugin);
     usePluginStore.getState().setEnabled(record.id, true);
@@ -183,8 +212,8 @@ export async function ensurePluginsLoaded() {
     if (loaded) return;
     loaded = true;
     await usePluginStore.persist.rehydrate();
-    await loadLocalPlugins(); // 先发现本地插件(默认关闭),再统一按 enabled 激活
-    const records = usePluginStore.getState().plugins.filter((record) => record.enabled);
+    if (UNTRUSTED_PLUGINS_ENABLED) await loadLocalPlugins();
+    const records = usePluginStore.getState().plugins.filter((record) => record.enabled && (record.official || UNTRUSTED_PLUGINS_ENABLED));
     await Promise.all(
         records.map(async (record) => {
             try {
@@ -194,7 +223,7 @@ export async function ensurePluginsLoaded() {
             }
         }),
     );
-    await loadDevPlugins();
+    if (UNTRUSTED_PLUGINS_ENABLED) await loadDevPlugins();
 }
 
 // 自动发现 web/public/plugins 下的本地插件:加入列表但默认关闭,
@@ -238,7 +267,7 @@ async function loadLocalPlugins() {
 // 本地开发:VITE_DEV_PLUGINS 里的 URL 每次启动都重新拉取(不缓存、不落库),
 // 配合 watch 构建即可「改代码→刷新页面」看到最新插件,无需反复安装。
 async function loadDevPlugins() {
-    const raw = import.meta.env.VITE_DEV_PLUGINS;
+    const raw = import.meta.env?.VITE_DEV_PLUGINS;
     if (!raw) return;
     const urls = raw
         .split(",")

@@ -108,9 +108,9 @@
 - 软件内检查更新固定放在“设置 → 软件更新”，不得占用顶部导航；只使用 `qxryz/workflowgenerator` 的 GitHub Release，不得再指向上游仓库。入口应显示当前版本，发现更新后由用户点击下载并安装，完成后自动重启。
 - 更新安装前必须调用桌面刷盘流程，等待画布、Zodiac 会话、导演台、配置和媒体写入完成；保存失败时不得继续替换应用或重启。
 - Apple Developer ID 与 Tauri 更新包签名是两件事。当前没有 Apple Developer ID，也不做公证，macOS 应用使用 `signingIdentity: "-"` 的 ad-hoc 签名；README 必须保留 Gatekeeper 的右键打开、隐私与安全性放行及可信来源隔离属性处理方式。
-- Tauri updater 的更新包校验签名不能留空或关闭。公钥可以提交到 `tauri.conf.json`，私钥只允许保存在被忽略的 `web/.local-secrets/` 和 GitHub Actions Secret `TAURI_SIGNING_PRIVATE_KEY`，禁止写入源码、日志、Release 或提交记录。
+- Tauri updater 的更新包校验签名不能留空或关闭。公钥可以提交到 `tauri.conf.json`，私钥只允许保存在被忽略的 `web/.local-secrets/` 和 GitHub Actions Secret `TAURI_SIGNING_PRIVATE_KEY`；加密私钥的密码只允许放在 Secret `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`，二者都禁止写入源码、日志、Release 或提交记录。
 - 更新私钥必须长期备份；丢失后，已经安装旧公钥版本的用户将无法继续自动更新。更换密钥必须先设计公钥轮换版本，不能直接覆盖。
-- 正式推 tag 前必须确认 GitHub Actions 已配置 `TAURI_SIGNING_PRIVATE_KEY`，并在 Release 生成后核对 DMG、macOS updater 压缩包、`.sig` 和 `latest.json` 均存在且签名匹配。
+- 正式推 tag 前必须确认 GitHub Actions 已配置 `TAURI_SIGNING_PRIVATE_KEY`，加密私钥还要配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`；在 Release 生成后核对 DMG、macOS updater 压缩包、`.sig`、`latest.json`、校验和与构建证明均存在且签名匹配。
 
 ## 桌面端构建与核验
 
@@ -130,3 +130,5 @@
 - 当前 AI API Key 保存在本机应用数据库中，不使用系统钥匙串，也没有静态加密；桌面端内置厂商请求通过 Tauri 原生网络适配层发出，网页预览才由浏览器直连，涉及安全说明时要写清楚。
 - Docker 静态资源路径目前仍是待办项，文档中不要过度承诺生产部署已经完全验证。
 - 引入开源 3D、图片、字体或音频项目时必须分别核对源码与每个素材文件的再分发许可，保留要求的版权声明；仓库代码使用宽松许可证不代表同仓模型素材也可随桌面应用打包，许可不清或禁止独立分发的素材不得进入构建产物。
+- 用户明确要求保留在仓库中的第三方内容不得擅自改为本机私有文件、加入忽略或从 Git 移除；当前 UE Mannequin 模型及其独立许可文件继续由仓库跟踪，并在 README 底部保留来源与许可证说明。
+- 作者私藏目录与官方插件目录属于发布者控制的远程代码或内容入口，正式版必须先验证发布目录签名；官方插件还必须校验清单中的文件哈希，校验失败只能回退到应用内置内容。

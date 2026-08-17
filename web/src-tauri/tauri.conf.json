@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "WorkflowGenerator",
-  "version": "0.14.0",
+  "version": "0.1.0",
   "identifier": "app.workflowgenerator.desktop",
   "build": {
     "beforeDevCommand": "bun ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1420",
@@ -11,7 +11,7 @@
   },
   "app": {
     "security": {
-      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost wg-media: https: http:; img-src 'self' asset: http://asset.localhost wg-media: data: blob: https: http:; media-src 'self' asset: http://asset.localhost wg-media: data: blob: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self' blob: https://esm.sh 'unsafe-eval'; object-src 'none'; base-uri 'self'"
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost wg-media: https: http://127.0.0.1:* http://localhost:*; img-src 'self' asset: http://asset.localhost wg-media: data: blob: https: http://127.0.0.1:* http://localhost:*; media-src 'self' asset: http://asset.localhost wg-media: data: blob: https: http://127.0.0.1:* http://localhost:*; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self' blob: 'unsafe-eval'; object-src 'none'; base-uri 'self'"
     },
     "windows": [
       {
@@ -42,7 +42,7 @@
   },
   "plugins": {
     "updater": {
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZGOTY5MzU5NUIzMzY0QTcKUldTblpETmJXWk9XYjk3amtrVjE0c2VrNlpReExFY2FXSUJhYUJWNlg5bi9OclRhbW9pQXh5OFkK",
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZBNjQ4ODY2QzY1Q0ZFODUKUldTRi9sekdab2hrK3NKUnlia2NEYXhxTHJreE9jTTJzdzQ3VFQyV0FYcXFKOGtIWnBoU3hWQzMK",
       "endpoints": [
         "https://github.com/qxryz/workflowgenerator/releases/latest/download/latest.json"
       ]

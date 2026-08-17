@@ -30,6 +30,7 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                         {modelName ? ` - ${modelName}` : ""}
                     </div>
                     <div className="mt-1 text-xs font-normal text-stone-500">脚本是一段异步函数体，直接使用下方变量，最后 return 结果；留空则使用系统默认调用。</div>
+                    <div className="mt-1 text-xs font-normal text-amber-600 dark:text-amber-400">自定义脚本可以读取当前渠道的 API Key 并发起网络请求，只保存你自己编写或确认过的代码。</div>
                 </div>
             }
             width={1080}

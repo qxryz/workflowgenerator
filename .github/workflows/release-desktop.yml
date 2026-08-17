@@ -6,22 +6,24 @@ on:
 
 permissions:
   contents: write
+  id-token: write
+  attestations: write
 
 jobs:
   release-macos:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v7
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
 
-      - uses: oven-sh/setup-bun@v2
+      - uses: oven-sh/setup-bun@0c5077e51419868618aeaa5fe8019c62421857d6 # v2
         with:
           bun-version: latest
 
-      - uses: dtolnay/rust-toolchain@stable
+      - uses: dtolnay/rust-toolchain@4360b52568e2003a75bf9bc1d59f33a8e3fc893c # stable
         with:
           targets: aarch64-apple-darwin
 
-      - uses: Swatinem/rust-cache@v2
+      - uses: Swatinem/rust-cache@6323deb102c322ba6fcbdcafc7e3dddab59af2b6 # v2
         with:
           workspaces: web/src-tauri -> target
 
@@ -29,8 +31,11 @@ jobs:
         working-directory: web
         shell: bash
         run: |
+          version="${GITHUB_REF_NAME#v}"
           test "$GITHUB_REF_NAME" = "$(cat ../VERSION)"
-          test "$GITHUB_REF_NAME" = "v$(node -p "require('./package.json').version")"
+          test "$version" = "$(node -p "require('./package.json').version")"
+          test "$version" = "$(node -p "require('./src-tauri/tauri.conf.json').version")"
+          test "$version" = "$(sed -n 's/^version = "\([^"]*\)"/\1/p' src-tauri/Cargo.toml | head -n 1)"
           test -n "$TAURI_SIGNING_PRIVATE_KEY"
         env:
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
@@ -39,11 +44,12 @@ jobs:
         working-directory: web
         run: bun install --frozen-lockfile
 
-      - uses: tauri-apps/tauri-action@v1
+      - uses: tauri-apps/tauri-action@1deb371b0cd8bd54025b384f1cd735e725c4060f # v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           APPLE_SIGNING_IDENTITY: "-"
           TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           projectPath: web
           tagName: ${{ github.ref_name }}
@@ -53,3 +59,26 @@ jobs:
           prerelease: false
           uploadUpdaterJson: true
           args: --target aarch64-apple-darwin --bundles app,dmg --config src-tauri/tauri.release.conf.json
+
+      - name: Create release checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+          bundle_root="web/src-tauri/target/aarch64-apple-darwin/release/bundle"
+          find "$bundle_root" -type f \( -name '*.dmg' -o -name '*.tar.gz' -o -name '*.sig' \) | LC_ALL=C sort | while IFS= read -r file; do
+            digest=$(shasum -a 256 "$file" | cut -d ' ' -f 1)
+            printf '%s  %s\n' "$digest" "$(basename "$file")"
+          done > "$RUNNER_TEMP/SHA256SUMS"
+          test -s "$RUNNER_TEMP/SHA256SUMS"
+          gh release upload "$GITHUB_REF_NAME" "$RUNNER_TEMP/SHA256SUMS" --clobber
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Attest release artifacts
+        uses: actions/attest-build-provenance@977bb373ede98d70efdf65b84cb5f73e068dcc2a # v3
+        with:
+          subject-path: |
+            web/src-tauri/target/aarch64-apple-darwin/release/bundle/**/*.dmg
+            web/src-tauri/target/aarch64-apple-darwin/release/bundle/**/*.tar.gz
+            web/src-tauri/target/aarch64-apple-darwin/release/bundle/**/*.sig
+            ${{ runner.temp }}/SHA256SUMS

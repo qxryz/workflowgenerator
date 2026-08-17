@@ -3,7 +3,7 @@ import { App, Button, Input, Modal, Popconfirm, Switch, Tabs } from "antd";
 import { AlertTriangle, Download, Puzzle, RefreshCw, Terminal, Trash2 } from "lucide-react";
 
 import { canvasThemes } from "@/lib/canvas-theme";
-import { installPluginFromUrl, setPluginEnabled, uninstallPlugin, updatePlugin } from "@/lib/canvas/plugin-loader";
+import { installPluginFromUrl, setPluginEnabled, uninstallPlugin, UNTRUSTED_PLUGINS_ENABLED, updatePlugin } from "@/lib/canvas/plugin-loader";
 import { BUNDLED_OFFICIAL_PLUGINS, fetchOfficialPlugins, hasUpgrade, isBundledOfficialPluginUrl, type OfficialPluginEntry } from "@/lib/canvas/plugin-registry";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { usePluginStore, type InstalledPlugin } from "@/stores/canvas/use-plugin-store";
@@ -61,7 +61,7 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
     const handleInstallOfficial = async (entry: OfficialPluginEntry) => {
         setBusyId(entry.id);
         try {
-            const plugin = await installPluginFromUrl(entry.url, { official: true, enabled: !entry.bundled });
+            const plugin = await installPluginFromUrl(entry.url, { official: true, enabled: !entry.bundled, expectedSha256: entry.sha256 });
             message.success(entry.bundled ? `已安装 ${plugin.name}，启用后即可添加到画布` : `已安装 ${plugin.name}`);
         } catch (error) {
             message.error(`安装失败：${error instanceof Error ? error.message : String(error)}`);
@@ -84,7 +84,7 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
 
     // 已安装插件的操作区:启用开关 +(非本地)更新/卸载
     // upgradable=true 时(远程有更高版本),更新按钮高亮为主色以提示升级
-    const installedControls = (record: InstalledPlugin, upgradable = false) => {
+    const installedControls = (record: InstalledPlugin, upgradable = false, expectedSha256?: string) => {
         const bundled = isBundledOfficialPluginUrl(record.url);
         return (
             <>
@@ -97,7 +97,7 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                             icon={<RefreshCw className="size-4" />}
                             loading={busyId === record.id}
                             title={upgradable ? "有新版本，点击升级" : "从来源更新"}
-                            onClick={() => runOnPlugin(record, async () => void (await updatePlugin(record)), "已更新")}
+                            onClick={() => runOnPlugin(record, async () => void (await updatePlugin(record, expectedSha256)), "已更新")}
                         />
                     </>
                 ) : null}
@@ -185,7 +185,7 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
                             upgradable && record ? `${record.version} → ${entry.version}` : entry.version,
                             entry.description,
                             record ? (
-                                installedControls(record, upgradable)
+                                installedControls(record, upgradable, entry.sha256)
                             ) : (
                                 <Button type="primary" size="small" icon={<Download className="size-4" />} loading={busyId === entry.id} onClick={() => handleInstallOfficial(entry)}>
                                     安装
@@ -218,15 +218,25 @@ export function CanvasPluginManagerModal({ open, onClose }: { open: boolean; onC
         </div>
     );
 
-    const tabs = [{ key: "official", label: "官方插件", children: officialTab }, ...(localPlugins.length > 0 ? [{ key: "local", label: "本地插件", children: localTab }] : []), { key: "third", label: "第三方插件", children: thirdPartyTab }];
+    const tabs = [
+        { key: "official", label: "官方插件", children: officialTab },
+        ...(UNTRUSTED_PLUGINS_ENABLED && localPlugins.length > 0 ? [{ key: "local", label: "本地插件", children: localTab }] : []),
+        ...(UNTRUSTED_PLUGINS_ENABLED ? [{ key: "third", label: "第三方插件", children: thirdPartyTab }] : []),
+    ];
 
     return (
         <Modal title="节点插件" open={open} onCancel={onClose} footer={null} centered width={640}>
             <div className="space-y-3">
-                <div className="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-5" style={{ borderColor: "#f59e0b55", background: "#f59e0b14", color: theme.node.text }}>
-                    <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
-                    <span>插件代码会在当前页面内直接执行，可访问本地数据（包含 AI API Key）。请仅安装你信任来源的插件。</span>
-                </div>
+                {UNTRUSTED_PLUGINS_ENABLED ? (
+                    <div className="flex items-start gap-2 rounded-lg border px-3 py-2 text-xs leading-5" style={{ borderColor: "#f59e0b55", background: "#f59e0b14", color: theme.node.text }}>
+                        <AlertTriangle className="mt-0.5 size-4 shrink-0 text-amber-500" />
+                        <span>插件代码会在当前页面内直接执行，可访问本地数据（包含 AI API Key）。请仅安装你信任来源的插件。</span>
+                    </div>
+                ) : (
+                    <div className="rounded-lg border px-3 py-2 text-xs" style={{ borderColor: theme.node.stroke, background: theme.node.fill, color: theme.node.muted }}>
+                        官方插件会在安装前校验发布签名和文件完整性。
+                    </div>
+                )}
                 <div className="flex items-center gap-2 rounded-lg border px-3 py-2 text-xs" style={{ borderColor: theme.node.stroke, background: theme.node.fill, color: theme.node.muted }}>
                     <Terminal className="size-4 shrink-0" />
                     <span>插件节点可与终端节点直接连线，终端发布的文本、图片、视频或音频会作为上游内容传入。</span>
