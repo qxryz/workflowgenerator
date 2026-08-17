@@ -1,0 +1,31 @@
+[package]
+name = "workflowgenerator"
+version = "0.14.0"
+description = "WorkflowGenerator desktop app"
+authors = ["WorkflowGenerator contributors"]
+edition = "2021"
+license = "AGPL-3.0-or-later"
+
+[lib]
+name = "workflowgenerator_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "workflowgenerator"
+path = "src/main.rs"
+
+[build-dependencies]
+tauri-build = { version = "2", features = [] }
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+tauri = { version = "2", features = [] }
+tauri-plugin-process = "2"
+tauri-plugin-updater = "2"
+portable-pty = "0.9"
+base64 = "0.22"
+rusqlite = { version = "0.32", features = ["bundled"] }
+flate2 = "1"
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls"] }
+sha2 = "0.10"

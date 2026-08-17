@@ -1,0 +1,73 @@
+---
+title: 作者私藏发布
+description: 从私有内容仓库发布 WorkflowGenerator 作者库
+---
+
+# 作者私藏发布
+
+WorkflowGenerator 不读取私有仓库凭据，也不加载远程网页。私有内容仓库在发布时生成只读目录和内容文件，桌面应用只读取发布产物。
+
+## 发布目录
+
+```text
+dist/
+├── catalog.json
+├── skills/
+├── prompts/
+└── assets/
+```
+
+`catalog.json` 使用 `schemaVersion: 1`，条目 ID 必须以 `author.` 开头。每个条目都要包含内容文件的 SHA-256；Skill 还要声明能力，资产要声明 `assetKind` 与 MIME 类型。Skill、提示词和资产都可以添加最长 2000 字的 `authorNote`，用于显示作者为什么收藏、推荐给谁以及使用提醒。完整约束以应用内置的 `public/author-library/catalog.schema.json` 为准。
+
+```json
+{
+  "id": "author.prompt.example",
+  "kind": "prompt",
+  "version": "1.0.0",
+  "title": "示例提示词",
+  "authorNote": "适合需要稳定画面气质时使用，建议先替换主体与环境。",
+  "contentUrl": "./prompts/example.json",
+  "sha256": "内容文件的 SHA-256"
+}
+```
+
+提示词内容文件是 JSON，至少包含：
+
+```json
+{
+  "prompt": "提示词正文"
+}
+```
+
+Skill 内容文件是 UTF-8 Markdown。资产支持文本、图片、视频和音频。
+
+## 发布流程
+
+私有仓库的 GitHub Actions 应当：
+
+1. 从已确认发布的内容生成 `dist/`。
+2. 计算每个内容文件的 SHA-256 与字节数。
+3. 校验目录结构、ID、类型和哈希。
+4. 只把 `dist/` 推送到公开只读分发分支，例如 `author-library-dist`。
+5. 不把草稿、整理记录、私有仓库历史或写入凭据带入分发分支。
+
+应用默认读取：
+
+```text
+https://raw.githubusercontent.com/qxryz/workflowgenerator/author-library-dist/catalog.json
+```
+
+不同部署可以在构建时通过 `VITE_AUTHOR_LIBRARY_CATALOG_URL` 指定另一个 HTTPS 目录地址。不能把私有 GitHub Token 写入该变量或桌面应用。
+
+## 本地验收
+
+把待发布目录临时放到 `web/public/author-library/` 后运行：
+
+```bash
+cd web
+npm run author-library:validate
+npm run typecheck
+npm test
+```
+
+发布成功后，「关于作者」会显示新目录及每项作者备注。没有填写 `authorNote` 时保留“作者暂未留下备注”的位置。用户保存的 Skill 和提示词只进入各自的“作者私藏”，并继续显示同一条作者备注；图片、视频、音频与文本资产进入“我的资产”，同时保留作者来源和作者备注。

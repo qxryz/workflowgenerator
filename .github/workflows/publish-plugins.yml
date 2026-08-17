@@ -1,0 +1,57 @@
+name: Build WG Official Plugins
+
+# 构建插件并把确认过的发布快照更新到本仓库 plugins-dist 分支。
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-plugins
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install build dependencies
+        working-directory: plugins/canvas/registry
+        run: npm install --no-audit --no-fund
+
+      - name: Build official plugins
+        working-directory: plugins/canvas/registry
+        run: npm run build
+
+      - name: Keep a downloadable build artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wg-official-plugins
+          path: plugins/canvas/registry/dist
+
+      - name: Publish plugins-dist snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin plugins-dist
+          publish_root="$RUNNER_TEMP/plugins-dist"
+          git worktree add --detach "$publish_root" FETCH_HEAD
+          git -C "$publish_root" rm -r .
+          cp -R plugins/canvas/registry/dist/. "$publish_root/"
+          git -C "$publish_root" add -A
+          if git -C "$publish_root" diff --cached --quiet; then
+            echo "Plugin snapshot is already current."
+            exit 0
+          fi
+          git -C "$publish_root" config user.name "github-actions[bot]"
+          git -C "$publish_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$publish_root" commit -m "publish WG official plugins"
+          git -C "$publish_root" push origin HEAD:plugins-dist

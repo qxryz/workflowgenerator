@@ -1,0 +1,48 @@
+---
+title: 快速开始
+description: 用最少步骤运行 WorkflowGenerator
+---
+
+# 快速开始
+
+日常使用建议运行桌面版。桌面版使用原生 SQLite 和应用媒体目录保存数据，也能直接使用终端节点等本机能力。
+
+## 启动桌面版
+
+```bash
+git clone https://github.com/qxryz/workflowgenerator.git
+cd workflowgenerator
+cd web
+bun install
+bun run desktop:dev
+```
+
+构建桌面应用：
+
+```bash
+bun run desktop:build
+```
+
+## 网页兼容模式
+
+不需要本机终端能力时，也可以只运行网页前端：
+
+```bash
+bun run dev
+```
+
+启动后访问 `http://localhost:3000`。网页模式会使用浏览器 IndexedDB/localForage 保存数据，不会写入桌面应用的 SQLite 或媒体目录。
+
+Vercel、Docker 和 Render 部署也属于网页模式，适合体验、演示或已有网页托管需求。AI 请求仍由前端直接发往用户配置的 OpenAI 兼容地址，不需要项目服务端代存 API Key。
+
+## 首次使用
+
+- 先打开右上角配置弹窗，填入自己的 `Base URL`、`API Key` 和模型名。
+- 如果需要提示词仓库内容，打开 `/prompts` 会直接拉取并缓存在当前运行环境的本地存储中。
+- 如果需要跨设备同步画布、素材和生成记录，可在配置弹窗中填写 WebDAV。
+
+## 说明
+
+- 桌面版的画布、会话、配置等结构化数据保存在应用 SQLite 中，媒体保存在应用媒体目录。普通关闭窗口时会先等待待写入内容完成保存；系统强制结束进程不在这一保障范围内。
+- 网页模式的画布、素材和配置保存在当前浏览器，清理站点数据会一并删除这些内容。
+- WebDAV 是可选的跨设备同步方式，不替代本机主存储。

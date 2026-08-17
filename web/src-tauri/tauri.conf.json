@@ -1,0 +1,51 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WorkflowGenerator",
+  "version": "0.14.0",
+  "identifier": "app.workflowgenerator.desktop",
+  "build": {
+    "beforeDevCommand": "bun ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1420",
+    "devUrl": "http://127.0.0.1:1420",
+    "beforeBuildCommand": "bun ./node_modules/vite/bin/vite.js build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "security": {
+      "csp": "default-src 'self'; connect-src 'self' ipc: http://ipc.localhost wg-media: https: http:; img-src 'self' asset: http://asset.localhost wg-media: data: blob: https: http:; media-src 'self' asset: http://asset.localhost wg-media: data: blob: https: http:; style-src 'self' 'unsafe-inline'; font-src 'self' data: https:; script-src 'self' blob: https://esm.sh 'unsafe-eval'; object-src 'none'; base-uri 'self'"
+    },
+    "windows": [
+      {
+        "label": "main",
+        "title": "",
+        "width": 1440,
+        "height": 920,
+        "minWidth": 980,
+        "minHeight": 680,
+        "center": true,
+        "resizable": true
+      }
+    ]
+  },
+  "bundle": {
+    "active": true,
+    "targets": ["app"],
+    "category": "Productivity",
+    "icon": [
+      "icons/icon.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0",
+      "signingIdentity": "-"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDZGOTY5MzU5NUIzMzY0QTcKUldTblpETmJXWk9XYjk3amtrVjE0c2VrNlpReExFY2FXSUJhYUJWNlg5bi9OclRhbW9pQXh5OFkK",
+      "endpoints": [
+        "https://github.com/qxryz/workflowgenerator/releases/latest/download/latest.json"
+      ]
+    }
+  }
+}

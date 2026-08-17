@@ -1,0 +1,58 @@
+name: Build WG Skills Registry
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "skills/registry/**"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: publish-skills-registry
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Build registry
+        working-directory: skills/registry
+        run: npm run build
+
+      - name: Validate registry
+        working-directory: skills/registry
+        run: node -e "const value=require('./dist/official-skills.json');if(value.schemaVersion!==1||!Array.isArray(value.skills)||!value.skills.length)process.exit(1)"
+
+      - name: Keep a downloadable registry artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wg-skills-registry
+          path: skills/registry/dist
+
+      - name: Publish skills-dist snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin skills-dist
+          publish_root="$RUNNER_TEMP/skills-dist"
+          git worktree add --detach "$publish_root" FETCH_HEAD
+          git -C "$publish_root" rm -r .
+          cp -R skills/registry/dist/. "$publish_root/"
+          git -C "$publish_root" add -A
+          if git -C "$publish_root" diff --cached --quiet; then
+            echo "Skill registry snapshot is already current."
+            exit 0
+          fi
+          git -C "$publish_root" config user.name "github-actions[bot]"
+          git -C "$publish_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$publish_root" commit -m "publish WG Skills registry"
+          git -C "$publish_root" push origin HEAD:skills-dist

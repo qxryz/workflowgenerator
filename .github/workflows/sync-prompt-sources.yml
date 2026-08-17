@@ -1,0 +1,70 @@
+name: Sync WG Prompt Sources
+
+on:
+  schedule:
+    - cron: "17 3 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-wg-prompt-sources
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download community source snapshots
+        shell: bash
+        run: |
+          set -euo pipefail
+          base="https://raw.githubusercontent.com/yukkcat/image-prompts/main/dist/sources"
+          output="$RUNNER_TEMP/prompt-source-build/sources"
+          mkdir -p "$output"
+          for source in \
+            banana-prompt-quicker \
+            davidwu-gpt-image2-prompts \
+            awesome-gpt-image \
+            awesome-gpt4o-image-prompts \
+            youmind-gpt-image-2 \
+            youmind-nano-banana-pro
+          do
+            curl --fail --location --retry 3 "$base/$source.json" --output "$output/$source.json"
+          done
+
+      - name: Validate snapshots
+        env:
+          PROMPT_SOURCE_DIR: ${{ runner.temp }}/prompt-source-build/sources
+        run: |
+          node --input-type=module -e '
+            import { readdir, readFile } from "node:fs/promises";
+            const directory = process.env.PROMPT_SOURCE_DIR;
+            for (const file of await readdir(directory)) {
+              if (!file.endsWith(".json")) continue;
+              const value = JSON.parse(await readFile(`${directory}/${file}`, "utf8"));
+              if (!Array.isArray(value)) throw new Error(`${file} must contain a JSON array`);
+            }
+          '
+
+      - name: Publish wg-prompt-sources snapshot
+        shell: bash
+        run: |
+          set -euo pipefail
+          git fetch --depth=1 origin wg-prompt-sources
+          publish_root="$RUNNER_TEMP/wg-prompt-sources"
+          git worktree add --detach "$publish_root" FETCH_HEAD
+          git -C "$publish_root" rm -r .
+          cp -R "$RUNNER_TEMP/prompt-source-build"/. "$publish_root/"
+          git -C "$publish_root" add -A
+          if git -C "$publish_root" diff --cached --quiet; then
+            echo "Prompt sources are already current."
+            exit 0
+          fi
+          git -C "$publish_root" config user.name "github-actions[bot]"
+          git -C "$publish_root" config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git -C "$publish_root" commit -m "sync WG prompt source mirror"
+          git -C "$publish_root" push origin HEAD:wg-prompt-sources

@@ -1,0 +1,4 @@
+dist/
+src-tauri/target/
+.env.local
+.local-secrets/

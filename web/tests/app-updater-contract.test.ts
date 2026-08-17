@@ -1,0 +1,72 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import test from "node:test";
+
+import { isNewerVersion } from "../src/lib/release.ts";
+
+const readSource = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
+
+test("version comparison accepts release tags and rejects older or invalid versions", () => {
+    assert.equal(isNewerVersion("v0.15.0", "0.14.0"), true);
+    assert.equal(isNewerVersion("0.14.1", "0.14.0"), true);
+    assert.equal(isNewerVersion("0.14.0", "0.14.0"), false);
+    assert.equal(isNewerVersion("0.13.9", "0.14.0"), false);
+    assert.equal(isNewerVersion("latest", "0.14.0"), false);
+});
+
+test("desktop updater checks this repository and saves state before installation", () => {
+    const hook = readSource("../src/hooks/use-version-check.ts");
+    const settings = readSource("../src/components/layout/app-update-settings.tsx");
+    const configPanel = readSource("../src/components/layout/app-config-modal.tsx");
+    const navigation = readSource("../src/components/layout/app-top-nav.tsx");
+    const native = readSource("../src-tauri/src/lib.rs");
+    const cargo = readSource("../src-tauri/Cargo.toml");
+    const capability = JSON.parse(readSource("../src-tauri/capabilities/default.json")) as { permissions: string[] };
+    const config = JSON.parse(readSource("../src-tauri/tauri.conf.json")) as {
+        bundle: { macOS: { signingIdentity: string } };
+        plugins: { updater: { pubkey: string; endpoints: string[] } };
+    };
+
+    assert.match(hook, /raw\.githubusercontent\.com\/qxryz\/workflowgenerator\/main/u);
+    assert.doesNotMatch(hook, /basketikun\/infinite-canvas/u);
+    assert.match(hook, /await update\.download/u);
+    assert.match(hook, /await update\.install\(\)/u);
+    assert.match(hook, /await relaunch\(\)/u);
+    assert.ok(hook.indexOf("await flushDesktopState()") < hook.indexOf("await update.install()"));
+    assert.match(settings, /下载并安装/u);
+    assert.match(settings, /前往 Tags/u);
+    assert.match(configPanel, /label: "软件更新"/u);
+    assert.match(configPanel, /<AppUpdateSettings/u);
+    assert.doesNotMatch(navigation, /VersionRelease|APP_VERSION/u);
+    assert.match(cargo, /tauri-plugin-updater = "2"/u);
+    assert.match(cargo, /tauri-plugin-process = "2"/u);
+    assert.match(native, /tauri_plugin_updater::Builder::new\(\)\.build\(\)/u);
+    assert.match(native, /tauri_plugin_process::init\(\)/u);
+    assert.ok(capability.permissions.includes("updater:default"));
+    assert.ok(capability.permissions.includes("process:allow-restart"));
+    assert.equal(config.bundle.macOS.signingIdentity, "-");
+    assert.equal(config.plugins.updater.endpoints[0], "https://github.com/qxryz/workflowgenerator/releases/latest/download/latest.json");
+    assert.ok(config.plugins.updater.pubkey.length > 80);
+});
+
+test("version tags build downloadable and signed updater artifacts", () => {
+    const workflow = readSource("../../.github/workflows/release-desktop.yml");
+    const releaseConfig = JSON.parse(readSource("../src-tauri/tauri.release.conf.json")) as { bundle: { createUpdaterArtifacts: boolean } };
+    assert.match(workflow, /tags: \["v\*"\]/u);
+    assert.match(workflow, /cat \.\.\/VERSION/u);
+    assert.match(workflow, /tauri-apps\/tauri-action@v1/u);
+    assert.match(workflow, /TAURI_SIGNING_PRIVATE_KEY/u);
+    assert.match(workflow, /--bundles app,dmg/u);
+    assert.match(workflow, /uploadUpdaterJson: true/u);
+    assert.equal(releaseConfig.bundle.createUpdaterArtifacts, true);
+});
+
+test("README stays a short personal download page", () => {
+    const readme = readSource("../../README.md");
+    assert.match(readme, /这是作者自用工具/u);
+    assert.match(readme, /github\.com\/qxryz\/workflowgenerator\/tags/u);
+    assert.match(readme, /Gatekeeper/u);
+    assert.match(readme, /xattr -dr com\.apple\.quarantine/u);
+    assert.match(readme, /AGPL-3\.0-or-later/u);
+    assert.doesNotMatch(readme, /bun install|desktop:dev|项目结构|开始开发/u);
+});

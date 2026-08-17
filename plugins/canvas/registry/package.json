@@ -1,0 +1,14 @@
+{
+    "name": "workflowgenerator-official-plugins",
+    "version": "1.0.0",
+    "private": true,
+    "type": "module",
+    "description": "WorkflowGenerator 官方节点插件的集中构建与发布",
+    "scripts": {
+        "build": "node build.mjs"
+    },
+    "devDependencies": {
+        "@infinite-canvas/plugin-sdk": "file:../sdk",
+        "esbuild": "^0.25.0"
+    }
+}

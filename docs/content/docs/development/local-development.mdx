@@ -1,0 +1,43 @@
+---
+title: 本地开发
+description: 前端优先的本地开发方式
+---
+
+# 本地开发
+
+当前桌面应用由 `web/` 中的 React 前端和 `web/src-tauri/` 中的 Tauri 原生层组成。AI 请求由应用前端直连用户自己的 OpenAI 兼容接口。
+
+## 1. 启动桌面开发模式
+
+```bash
+cd web
+bun install
+bun run desktop:dev
+```
+
+桌面模式会使用原生 SQLite 和应用媒体目录。普通关闭窗口时，应用会先等待待写入的画布与会话完成保存。
+
+只调试网页回退模式时，可以运行：
+
+```bash
+bun run dev
+```
+
+## 2. 配置模型
+
+打开配置弹窗，填写自己的 `Base URL`、`API Key` 和模型名。第三方提示词、WebDAV 和模型接口都由应用前端直连。
+
+## 3. 启动文档站
+
+如果需要单独调整文档站，在 `docs` 目录执行：
+
+```bash
+bun run dev
+```
+
+## 常见场景
+
+- 改画布、页面和交互：主要看 `web/`
+- 改桌面存储、媒体协议和本机能力：主要看 `web/src-tauri/` 与 `web/src/services/desktop-storage.ts`
+- 改提示词缓存：主要看 `web/src/services/api/prompts.ts`
+- 改文档站内容：主要看 `docs/content/docs/`

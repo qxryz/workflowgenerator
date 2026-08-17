@@ -1,0 +1,17 @@
+{
+  "name": "canvas-plugin-director-desk",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node --preserve-symlinks build.mjs",
+    "dev": "node --preserve-symlinks build.mjs --watch",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@infinite-canvas/plugin-sdk": "file:../sdk",
+    "@types/react": "19.1.12",
+    "esbuild": "^0.25.0",
+    "typescript": "^5"
+  }
+}
