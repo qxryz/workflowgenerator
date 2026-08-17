@@ -8,7 +8,7 @@
 - 写代码保持最少行数，能简单实现就不要引入复杂抽象。
 - 标准格式、协议、解析、压缩、加密、日期等通用能力优先使用成熟稳定的库，不要手写底层实现，除非用户明确要求或项目已有实现必须沿用。
 - 不要为了“兼容更多场景”写大量分支，只实现当前明确需要的功能。
-- 项目尚未上线，不需要兼容旧数据；本地存储结构调整时直接按新设计修改，不写旧字段兼容或数据迁移兜底，除非用户明确要求。
+- 项目已经公开发布；涉及本地存储、配置、导入导出、更新签名等持久契约时，必须兼容已发布版本的数据和升级路径。确需破坏性调整时，先取得用户明确同意并补齐迁移方案与验证。
 - 每次写完代码都要做与风险匹配的语法、类型和测试检查；只要改动影响应用可感知行为，还必须按“桌面端构建与核验”生成最新版桌面端供用户核验。
 - 每次修改都必须检查关联项：同步核对同类入口、共享数据模型、持久化与恢复、导入导出、删除清理、桌面关闭刷盘及对应测试，不能只验证当前按钮或单一路径。
 - 不要改无关文件，不要顺手重构。
@@ -96,11 +96,15 @@
 
 ## 发版本流程
 
-- 发版本时，先把 `CHANGELOG.md` 的 `Unreleased` 变更整理成新的版本记录，并保留空的 `Unreleased` 标题。
-- 按当前版本号提升一个版本；根目录 `VERSION` 使用 `vX.Y.Z`，`web/package.json`、`web/src-tauri/Cargo.toml` 与 `web/src-tauri/tauri.conf.json` 使用 `X.Y.Z`，四处语义版本必须一致。
+- 日常开发继续提交到 `main`，不要为每次开发构建创建长期发布分支。
+- 需要先给人下载测试时发开发预发布版：版本号使用 `X.Y.Z-dev.N`，tag 使用 `vX.Y.Z-dev.N`，例如 `0.2.0-dev.1` / `v0.2.0-dev.1`；同一目标版本继续预发布时递增末尾序号。需要更明确的阶段时也允许 `alpha.N`、`beta.N`、`rc.N`。
+- 开发预发布版在 GitHub Release 中必须标记为 Pre-release，只供从 Releases 手动下载；软件内更新固定读取 GitHub 的最新正式版，不向正式用户推送预发布版，也不另建开发更新通道。
+- 正式发版使用不带后缀的 `X.Y.Z` / `vX.Y.Z`。正式发版前，把 `CHANGELOG.md` 的 `Unreleased` 变更整理成新的版本记录，并保留空的 `Unreleased` 标题。
+- 每次预发布或正式发布都要同步版本号：根目录 `VERSION` 使用带 `v` 的完整 tag；`web/package.json`、`web/src-tauri/Cargo.toml` 与 `web/src-tauri/tauri.conf.json` 使用不带 `v` 的完整语义版本，并同步 `web/src-tauri/Cargo.lock` 中的应用包版本。
 - 将当前未提交的代码全部提交到 Git。
-- 提交完成后，给当前提交打最新版本号对应的 tag，例如 `v0.0.5`。
-- 推送 `v*` tag 后由 `.github/workflows/release-desktop.yml` 构建 macOS 安装包、更新包和 `latest.json`，并挂到同一个 GitHub Release；README 的快速体验和软件内更新都只认这个仓库的 Tags / Releases。
+- 提交完成后，给当前提交打对应版本 tag；不要移动、覆盖或复用已经推送的 tag。
+- 推送受支持的 `v*` tag 后，由 `.github/workflows/release-desktop.yml` 构建 macOS 安装包、更新包和 `latest.json`，并挂到同一个 GitHub Release；稳定 tag 生成正式 Release，带 `dev.N` / `alpha.N` / `beta.N` / `rc.N` 后缀的 tag 生成 Pre-release。
+- README 的快速体验和软件内更新都只认本仓库；README 可以看到所有 Tags / Releases，但软件内更新只认最新正式 Release。
 - 发版本前执行类型检查、相关测试、完整测试和桌面端构建核验；构建规则见下一节。
 
 ## 应用更新与签名

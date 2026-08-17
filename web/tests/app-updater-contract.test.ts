@@ -53,6 +53,10 @@ test("version tags build downloadable and signed updater artifacts", () => {
     const workflow = readSource("../../.github/workflows/release-desktop.yml");
     const releaseConfig = JSON.parse(readSource("../src-tauri/tauri.release.conf.json")) as { bundle: { createUpdaterArtifacts: boolean } };
     assert.match(workflow, /tags: \["v\*"\]/u);
+    assert.match(workflow, /id: release_meta/u);
+    assert.match(workflow, /\(dev\|alpha\|beta\|rc\)/u);
+    assert.match(workflow, /prerelease: \$\{\{ steps\.release_meta\.outputs\.prerelease \}\}/u);
+    assert.doesNotMatch(workflow, /prerelease: false/u);
     assert.match(workflow, /cat \.\.\/VERSION/u);
     assert.match(workflow, /tauri-apps\/tauri-action@[0-9a-f]{40} # v1/u);
     assert.doesNotMatch(workflow, /tauri-apps\/tauri-action@v1(?:\s|$)/u);

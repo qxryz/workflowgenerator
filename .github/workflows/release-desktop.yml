@@ -27,10 +27,22 @@ jobs:
         with:
           workspaces: web/src-tauri -> target
 
-      - name: Check release version
+      - name: Check release version and channel
+        id: release_meta
         working-directory: web
         shell: bash
         run: |
+          set -euo pipefail
+          if [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            prerelease=false
+          elif [[ "$GITHUB_REF_NAME" =~ ^v[0-9]+\.[0-9]+\.[0-9]+-(dev|alpha|beta|rc)\.[0-9]+$ ]]; then
+            prerelease=true
+          else
+            echo "Unsupported release tag: $GITHUB_REF_NAME" >&2
+            exit 1
+          fi
+
+          printf 'prerelease=%s\n' "$prerelease" >> "$GITHUB_OUTPUT"
           version="${GITHUB_REF_NAME#v}"
           test "$GITHUB_REF_NAME" = "$(cat ../VERSION)"
           test "$version" = "$(node -p "require('./package.json').version")"
@@ -56,7 +68,7 @@ jobs:
           releaseName: WorkflowGenerator ${{ github.ref_name }}
           generateReleaseNotes: true
           releaseDraft: false
-          prerelease: false
+          prerelease: ${{ steps.release_meta.outputs.prerelease }}
           uploadUpdaterJson: true
           args: --target aarch64-apple-darwin --bundles app,dmg --config src-tauri/tauri.release.conf.json
 
