@@ -7,6 +7,8 @@
     "core:default",
     "core:window:allow-destroy",
     "process:allow-restart",
-    "updater:default"
+    "updater:default",
+    "opener:allow-open-url",
+    "opener:allow-default-urls"
   ]
 }

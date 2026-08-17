@@ -2385,6 +2385,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_process::init())
         .plugin(tauri_plugin_updater::Builder::new().build())
+        .plugin(tauri_plugin_opener::init())
         .register_uri_scheme_protocol("wg-media", app_storage::media_protocol)
         .setup(|app| {
             let storage = app_storage::initialize(app.handle()).map_err(std::io::Error::other)?;

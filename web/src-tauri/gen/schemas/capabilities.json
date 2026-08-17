@@ -1,1 +1,1 @@
-{"default":{"identifier":"default","description":"Default capabilities for WorkflowGenerator desktop.","local":true,"windows":["main"],"permissions":["core:default","core:window:allow-destroy","process:allow-restart","updater:default"]}}
+{"default":{"identifier":"default","description":"Default capabilities for WorkflowGenerator desktop.","local":true,"windows":["main"],"permissions":["core:default","core:window:allow-destroy","process:allow-restart","updater:default","opener:allow-open-url","opener:allow-default-urls"]}}
