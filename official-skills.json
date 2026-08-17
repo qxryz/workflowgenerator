@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "updatedAt": "2026-08-17T04:20:42.884Z",
+  "skills": [
+    {
+      "id": "wg.workflow-architect",
+      "name": "工作流架构师",
+      "version": "1.0.0",
+      "description": "把创作目标整理成可执行、可检查且不会重复产出的画布工作流。",
+      "contentUrl": "https://raw.githubusercontent.com/qxryz/workflowgenerator/skills-dist/workflow-architect.md",
+      "sha256": "b83f92da0184b95b9b1a305377b3e7d1683f91007dfca821ebd927b5d7ca94b3",
+      "homepage": "https://github.com/qxryz/workflowgenerator",
+      "capabilities": [
+        "workflow",
+        "terminal"
+      ],
+      "tags": [
+        "工作流",
+        "编排",
+        "数据流"
+      ]
+    },
+    {
+      "id": "wg.creative-director",
+      "name": "创意导演",
+      "version": "1.0.0",
+      "description": "在生成前建立方向、参考与取舍，让多模态资产保持一致。",
+      "contentUrl": "https://raw.githubusercontent.com/qxryz/workflowgenerator/skills-dist/creative-director.md",
+      "sha256": "e579977b889eae6d1678222e17937f6f2149c47dd4e307c1351fa6a8a22c5147",
+      "homepage": "https://github.com/qxryz/workflowgenerator",
+      "capabilities": [
+        "writing",
+        "image",
+        "video",
+        "audio"
+      ],
+      "tags": [
+        "创意",
+        "视觉",
+        "叙事"
+      ]
+    }
+  ]
+}
