@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { App } from "antd";
+import { useQuery } from "@tanstack/react-query";
 import { relaunch } from "@tauri-apps/plugin-process";
 import { check, type DownloadEvent, type Update } from "@tauri-apps/plugin-updater";
 
@@ -7,14 +8,17 @@ import { APP_VERSION } from "@/constant/env";
 import { isNewerVersion, parseChangelog, type ReleaseInfo } from "@/lib/release";
 import { flushDesktopState } from "@/services/desktop-lifecycle";
 import { isDesktopApp } from "@/services/desktop-storage";
+import { fetchReleaseDownloadStats, type ReleaseDownloadStatsByVersion } from "@/services/api/github-releases";
 
 const repositoryBase = "https://raw.githubusercontent.com/qxryz/workflowgenerator/main";
 const latestVersionUrl = `${repositoryBase}/VERSION`;
 const latestChangelogUrl = `${repositoryBase}/CHANGELOG.md`;
 
 export const APP_RELEASES_URL = "https://github.com/qxryz/workflowgenerator/tags";
+export const APP_REPOSITORY_URL = "https://github.com/qxryz/workflowgenerator";
 
 type InstallPhase = "idle" | "downloading" | "installing" | "restarting";
+const emptyReleaseDownloads: ReleaseDownloadStatsByVersion = {};
 
 function readLocalReleases(): ReleaseInfo[] {
     return __APP_RELEASES__ || [];
@@ -54,6 +58,13 @@ export function useVersionCheck() {
     const [installPhase, setInstallPhase] = useState<InstallPhase>("idle");
     const [downloadProgress, setDownloadProgress] = useState<number | null>(null);
     const installing = installPhase !== "idle";
+    const releaseDownloadsQuery = useQuery({
+        queryKey: ["github-release-downloads", "qxryz/workflowgenerator"],
+        queryFn: ({ signal }) => fetchReleaseDownloadStats(signal),
+        staleTime: 30 * 60 * 1000,
+        gcTime: 60 * 60 * 1000,
+        refetchInterval: 30 * 60 * 1000,
+    });
 
     const replacePendingUpdate = useCallback((next: Update | null) => {
         const previous = pendingUpdateRef.current;
@@ -153,6 +164,7 @@ export function useVersionCheck() {
     return {
         latestVersion,
         releases,
+        releaseDownloads: releaseDownloadsQuery.data || emptyReleaseDownloads,
         checking,
         checkError,
         availableVersion,

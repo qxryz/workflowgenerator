@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { isNewerVersion } from "../src/lib/release.ts";
+import { isNewerVersion, parseChangelog } from "../src/lib/release.ts";
 
 const readSource = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
@@ -12,6 +12,19 @@ test("version comparison accepts release tags and rejects older or invalid versi
     assert.equal(isNewerVersion("0.1.0", "0.1.0"), false);
     assert.equal(isNewerVersion("0.0.9", "0.1.0"), false);
     assert.equal(isNewerVersion("latest", "0.1.0"), false);
+});
+
+test("release notes accept the repository changelog bullet format", () => {
+    assert.deepEqual(parseChangelog("## v0.2.0 - 2026-08-17\n\n- [新增] 下载统计\n+ [修复] 更新日志\n"), [
+        {
+            version: "v0.2.0",
+            date: "2026-08-17",
+            items: [
+                { type: "新增", content: "下载统计" },
+                { type: "修复", content: "更新日志" },
+            ],
+        },
+    ]);
 });
 
 test("desktop updater checks this repository and saves state before installation", () => {
@@ -34,7 +47,15 @@ test("desktop updater checks this repository and saves state before installation
     assert.match(hook, /await relaunch\(\)/u);
     assert.ok(hook.indexOf("await flushDesktopState()") < hook.indexOf("await update.install()"));
     assert.match(settings, /下载并安装/u);
+    assert.match(settings, />\s*Star\s*</u);
+    assert.match(hook, /APP_REPOSITORY_URL = "https:\/\/github\.com\/qxryz\/workflowgenerator"/u);
     assert.match(settings, /前往 Tags/u);
+    assert.match(settings, /更新日志/u);
+    assert.match(settings, /累计下载/u);
+    assert.match(settings, /手动安装/u);
+    assert.match(settings, /更新包/u);
+    assert.match(hook, /fetchReleaseDownloadStats/u);
+    assert.match(hook, /staleTime: 30 \* 60 \* 1000/u);
     assert.match(configPanel, /label: "软件更新"/u);
     assert.match(configPanel, /<AppUpdateSettings/u);
     assert.doesNotMatch(navigation, /VersionRelease|APP_VERSION/u);
