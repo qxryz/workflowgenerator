@@ -31,6 +31,7 @@ test("preferences UI and request paths expose separate scopes", () => {
     const imageApi = readSource("../src/services/api/image.ts");
     const configStore = readSource("../src/stores/use-config-store.ts");
     const desktopStorage = readSource("../src/services/desktop-storage.ts");
+    const fileStorage = readSource("../src/services/file-storage.ts");
 
     assert.match(configUi, /新任务默认模型/u);
     assert.match(configUi, /工作流节点默认值/u);
@@ -42,12 +43,18 @@ test("preferences UI and request paths expose separate scopes", () => {
     assert.match(configUi, /图片文件/u);
     assert.match(configUi, /视频、音频与其他文件/u);
     assert.match(configUi, /临时写入/u);
+    assert.match(configUi, /允许私有网络媒体下载/u);
+    assert.match(configUi, /只使用可信的模型渠道和插件/u);
     assert.match(desktopStorage, /appDataDir/u);
     assert.match(desktopStorage, /homeDir/u);
     assert.match(desktopStorage, /join\(root, "data"\)/u);
     assert.match(desktopStorage, /join\(root, "media", "images"\)/u);
     assert.match(desktopStorage, /join\(root, "media", "media"\)/u);
     assert.match(desktopStorage, /join\(root, "media", "\.uploads"\)/u);
+    assert.match(desktopStorage, /allowPrivateNetwork: options\.allowPrivateNetwork === true/u);
+    assert.match(fileStorage, /config\.allowPrivateNetworkMedia/u);
+    assert.match(configStore, /allowPrivateNetworkMedia: false/u);
+    assert.match(configStore, /allowPrivateNetworkMedia: config\.allowPrivateNetworkMedia === true/u);
     assert.match(configUi, /自定义音色 ID/u);
     assert.match(configUi, /audioVoiceOptionsForModel/u);
     assert.doesNotMatch(configUi, /label="系统提示词"/u);

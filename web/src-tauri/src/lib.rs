@@ -163,8 +163,30 @@ fn is_public_remote_address(address: std::net::IpAddr) -> bool {
     }
 }
 
+fn select_remote_media_addresses(
+    resolved: Vec<std::net::SocketAddr>,
+    allow_private_network: bool,
+) -> Result<Vec<std::net::SocketAddr>, String> {
+    if resolved.is_empty() {
+        return Err("无法解析媒体服务器地址".into());
+    }
+    if allow_private_network {
+        return Ok(resolved);
+    }
+    let public: Vec<_> = resolved
+        .iter()
+        .copied()
+        .filter(|address| is_public_remote_address(address.ip()))
+        .collect();
+    if !public.is_empty() {
+        return Ok(public);
+    }
+    Err("媒体地址指向本机或内网，已停止下载；若使用 Fake-IP 代理，请在“设置 → 偏好设置”开启“允许私有网络媒体下载”".into())
+}
+
 async fn request_public_remote_media(
     mut url: reqwest::Url,
+    allow_private_network: bool,
 ) -> Result<(reqwest::Response, reqwest::Url), String> {
     const MAX_REDIRECTS: usize = 5;
     for redirect_count in 0..=MAX_REDIRECTS {
@@ -175,17 +197,11 @@ async fn request_public_remote_media(
             .host_str()
             .ok_or_else(|| "媒体地址缺少服务器名称".to_string())?;
         let port = url.port_or_known_default().unwrap_or(443);
-        let resolved: Vec<std::net::SocketAddr> = tokio::net::lookup_host((host, port))
+        let resolved = tokio::net::lookup_host((host, port))
             .await
             .map_err(|_| "无法解析媒体服务器地址".to_string())?
             .collect();
-        if resolved.is_empty()
-            || resolved
-                .iter()
-                .any(|address| !is_public_remote_address(address.ip()))
-        {
-            return Err("媒体地址指向本机或内网，已停止下载".into());
-        }
+        let resolved = select_remote_media_addresses(resolved, allow_private_network)?;
         let client = reqwest::Client::builder()
             .timeout(Duration::from_secs(120))
             .redirect(reqwest::redirect::Policy::none())
@@ -565,7 +581,7 @@ async fn read_model_json_text_response(response: reqwest::Response) -> Result<St
 mod native_model_request_tests {
     use super::{
         is_public_remote_address, post_model_json, post_model_multipart, post_model_raw_json,
-        validate_credential_url, BASE64,
+        select_remote_media_addresses, validate_credential_url, BASE64,
     };
     use base64::Engine;
     use std::{
@@ -601,9 +617,46 @@ mod native_model_request_tests {
             169, 254, 169, 254
         ))));
         assert!(!is_public_remote_address(IpAddr::V6(Ipv6Addr::LOCALHOST)));
+        assert!(!is_public_remote_address(IpAddr::V4(Ipv4Addr::new(
+            198, 18, 0, 1
+        ))));
         assert!(is_public_remote_address(IpAddr::V4(Ipv4Addr::new(
             1, 1, 1, 1
         ))));
+    }
+
+    #[test]
+    fn remote_media_allows_all_non_public_addresses_only_when_enabled() {
+        use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+        let fake_ip = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(198, 18, 0, 1)), 443);
+        assert_eq!(
+            select_remote_media_addresses(vec![fake_ip], true).unwrap(),
+            vec![fake_ip]
+        );
+        assert!(select_remote_media_addresses(vec![fake_ip], false).is_err());
+
+        let private = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(10, 64, 0, 1)), 443);
+        assert_eq!(
+            select_remote_media_addresses(vec![private], true).unwrap(),
+            vec![private]
+        );
+
+        let loopback = SocketAddr::new(IpAddr::V4(Ipv4Addr::LOCALHOST), 443);
+        assert_eq!(
+            select_remote_media_addresses(vec![loopback], true).unwrap(),
+            vec![loopback]
+        );
+    }
+
+    #[test]
+    fn remote_media_uses_only_public_results_from_mixed_dns_answers() {
+        use std::net::{IpAddr, Ipv4Addr, SocketAddr};
+        let private = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(10, 0, 0, 1)), 443);
+        let public = SocketAddr::new(IpAddr::V4(Ipv4Addr::new(1, 1, 1, 1)), 443);
+        assert_eq!(
+            select_remote_media_addresses(vec![private, public], false).unwrap(),
+            vec![public]
+        );
     }
 
     #[test]
@@ -878,6 +931,7 @@ async fn native_fetch_remote_media(
     key: String,
     expected_sha256: Option<String>,
     max_bytes: Option<usize>,
+    allow_private_network: Option<bool>,
 ) -> Result<app_storage::NativeMediaRecord, String> {
     const MAX_REMOTE_MEDIA_BYTES: usize = 256 * 1024 * 1024;
     let max_remote_media_bytes = max_bytes
@@ -885,7 +939,8 @@ async fn native_fetch_remote_media(
         .unwrap_or(MAX_REMOTE_MEDIA_BYTES)
         .min(MAX_REMOTE_MEDIA_BYTES);
     let parsed = reqwest::Url::parse(url.trim()).map_err(|_| "媒体地址无效".to_string())?;
-    let (response, final_url) = request_public_remote_media(parsed).await?;
+    let (response, final_url) =
+        request_public_remote_media(parsed, allow_private_network.unwrap_or(false)).await?;
     if !response.status().is_success() {
         return Err(format!("下载生成结果失败：HTTP {}", response.status()));
     }

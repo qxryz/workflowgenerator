@@ -4,6 +4,7 @@ import { mediaInputToBlob, normalizeMediaBlob } from "@/lib/media-mime";
 import { collectStorageKeys, createProvisionalUploadRegistry, isMediaReferenceEpochCurrent, reserveStorageKey, selectStorageKeysForDeletion, withMediaStorageFence, type VerifiedReferenceSnapshot } from "@/services/media-retention-policy";
 import { collectVerifiedMediaReferenceSnapshot } from "@/services/media-reference-snapshot";
 import { fetchDesktopRemoteMedia, getDesktopMedia, isDesktopApp, listDesktopMedia, markLegacyImport, putDesktopMedia, readDesktopMediaBlob, removeDesktopMedia, wasLegacyValueImported } from "@/services/desktop-storage";
+import { useConfigStore } from "@/stores/use-config-store";
 
 export type UploadedFile = { url: string; storageKey: string; bytes: number; mimeType: string; width?: number; height?: number; durationMs?: number };
 
@@ -16,12 +17,15 @@ const provisionalMedia = createProvisionalUploadRegistry<UploadedFile, string>(
     (storageKey) => withMediaStorageFence(() => removeStoredMedia([storageKey])),
 );
 
-export async function uploadMediaFile(input: string | Blob, prefix = "file", remoteOptions: { expectedSha256?: string; maxBytes?: number } = {}): Promise<UploadedFile> {
+export async function uploadMediaFile(input: string | Blob, prefix = "file", remoteOptions: { expectedSha256?: string; maxBytes?: number; allowPrivateNetwork?: boolean } = {}): Promise<UploadedFile> {
     const storageKey = `${prefix}:${nanoid()}`;
     const releaseReservation = reserveStorageKey(storageKey);
     try {
         if (typeof input === "string" && isDesktopApp() && /^https?:\/\//i.test(input)) {
-            const saved = await fetchDesktopRemoteMedia(MEDIA_BUCKET, storageKey, input, remoteOptions);
+            const saved = await fetchDesktopRemoteMedia(MEDIA_BUCKET, storageKey, input, {
+                ...remoteOptions,
+                allowPrivateNetwork: remoteOptions.allowPrivateNetwork ?? useConfigStore.getState().config.allowPrivateNetworkMedia,
+            });
             if (!saved) throw new Error("媒体未能写入应用存储");
             await markLegacyImport(LEGACY_NAMESPACE, storageKey);
             const meta = saved.mimeType.startsWith("video/") ? await readVideoMeta(saved.url) : saved.mimeType.startsWith("audio/") ? await readAudioMeta(saved.url) : {};

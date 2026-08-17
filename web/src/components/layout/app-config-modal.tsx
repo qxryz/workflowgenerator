@@ -1,4 +1,4 @@
-import { App, Button, Form, Input, Modal, Progress, Select, Tabs, Tag } from "antd";
+import { App, Button, Form, Input, Modal, Progress, Select, Switch, Tabs, Tag } from "antd";
 import { Bot, CheckCircle2, CircleAlert, Cloud, Database, Download, Pencil, Plus, RefreshCw, RotateCcw, ScanLine, Trash2, Upload, Wifi, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
@@ -427,7 +427,9 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                         <div className="flex min-w-0 items-start gap-3">
                                             <Database className="mt-0.5 size-4 shrink-0 text-blue-500" />
                                             <div className="min-w-0 flex-1">
-                                                <div id="local-storage-heading" className="text-sm font-semibold">本机应用数据</div>
+                                                <div id="local-storage-heading" className="text-sm font-semibold">
+                                                    本机应用数据
+                                                </div>
                                                 <div className="mt-1 text-xs leading-5 text-stone-500">画布、Zodiac 会话和媒体由应用自动保存在此设备。关闭后再次打开，可以从上次的位置继续。</div>
                                             </div>
                                         </div>
@@ -500,6 +502,23 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                             <Input.TextArea rows={4} value={config.imagePromptPrefix} placeholder="例如：电影感写实摄影，光线自然，构图克制。" onChange={(event) => updateConfig("imagePromptPrefix", event.target.value)} />
                                         </Form.Item>
                                     </div>
+                                </section>
+                                <section className="mt-5 border-t border-stone-200 pt-5 dark:border-stone-800" aria-labelledby="private-network-media-heading">
+                                    <div className="flex items-start justify-between gap-4">
+                                        <div className="min-w-0">
+                                            <div id="private-network-media-heading" className="text-sm font-semibold">
+                                                允许私有网络媒体下载
+                                            </div>
+                                            <div className="mt-1 text-xs leading-5 text-stone-500">使用自定义 Fake-IP、TUN 代理或局域网媒体服务时开启。默认关闭。</div>
+                                        </div>
+                                        <Switch checked={config.allowPrivateNetworkMedia} onChange={(checked) => updateConfig("allowPrivateNetworkMedia", checked)} aria-label="允许私有网络媒体下载" />
+                                    </div>
+                                    {config.allowPrivateNetworkMedia ? (
+                                        <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300" role="alert">
+                                            <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
+                                            开启后，模型返回的 HTTPS 下载地址可以连接本机、局域网及代理映射地址。请只使用可信的模型渠道和插件。
+                                        </div>
+                                    ) : null}
                                 </section>
                             </Form>
                         ),

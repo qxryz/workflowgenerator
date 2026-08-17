@@ -6,6 +6,7 @@ import { mediaInputToBlob, normalizeImageBlob } from "@/lib/media-mime";
 import { collectStorageKeys, createProvisionalUploadRegistry, isMediaReferenceEpochCurrent, reserveStorageKey, selectStorageKeysForDeletion, withMediaStorageFence, type VerifiedReferenceSnapshot } from "@/services/media-retention-policy";
 import { collectVerifiedMediaReferenceSnapshot } from "@/services/media-reference-snapshot";
 import { fetchDesktopRemoteMedia, getDesktopMedia, isDesktopApp, listDesktopMedia, markLegacyImport, putDesktopMedia, readDesktopMediaBlob, readDesktopMediaDataUrl, removeDesktopMedia, wasLegacyValueImported } from "@/services/desktop-storage";
+import { useConfigStore } from "@/stores/use-config-store";
 
 export type UploadedImage = {
     url: string;
@@ -25,12 +26,15 @@ const provisionalImages = createProvisionalUploadRegistry<UploadedImage, string>
     (storageKey) => withMediaStorageFence(() => removeStoredImages([storageKey])),
 );
 
-export async function uploadImage(input: string | Blob, remoteOptions: { expectedSha256?: string; maxBytes?: number } = {}): Promise<UploadedImage> {
+export async function uploadImage(input: string | Blob, remoteOptions: { expectedSha256?: string; maxBytes?: number; allowPrivateNetwork?: boolean } = {}): Promise<UploadedImage> {
     const storageKey = `image:${nanoid()}`;
     const releaseReservation = reserveStorageKey(storageKey);
     try {
         if (typeof input === "string" && isDesktopApp() && /^https?:\/\//i.test(input)) {
-            const saved = await fetchDesktopRemoteMedia(MEDIA_BUCKET, storageKey, input, remoteOptions);
+            const saved = await fetchDesktopRemoteMedia(MEDIA_BUCKET, storageKey, input, {
+                ...remoteOptions,
+                allowPrivateNetwork: remoteOptions.allowPrivateNetwork ?? useConfigStore.getState().config.allowPrivateNetworkMedia,
+            });
             if (!saved) throw new Error("图片未能写入应用存储");
             await markLegacyImport(LEGACY_NAMESPACE, storageKey);
             const storedDataUrl = await readDesktopMediaDataUrl(MEDIA_BUCKET, storageKey);

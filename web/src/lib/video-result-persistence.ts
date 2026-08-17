@@ -25,7 +25,8 @@ export async function persistGeneratedVideo<T extends PersistedVideoFile>(
             return await upload(result.url, "video");
         } catch (error) {
             if (desktop) {
-                const detail = error instanceof Error && error.message ? `：${error.message}` : "";
+                const message = (error instanceof Error ? error.message : typeof error === "string" ? error : "").trim();
+                const detail = message ? `：${message}` : "";
                 throw new Error(`视频已生成，但无法保存到本地${detail}`);
             }
             return { url: result.url, storageKey: "", bytes: 0, mimeType: result.mimeType || "video/mp4" };

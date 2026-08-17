@@ -1,7 +1,7 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
   "productName": "WorkflowGenerator",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "identifier": "app.workflowgenerator.desktop",
   "build": {
     "beforeDevCommand": "bun ./node_modules/vite/bin/vite.js --host 127.0.0.1 --port 1420",

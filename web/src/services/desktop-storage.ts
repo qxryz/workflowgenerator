@@ -69,12 +69,7 @@ export async function getDesktopStorageLocations() {
 async function resolveDesktopStorageLocations(): Promise<DesktopStorageLocations> {
     const { appDataDir, homeDir, join } = await import("@tauri-apps/api/path");
     const [root, home] = await Promise.all([appDataDir(), homeDir()]);
-    const [data, images, media, temporary] = await Promise.all([
-        join(root, "data"),
-        join(root, "media", "images"),
-        join(root, "media", "media"),
-        join(root, "media", ".uploads"),
-    ]);
+    const [data, images, media, temporary] = await Promise.all([join(root, "data"), join(root, "media", "images"), join(root, "media", "media"), join(root, "media", ".uploads")]);
     return Object.fromEntries(Object.entries({ root, data, images, media, temporary }).map(([key, value]) => [key, abbreviateHomePath(value, home)])) as DesktopStorageLocations;
 }
 
@@ -119,7 +114,7 @@ export async function putDesktopMedia(bucket: string, key: string, blob: Blob) {
     return trackNativeWrite(writeDesktopMedia(bucket, key, blob));
 }
 
-export async function fetchDesktopRemoteMedia(bucket: string, key: string, url: string, options: { expectedSha256?: string; maxBytes?: number } = {}) {
+export async function fetchDesktopRemoteMedia(bucket: string, key: string, url: string, options: { expectedSha256?: string; maxBytes?: number; allowPrivateNetwork?: boolean } = {}) {
     if (!isDesktopApp()) return null;
     return trackNativeWrite(
         invoke<NativeMediaRecord>("native_fetch_remote_media", {
@@ -128,6 +123,7 @@ export async function fetchDesktopRemoteMedia(bucket: string, key: string, url: 
             url,
             expectedSha256: options.expectedSha256 || null,
             maxBytes: options.maxBytes || null,
+            allowPrivateNetwork: options.allowPrivateNetwork === true,
         }),
     );
 }

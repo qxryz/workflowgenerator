@@ -99,6 +99,7 @@ export type AiConfig = {
     canvasImageCount: string;
     terminalApp: ExternalTerminalApp;
     agentScanPaths: string[];
+    allowPrivateNetworkMedia: boolean;
 };
 
 export type WebdavSyncConfig = {
@@ -185,6 +186,7 @@ export const defaultConfig: AiConfig = {
     canvasImageCount: "3",
     terminalApp: "terminal",
     agentScanPaths: [],
+    allowPrivateNetworkMedia: false,
 };
 
 export const defaultWebdavSyncConfig: WebdavSyncConfig = {
@@ -557,6 +559,7 @@ export function normalizeAiConfig(persistedConfig: Partial<AiConfig>): AiConfig 
         canvasImageCount: config.canvasImageCount || "3",
         terminalApp: config.terminalApp === "ghostty" ? "ghostty" : "terminal",
         agentScanPaths: normalizeAgentScanPaths(persistedConfig.agentScanPaths),
+        allowPrivateNetworkMedia: config.allowPrivateNetworkMedia === true,
     };
 }
 

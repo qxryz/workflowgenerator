@@ -23,6 +23,19 @@ test("desktop remote video persistence failure is explicit and never returns an 
     );
 });
 
+test("desktop native persistence string errors retain their actionable detail", async () => {
+    await assert.rejects(
+        persistGeneratedVideo(
+            { url: "https://provider.example/result.mp4", mimeType: "video/mp4" },
+            async () => {
+                throw "无法解析媒体服务器地址";
+            },
+            true,
+        ),
+        /视频已生成，但无法保存到本地：无法解析媒体服务器地址/,
+    );
+});
+
 test("desktop video results return only after local persistence provides a storage key", async () => {
     const result = await persistGeneratedVideo({ url: "https://provider.example/result.mp4" }, async () => storedVideo, true);
     assert.deepEqual(result, storedVideo);

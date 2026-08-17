@@ -29,6 +29,10 @@ xattr -dr com.apple.quarantine /Applications/WorkflowGenerator.app
 - DSH Launcher 和一些我自己会用的小入口。
 - 数据默认留在本机，模型用自己的 Key。
 
+## 网络代理
+
+如果 TUN 或 Fake-IP 代理导致生成结果无法保存，可在“设置 → 偏好设置”开启“允许私有网络媒体下载”。开关默认关闭；开启后应用会允许模型返回的 HTTPS 下载地址连接任意私有网络，因此请只使用可信的模型渠道和插件。
+
 ## 致谢
 
 - [basketikun/infinite-canvas](https://github.com/basketikun/infinite-canvas)
