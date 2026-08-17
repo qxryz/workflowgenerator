@@ -7,7 +7,8 @@
             "version": "1.0.0",
             "description": "安排场景、机位和镜头，并把截图送回画布",
             "icon": "🎬",
-            "entry": "director-desk.js"
+            "entry": "director-desk.js",
+            "sha256": "280bf8dc1bf930a7f1565fa3feed32ea9d1aa6e0d00cb6d9daa850b0d41a18fc"
         },
         {
             "id": "markdown",
@@ -15,7 +16,8 @@
             "version": "1.1.0",
             "description": "在画布中编辑与渲染 Markdown",
             "icon": "📝",
-            "entry": "markdown.js"
+            "entry": "markdown.js",
+            "sha256": "9d4073856794cf3a1870130f987a8449dbf335b58874d5b94b77bd155403fa2b"
         },
         {
             "id": "svg",
@@ -23,7 +25,8 @@
             "version": "1.1.0",
             "description": "透明背景渲染 SVG,可接收上游文本节点的 SVG 源码",
             "icon": "🔷",
-            "entry": "svg.js"
+            "entry": "svg.js",
+            "sha256": "46ebd4522a1b8ef319db426eda5aa6e5aa33e561a3b1e0f4859e91451b849ccd"
         },
         {
             "id": "html",
@@ -31,7 +34,8 @@
             "version": "1.2.0",
             "description": "沙箱 iframe 渲染 HTML,支持 {{input}} 注入上游文本",
             "icon": "🌐",
-            "entry": "html.js"
+            "entry": "html.js",
+            "sha256": "6cf40e27acc4ef33f4b49a3a064c829ac595b75d7da7466a84cc7ed149541e8d"
         },
         {
             "id": "panorama",
@@ -39,7 +43,8 @@
             "version": "1.1.0",
             "description": "查看 360° 等距柱状全景图,可从上游图片节点取图",
             "icon": "🧭",
-            "entry": "panorama.js"
+            "entry": "panorama.js",
+            "sha256": "8eace37b5466cbcdcd113e55fe6157af91dd7afe12bd934c5c0d291898f0b3b8"
         },
         {
             "id": "sticky-note",
@@ -47,7 +52,8 @@
             "version": "1.1.0",
             "description": "可自选颜色、双击编辑、拖动即可移动的便利贴",
             "icon": "📌",
-            "entry": "sticky-note.js"
+            "entry": "sticky-note.js",
+            "sha256": "05f4dc5a30f001b9a0acec1209ae62936e072b21c5c57462da9201198f45f052"
         }
     ]
 }
