@@ -5,7 +5,7 @@ description: 当前版本已实现但仍需人工验证的变更项
 
 # 待测试
 
-- 仓库来源与文档：应用内官方 Skills、提示词和插件应只从 `qxryz/workflowgenerator` 的对应分发分支读取；Skills 清单变更、插件发布与定时提示词同步应分别更新 `skills-dist`、`plugins-dist` 和 `wg-prompt-sources`，不再向 `main` 写入同步提交。文档、Docker、Render、安全策略和 GitHub 入口不得跳转到旧上游站点或已失效仓库。README 中保留的上游项目链接只用于致谢。
+- 仓库来源与文档：应用内官方 Skills、提示词和插件应只从 `qxryz/workflowgenerator` 的对应分发分支读取；Skills 清单变更、插件发布与定时提示词同步应分别更新 `skills-dist`、`plugins-dist` 和 `wg-prompt-sources`，不再向 `main` 写入同步提交。文档、安全策略和 GitHub 入口不得跳转到旧上游站点或已失效仓库。README 中保留的上游项目链接只用于致谢。
 - 软件更新：进入“设置 → 软件更新”后应显示当前版本并自动检查；检查地址必须是 `qxryz/workflowgenerator` 的最新 GitHub Release，不再读取上游仓库。没有 Release 或网络不可用时只显示友好提示，并可前往 Tags；发现更高版本时显示“下载并安装”。下载过程应显示进度，安装前等待画布、Zodiac、导演台和本机存储刷盘，随后替换应用并自动重启；保存或签名校验失败时不得安装。网页版只提供检查与前往 Tags，不尝试调用桌面安装。首个 Release 已核对 DMG、macOS updater 压缩包、签名、`latest.json`、校验和与构建证明；发布下一版本时还需从 0.1.0 完成一次真实下载、安装和自动重启，并确认 Gatekeeper 放行后可运行。
 - 安全边界：链接导入不得接收 API Key，配置文件导入不得恢复 API Key、WebDAV 密码或自定义调用脚本；Markdown 与 SVG 插件中的脚本、事件属性和危险链接不得执行。作者私藏目录与远程官方插件目录缺少签名、签名无效或插件哈希不一致时应使用内置内容并停止安装；正式版不显示第三方或本机插件入口。WebDAV 非本机地址必须使用 HTTPS，异常路径、超大响应、压缩包目录穿越和异常压缩比均应被拒绝。终端会话启动前必须显示系统确认，取消后不创建进程；远程媒体不得访问本机、局域网或云元数据地址。
 - DSH Launcher：桌面版顶部“别点我”菜单的分割线下方应显示带 DeepSeek 图标的“DSH”，右侧版本号应与本机独立 DSH 内实际安装的 DSH 包一致，更新本机 DSH 后再次打开菜单应同步变化，无法读取时不显示空版本占位。点击后应在 Workflow Generator 主窗口进入 `/dsh` Launcher 页面，不应立即启动 DSH；页面应展示当前版本和“准备就绪 / 正在运行”状态，底部按钮按状态显示“启动 DSH / 回到 DSH”。点击按钮后打开或聚焦原有独立 DSH 窗口，不重复创建实例。关闭 Workflow Generator 后 DSH 应继续运行，DSH 的配置、工作区、会话和插件不得进入 Workflow Generator 数据。网页版菜单不显示 DSH；未安装或读取失败时只显示友好提示，不出现终端、命令或本机绝对路径。独立 DSH 应加载官方界面，并能不经过 Workflow Generator 从 Dock 单独启动。

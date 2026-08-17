@@ -18,5 +18,3 @@ bun run types:check
 ```bash
 bun run build
 ```
-
-Docker 运行方式见 [Docker 部署](./content/docs/overview/docker.mdx)。

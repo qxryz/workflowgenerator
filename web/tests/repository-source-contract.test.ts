@@ -9,9 +9,6 @@ test("official downloads and operational links use the WorkflowGenerator reposit
         readSource("../src/constant/env.ts"),
         readSource("../src/services/api/prompt-source-presets.ts"),
         readSource("../src/services/skills/skill-registry.ts"),
-        readSource("../../.github/workflows/docker-image.yml"),
-        readSource("../../.github/workflows/docs-docker-image.yml"),
-        readSource("../../docker-compose.yml"),
         readSource("../../docs/src/lib/shared.ts"),
     ].join("\n");
 
@@ -25,6 +22,15 @@ test("distribution workflows publish only to their dedicated branches", () => {
     const promptWorkflow = readSource("../../.github/workflows/sync-prompt-sources.yml");
     assert.match(promptWorkflow, /HEAD:wg-prompt-sources/u);
     assert.doesNotMatch(promptWorkflow, /git push\s*$/mu);
+});
+
+test("container publishing stays removed and Pages stays opt-in", () => {
+    assert.equal(existsSync(new URL("../../Dockerfile", import.meta.url)), false);
+    assert.equal(existsSync(new URL("../../.github/workflows/docker-image.yml", import.meta.url)), false);
+    assert.equal(existsSync(new URL("../../.github/workflows/docs-docker-image.yml", import.meta.url)), false);
+    const pagesWorkflow = readSource("../../.github/workflows/github-pages.yml");
+    assert.match(pagesWorkflow, /workflow_dispatch:/u);
+    assert.doesNotMatch(pagesWorkflow, /tags:\s*\["v\*"\]/u);
 });
 
 test("removed upstream integrations stay removed while README keeps attribution", () => {
