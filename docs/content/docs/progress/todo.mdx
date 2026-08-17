@@ -7,7 +7,6 @@ description: 当前项目后续值得处理的事项
 
 本文档用来记录当前项目后续比较值得处理的事项。
 
-- 首次自动更新发布：将本机保存的 Tauri updater 私钥备份，并配置到当前仓库的 GitHub Actions Secret `TAURI_SIGNING_PRIVATE_KEY`；私钥设有密码时同时配置 `TAURI_SIGNING_PRIVATE_KEY_PASSWORD`。正式推送首个 `v*` tag 后核对 Release 的 DMG、更新包、签名、`latest.json`、校验和与构建证明，确认真实旧版本可以完成下载、安装和重启，再把这一项移入待测试记录。
 - DSH 插件后续：当前内嵌 Launcher 只额外监控并按用户确认安装 dsh-market，不接管市场中的插件列表、安装或配置；继续使用 DSH 自己的 bundle 与 profile 机制开发和试玩插件，在插件数量形成稳定工作流后，再评估独立的“我的 DSH”Profile 管理，不把 DSH 插件并入 Workflow Generator 插件系统。
 - 作者私藏发布源：应用端目录协议、本地原生浏览、分类安装、目录签名和完整性校验已接入；建立作者私有内容仓库后，按开发文档配置 GitHub Actions，只将确认发布的 `catalog.json`、`catalog.json.sig` 与内容文件推送到 `author-library-dist`，不得把草稿、私有历史或写入凭据带入公开分发分支。
 - Zodiac 后续：完善多模型工具调用适配与跨画布工作流提案复用。

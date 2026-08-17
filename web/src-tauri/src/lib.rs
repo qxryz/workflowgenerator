@@ -25,11 +25,39 @@ const PUBLISHER_MINISIGN_PUBLIC_KEY: &str =
 fn verify_publisher_payload(payload: &[u8], signature_text: &str) -> Result<(), String> {
     let public_key = minisign_verify::PublicKey::from_base64(PUBLISHER_MINISIGN_PUBLIC_KEY)
         .map_err(|_| "发布者公钥无效".to_string())?;
-    let signature = minisign_verify::Signature::decode(signature_text)
+    let trimmed = signature_text.trim();
+    let normalized = if trimmed.starts_with("untrusted comment:") {
+        trimmed.to_string()
+    } else {
+        String::from_utf8(
+            BASE64
+                .decode(trimmed)
+                .map_err(|_| "发布签名格式无效".to_string())?,
+        )
+        .map_err(|_| "发布签名格式无效".to_string())?
+    };
+    let signature = minisign_verify::Signature::decode(&normalized)
         .map_err(|_| "发布签名格式无效".to_string())?;
     public_key
         .verify(payload, &signature, false)
         .map_err(|_| "发布签名校验失败".to_string())
+}
+
+#[cfg(test)]
+mod publisher_signature_tests {
+    use super::{verify_publisher_payload, BASE64};
+    use base64::Engine;
+
+    const TAURI_SIGNATURE: &str = "dW50cnVzdGVkIGNvbW1lbnQ6IHNpZ25hdHVyZSBmcm9tIHRhdXJpIHNlY3JldCBrZXkKUlVTRi9sekdab2hrK2dDOEdSeFdNNXAxVjVia1hvbHJtTmYyVTkyVlFGQzBjZjlCeW1BcEQ1Q055R3lVVWh6TExXbWNsT28zVWhDK2VyaVRZZlUzUExobm55OENoMk01MGdBPQp0cnVzdGVkIGNvbW1lbnQ6IHRpbWVzdGFtcDoxNzg2OTU0NjkzCWZpbGU6d29ya2Zsb3dnZW5lcmF0b3ItcHVibGlzaGVyLXNpZ25hdHVyZS1maXh0dXJlLnR4dApFUE9KZWdxWDk4d3JqYUJMZ0tSNVlWbVdKU3hWR2pGUGd0MVRYb1BUYTRqODdDOG5uNjRDTDBxalJiNjRyeVZNbWpmNlFVWkZJUHdtSnBscjNyS2ZDUT09Cg==";
+
+    #[test]
+    fn verifies_tauri_base64_signature_envelopes_and_raw_minisign_text() {
+        let payload = b"v0.1.0\n";
+        verify_publisher_payload(payload, TAURI_SIGNATURE).unwrap();
+        let raw_signature = String::from_utf8(BASE64.decode(TAURI_SIGNATURE).unwrap()).unwrap();
+        verify_publisher_payload(payload, &raw_signature).unwrap();
+        assert!(verify_publisher_payload(b"v0.1.1\n", TAURI_SIGNATURE).is_err());
+    }
 }
 
 #[tauri::command]

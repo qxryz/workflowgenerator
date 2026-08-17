@@ -64,8 +64,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          bundle_root="web/src-tauri/target/aarch64-apple-darwin/release/bundle"
-          find "$bundle_root" -type f \( -name '*.dmg' -o -name '*.tar.gz' -o -name '*.sig' \) | LC_ALL=C sort | while IFS= read -r file; do
+          release_assets="$RUNNER_TEMP/release-assets"
+          mkdir -p "$release_assets"
+          gh release download "$GITHUB_REF_NAME" --dir "$release_assets" --pattern '*.dmg' --pattern '*.tar.gz' --pattern '*.sig' --pattern 'latest.json'
+          find "$release_assets" -type f | LC_ALL=C sort | while IFS= read -r file; do
             digest=$(shasum -a 256 "$file" | cut -d ' ' -f 1)
             printf '%s  %s\n' "$digest" "$(basename "$file")"
           done > "$RUNNER_TEMP/SHA256SUMS"

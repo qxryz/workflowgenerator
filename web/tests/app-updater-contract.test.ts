@@ -62,6 +62,8 @@ test("version tags build downloadable and signed updater artifacts", () => {
     assert.match(workflow, /attestations: write/u);
     assert.match(workflow, /actions\/attest-build-provenance@[0-9a-f]{40} # v3/u);
     assert.match(workflow, /SHA256SUMS/u);
+    assert.match(workflow, /gh release download/u);
+    assert.match(workflow, /release-assets/u);
     assert.match(workflow, /shasum -a 256/u);
     assert.equal(releaseConfig.bundle.createUpdaterArtifacts, true);
 });
