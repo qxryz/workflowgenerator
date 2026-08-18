@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from "react";
 import { Dropdown, type MenuProps } from "antd";
 import { BubbleChatIcon, FolderLibraryIcon, MagicWand03Icon, Note01Icon, WorkflowSquare01Icon } from "hugeicons-react";
-import { ChevronDown, Clapperboard, FileText, PanelsTopLeft, UserRound } from "lucide-react";
+import { ChevronDown, Clapperboard, Clock, Compass, FileText, PanelsTopLeft, UserRound } from "lucide-react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
@@ -11,10 +11,12 @@ import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
 import { cn } from "@/lib/utils";
 import { isDesktopApp } from "@/services/desktop-storage";
 import { getDshDesktopVersion } from "@/services/dsh-launcher";
+import { openExternalUrl } from "@/services/external-links";
 import { useAgentStore } from "@/stores/use-agent-store";
 import { useConfigStore } from "@/stores/use-config-store";
 
 const AppConfigModal = lazy(() => import("@/components/layout/app-config-modal").then((module) => ({ default: module.AppConfigModal })));
+const EXPLORE_URL = "https://web.zhouzhou.dev";
 const destinations = [
     { label: "工作流", path: "/canvas", icon: WorkflowSquare01Icon },
     { label: "工作台", path: "/workbench", icon: PanelsTopLeft },
@@ -36,10 +38,16 @@ function dshMenuLabel(version: string | null) {
 }
 
 function playfulMenuItems(desktop: boolean, dshVersion: string | null): MenuProps["items"] {
-    return [
-        { key: "about-author", label: "说了别点", icon: <UserRound className="size-4" strokeWidth={1.7} /> },
-        ...(desktop ? [{ type: "divider" as const }, { key: "dsh", label: dshMenuLabel(dshVersion), icon: <img src="/icons/deepseek.svg" alt="" className="size-4" /> }] : []),
-    ];
+    const items: NonNullable<MenuProps["items"]> = [{ key: "about-author", label: "说了别点", icon: <UserRound className="size-4" strokeWidth={1.7} /> }];
+    if (desktop) {
+        items.push(
+            { type: "divider" },
+            { key: "dsh", label: dshMenuLabel(dshVersion), icon: <img src="/icons/deepseek.svg" alt="" className="size-4" /> },
+            { key: "upcoming", label: "...", icon: <Clock className="size-4" strokeWidth={1.7} />, disabled: true },
+        );
+    }
+    items.push({ type: "divider" }, { key: "explore", label: "探索", icon: <Compass className="size-4" strokeWidth={1.7} /> });
+    return items;
 }
 
 function navItemClass(active: boolean) {
@@ -127,6 +135,10 @@ export function AppTopNav() {
                                             }
                                             if (key === "dsh") {
                                                 navigate("/dsh");
+                                                return;
+                                            }
+                                            if (key === "explore") {
+                                                void openExternalUrl(EXPLORE_URL);
                                             }
                                         },
                                     }}

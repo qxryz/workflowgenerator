@@ -42,8 +42,12 @@ test("the top navigation opens a standalone About Author page", () => {
     assert.match(navigation, /title="别点我"/u);
     assert.match(navigation, /className="hidden text-\[11px\] xl:inline">别点我/u);
     assert.match(navigation, /label: "说了别点"/u);
-    assert.match(navigation, /type: "divider"/u);
+    assert.equal(navigation.match(/type: "divider"/gu)?.length, 2);
     assert.match(navigation, /key: "dsh", label: dshMenuLabel\(dshVersion\)/u);
+    assert.match(navigation, /key: "upcoming", label: "\.\.\.".*disabled: true/u);
+    assert.match(navigation, /key: "explore", label: "探索"/u);
+    assert.match(navigation, /const EXPLORE_URL = "https:\/\/web\.zhouzhou\.dev"/u);
+    assert.match(navigation, /openExternalUrl\(EXPLORE_URL\)/u);
     assert.match(navigation, />v\{version\}</u);
     assert.match(navigation, /src="\/icons\/deepseek\.svg"/u);
     assert.match(navigation, /playfulMenuItems\(desktopApp, dshVersion\)/u);

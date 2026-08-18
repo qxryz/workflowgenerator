@@ -17,6 +17,8 @@ test("desktop external links use the scoped Tauri opener", () => {
     assert.ok(capability.permissions.includes("opener:allow-default-urls"));
     assert.ok(!capability.permissions.includes("opener:default"));
     assert.match(externalLinks, /plugin:opener\|open_url/u);
+    assert.match(externalLinks, /export async function openExternalUrl/u);
+    assert.match(externalLinks, /window\.open\(url\.toString\(\), "_blank", "noopener,noreferrer"\)/u);
     assert.match(externalLinks, /new Set\(\["http:", "https:", "mailto:", "tel:"\]\)/u);
     assert.match(externalLinks, /anchor\.target\.toLowerCase\(\) !== "_blank"/u);
     assert.match(appProviders, /installDesktopExternalLinkHandler\(\)/u);
