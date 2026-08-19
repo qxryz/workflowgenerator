@@ -12,6 +12,7 @@ import { type AdapterId } from "@/lib/model-adapters";
 import { isMiniMaxTextModel, miniMaxNativeRoutesForModel, type MiniMaxNativeRoute } from "@/lib/minimax-contract";
 import { qwenAudioNativeRoutesForModel } from "@/lib/qwen-audio-contract";
 import { ZodiacFlowDoc } from "./zodiac-flow-doc";
+import { AssetFilesDoc } from "./asset-files-doc";
 import { modelApiParameterDoc, type ModelApiParameterRow } from "./model-api-parameters";
 
 type DocumentModel = { vendor: ModelVendorDefinition; model: CatalogModelEntry; adapter: AdapterId; key: string };
@@ -38,10 +39,12 @@ const capabilityOrder: ProviderModelCapability[] = ["image", "video", "text", "a
 const ARCHITECTURE_KEY = "__architecture__";
 const UI_PATHS_KEY = "__ui_paths__";
 const ZODIAC_FLOW_KEY = "__zodiac_flow__";
+const ASSET_FILES_KEY = "__asset_files__";
 const referenceDocs = [
     { key: ARCHITECTURE_KEY, label: "架构与新增渠道示例", color: "#117c8e" },
     { key: UI_PATHS_KEY, label: "绑定模型的原生 UI 解释", color: "#db2777" },
     { key: ZODIAC_FLOW_KEY, label: "Zodiac 工作流技术说明", color: "#7c3aed" },
+    { key: ASSET_FILES_KEY, label: "资产与文件", color: "#64748b" },
 ] as const;
 
 function isMiniMaxVendor(vendorId: string): vendorId is "minimax-token-plan" | "minimax-api" {
@@ -65,7 +68,7 @@ export default function DocsPage() {
     const activeScript = scriptExamples.find((item) => item.label === activeScriptLabel) || scriptExamples[0]!;
     const directNativeCall = usesDirectNativeAdapter(selected.adapter) && !savedScript;
     const scriptPanelSummary = directNativeCall ? "应用已原生接入，无需配置高级脚本。" : "可选：用于覆盖默认调用；不配置时使用应用内置适配。";
-    const isReferenceDoc = selectedKey === ARCHITECTURE_KEY || selectedKey === UI_PATHS_KEY || selectedKey === ZODIAC_FLOW_KEY;
+    const isReferenceDoc = selectedKey === ARCHITECTURE_KEY || selectedKey === UI_PATHS_KEY || selectedKey === ZODIAC_FLOW_KEY || selectedKey === ASSET_FILES_KEY;
     const search = query.trim().toLocaleLowerCase();
     const visibleModels = search ? models.filter(({ vendor, model }) => [vendor.label, vendor.shortLabel, model.label, model.name, model.description, capabilityMeta[model.capability].label].join(" ").toLocaleLowerCase().includes(search)) : models;
 
@@ -95,7 +98,7 @@ export default function DocsPage() {
                 <div className="wg-library-header-inner">
                     <div className="min-w-0">
                         <h1 className="wg-sketch-title text-[21px] font-semibold">模型接口</h1>
-                        <p className="wg-library-meta mt-0.5">已适配推荐模型 / {String(models.length).padStart(2, "0")} · 参考 / 03</p>
+                        <p className="wg-library-meta mt-0.5">已适配推荐模型 / {String(models.length).padStart(2, "0")} · 参考 / 04</p>
                     </div>
                     <label className="ml-auto flex h-9 w-[min(36vw,340px)] items-center gap-2 rounded-[9px] border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] px-3 text-[color:var(--wg-home-muted)] focus-within:border-[color:var(--wg-home-accent)] focus-within:ring-2 focus-within:ring-[color:var(--wg-home-accent)]/10">
                         <Search className="size-4 shrink-0" strokeWidth={1.8} />
@@ -232,6 +235,8 @@ export default function DocsPage() {
                         <UiPathsFlow />
                     ) : selectedKey === ZODIAC_FLOW_KEY ? (
                         <ZodiacFlowDoc />
+                    ) : selectedKey === ASSET_FILES_KEY ? (
+                        <AssetFilesDoc />
                     ) : (
                         <>
                     <div className="mb-7 flex flex-wrap items-start justify-between gap-3 border-b border-[#e7eaed] pb-6 dark:border-slate-700">

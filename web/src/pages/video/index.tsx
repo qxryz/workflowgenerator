@@ -6,6 +6,7 @@ import { saveAs } from "file-saver";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ModelPicker } from "@/components/model-picker";
 import { PromptSelectDialog } from "@/components/prompts/prompt-select-dialog";
 import { VideoSettingsPanel, normalizeVideoResolutionValue, normalizeVideoSizeValue } from "@/components/video-settings-panel";
@@ -194,6 +195,7 @@ function removeSynchronousCancellationJournal(jobId: string) {
 }
 
 export default function VideoPage() {
+    const { t } = useAppTranslation();
     const { message } = App.useApp();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dragDepthRef = useRef(0);
@@ -249,7 +251,7 @@ export default function VideoPage() {
     const isMiniMaxHailuoFast = isMiniMaxHailuo && isMiniMaxHailuoFastModel(modelOptionName(model));
     const hailuoVideoOptions = isMiniMaxHailuo ? normalizeMiniMaxHailuoVideoOptions(selectedVideoConfig.vquality, Number(selectedVideoConfig.videoSeconds)) : null;
     const generationSeconds = isSeedance25 ? normalizeSeedance25Duration(effectiveConfig.videoSeconds, seedance25TaskMode) : hailuoVideoOptions?.duration || effectiveConfig.videoSeconds || "6";
-    const generationDurationLabel = isSeedance25 && generationSeconds === -1 ? "智能时长" : `${generationSeconds} 秒`;
+    const generationDurationLabel = isSeedance25 && generationSeconds === -1 ? t("智能时长") : t("{seconds} 秒", { seconds: generationSeconds });
     const generationActionLabel = isSeedance25 ? seedance25TaskLabel(seedance25TaskMode) : "生成视频";
     const seedance25InputError = isSeedance25
         ? seedance25InputModeError(seedance25TaskMode, seedance25InputMode, { images: Math.min(references.length, seedance25InputMode === "first-frame" ? 1 : seedance25InputMode === "first-last" ? 2 : references.length), videos: seedance25FrameMode ? 0 : videoReferences.length, audios: seedance25FrameMode ? 0 : audioReferences.length })
@@ -1389,10 +1391,10 @@ export default function VideoPage() {
                         <div className="wg-media-workbench-result-stage">
                             <div className="wg-media-section-heading">
                                 <div>
-                                    <h2>生成结果</h2>
-                                    <p>{results.length ? "当前视频" : "结果会显示在这里"}</p>
+                                    <h2>{t("生成结果")}</h2>
+                                    <p>{t(results.length ? "当前视频" : "结果会显示在这里")}</p>
                                 </div>
-                                {running ? <Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-2.5 py-1 text-[color:var(--wg-studio-accent-strong)]">生成中 · {formatDuration(elapsedMs)}</Tag> : null}
+                                {running ? <Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-2.5 py-1 text-[color:var(--wg-studio-accent-strong)]">{t("生成中 · {time}", { time: formatDuration(elapsedMs) })}</Tag> : null}
                             </div>
                             <VideoResultStage
                                 results={results}
@@ -1410,15 +1412,15 @@ export default function VideoPage() {
                         <div className="wg-media-composer">
                             <div className="wg-media-composer-heading">
                                 <div>
-                                    <h2>描述你想生成的视频</h2>
-                                    <p>写清主体动作、镜头运动、场景和氛围</p>
+                                    <h2>{t("描述你想生成的视频")}</h2>
+                                    <p>{t("写清主体动作、镜头运动、场景和氛围")}</p>
                                 </div>
                                 <div className="flex flex-wrap justify-end gap-2">
                                     <Button size="small" icon={<BookOpen className="size-3.5" />} onClick={() => setPromptDialogOpen(true)}>
-                                        提示词库
+                                        {t("提示词库")}
                                     </Button>
                                     <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => setAssetPickerOpen(true)}>
-                                        我的资产
+                                        {t("我的资产")}
                                     </Button>
                                 </div>
                             </div>
@@ -1429,14 +1431,14 @@ export default function VideoPage() {
                                 autoSize={{ minRows: 3, maxRows: 7 }}
                                 maxLength={isMiniMaxHailuo ? 2000 : undefined}
                                 showCount={isMiniMaxHailuo}
-                                placeholder={isMiniMaxHailuo && references.length ? "可选：描述首帧之后的动作、镜头和氛围…" : "例如：镜头缓慢推近，登山者站在雪峰前，云海流动，晨光照亮山脊…"}
+                                placeholder={t(isMiniMaxHailuo && references.length ? "可选：描述首帧之后的动作、镜头和氛围…" : "例如：镜头缓慢推近，登山者站在雪峰前，云海流动，晨光照亮山脊…")}
                             />
 
                             <div className="wg-media-reference-heading">
                                 <div>
-                                    <span>{isSeedance25 ? seedance25ReferenceTitle : videoExperience === "agnes-video" || isMiniMaxHailuo ? "首帧图片" : videoExperience === "grok-video" ? "参考图或视频" : videoExperience === "seedance-video" || isMiniMaxH3 ? "参考素材" : "参考图"}</span>
+                                    <span>{t(isSeedance25 ? seedance25ReferenceTitle : videoExperience === "agnes-video" || isMiniMaxHailuo ? "首帧图片" : videoExperience === "grok-video" ? "参考图或视频" : videoExperience === "seedance-video" || isMiniMaxH3 ? "参考素材" : "参考图")}</span>
                                     <small>
-                                        {isSeedance25
+                                        {t(isSeedance25
                                             ? seedance25ReferenceDescription
                                             : videoExperience === "seedance-video"
                                               ? "可添加图片、视频与音频"
@@ -1450,15 +1452,15 @@ export default function VideoPage() {
                                                   ? "图片用于引导，或添加一段参考视频"
                                                   : videoExperience === "agnes-video"
                                                     ? "添加一张图片，让画面从这里开始运动"
-                                                    : "用于确定画面主体和首帧"}
+                                                    : "用于确定画面主体和首帧")}
                                     </small>
                                 </div>
                                 <div className="flex gap-2">
                                     <Button size="small" icon={<ClipboardPaste className="size-3.5" />} onClick={() => void addReferencesFromClipboard()}>
-                                        剪切板
+                                        {t("剪切板")}
                                     </Button>
                                     <Button size="small" icon={<Upload className="size-3.5" />} onClick={() => fileInputRef.current?.click()}>
-                                        {isSeedance25 && seedance25FrameMode ? "添加图片" : "添加素材"}
+                                        {t(isSeedance25 && seedance25FrameMode ? "添加图片" : "添加素材")}
                                     </Button>
                                 </div>
                             </div>
@@ -1468,8 +1470,8 @@ export default function VideoPage() {
                                         value={seedance25VideoUrl}
                                         onChange={(event) => setSeedance25VideoUrl(event.target.value)}
                                         onSearch={addSeedance25RemoteVideo}
-                                        enterButton="添加视频"
-                                        placeholder="粘贴 https:// 公网视频 URL 或 asset:// 方舟素材 ID"
+                                        enterButton={t("添加视频")}
+                                        placeholder={t("粘贴 https:// 公网视频 URL 或 asset:// 方舟素材 ID")}
                                         aria-label="Seedance 2.5 参考视频地址"
                                     />
                                     <Input
@@ -1479,7 +1481,7 @@ export default function VideoPage() {
                                         suffix="秒"
                                         value={seedance25VideoDuration}
                                         onChange={(event) => setSeedance25VideoDuration(Number(event.target.value))}
-                                        aria-label="参考视频时长"
+                                        aria-label={t("参考视频时长")}
                                     />
                                 </div>
                             ) : null}
@@ -1498,17 +1500,17 @@ export default function VideoPage() {
                                         <img src={item.dataUrl} alt={item.name} className="size-full object-cover" />
                                         <span className="wg-media-reference-index">
                                             {isSeedance25 && seedance25InputMode === "first-frame"
-                                                ? "首帧"
+                                                ? t("首帧")
                                                 : isSeedance25 && seedance25InputMode === "first-last"
                                                   ? index === 0
-                                                      ? "首帧"
-                                                      : "尾帧"
+                                                      ? t("首帧")
+                                                      : t("尾帧")
                                                   : isMiniMaxHailuo
-                                                    ? "首帧"
+                                                    ? t("首帧")
                                                     : isMiniMaxH3 && !videoReferences.length && !audioReferences.length && references.length <= 2
                                                       ? index === 0
-                                                          ? "首帧"
-                                                          : "尾帧"
+                                                          ? t("首帧")
+                                                          : t("尾帧")
                                                       : seedanceReferenceLabel("image", index)}
                                         </span>
                                         <ReferenceOrderButtons label="参考图" index={index} total={references.length} onMove={(offset) => setReferences((value) => moveListItem(value, index, offset))} />
@@ -1545,7 +1547,7 @@ export default function VideoPage() {
                                 {!references.length && (!supportsVideoReferences || !videoReferences.length) && (!supportsAudioReferences || !audioReferences.length) ? (
                                     <button type="button" className="wg-media-reference-empty" onClick={() => fileInputRef.current?.click()}>
                                         <ImagePlus className="size-5" />
-                                        <span>{isSeedance25 ? seedance25ReferenceEmptyText : referenceDragTarget ? (isMiniMaxHailuo ? "松开即可添加首帧图片" : "松开即可添加参考素材") : isMiniMaxHailuo ? "拖入图片，或点此添加首帧" : "拖入文件，或点此添加参考素材"}</span>
+                                        <span>{t(isSeedance25 ? seedance25ReferenceEmptyText : referenceDragTarget ? (isMiniMaxHailuo ? "松开即可添加首帧图片" : "松开即可添加参考素材") : isMiniMaxHailuo ? "拖入图片，或点此添加首帧" : "拖入文件，或点此添加参考素材")}</span>
                                     </button>
                                 ) : null}
                             </div>
@@ -1553,7 +1555,7 @@ export default function VideoPage() {
                     </div>
                     <div className="wg-media-mobile-cta">
                         <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                            {generationActionLabel} · {seedance25TaskMode === "edit" && isSeedance25 ? "跟随原片" : generationDurationLabel}
+                            {t(generationActionLabel)} · {seedance25TaskMode === "edit" && isSeedance25 ? t("跟随原片") : generationDurationLabel}
                         </Button>
                     </div>
                 </section>
@@ -1561,8 +1563,8 @@ export default function VideoPage() {
                 <aside className="wg-media-workbench-pane wg-media-workbench-inspector">
                     <div className="wg-media-inspector-heading">
                         <div>
-                            <h2>模型与参数</h2>
-                            <p>参数会随模型自动调整</p>
+                            <h2>{t("模型与参数")}</h2>
+                            <p>{t("参数会随模型自动调整")}</p>
                         </div>
                     </div>
                     <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -1578,7 +1580,7 @@ export default function VideoPage() {
                     </div>
                     <div className="wg-media-generate-footer">
                         <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                            {generationActionLabel} · {seedance25TaskMode === "edit" && isSeedance25 ? "跟随原片" : generationDurationLabel}
+                            {t(generationActionLabel)} · {seedance25TaskMode === "edit" && isSeedance25 ? t("跟随原片") : generationDurationLabel}
                         </Button>
                     </div>
                 </aside>
@@ -1595,7 +1597,7 @@ export default function VideoPage() {
                     event.target.value = "";
                 }}
             />
-            <Drawer rootClassName="wg-media-workbench-drawer" title="生成记录" placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
+            <Drawer rootClassName="wg-media-workbench-drawer" title={t("生成记录")} placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
                 <LogPanel
                     logs={logs}
                     selectedLogIds={selectedLogIds}
@@ -1606,7 +1608,7 @@ export default function VideoPage() {
                     onPreviewLog={previewGenerationLog}
                 />
             </Drawer>
-            <Drawer rootClassName="wg-media-workbench-drawer" title="模型与参数" placement="bottom" size="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
+            <Drawer rootClassName="wg-media-workbench-drawer" title={t("模型与参数")} placement="bottom" size="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
                 <div className="grid grid-cols-2 gap-4 pb-24">
                     <GenerationSettings
                         config={selectedVideoConfig}
@@ -1618,14 +1620,14 @@ export default function VideoPage() {
                 </div>
                 <div className="fixed inset-x-0 bottom-0 border-t border-stone-200 bg-white/95 p-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/95">
                     <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                        {generationActionLabel} · {seedance25TaskMode === "edit" && isSeedance25 ? "跟随原片" : generationDurationLabel}
+                        {t(generationActionLabel)} · {seedance25TaskMode === "edit" && isSeedance25 ? t("跟随原片") : generationDurationLabel}
                     </Button>
                 </div>
             </Drawer>
             <PromptSelectDialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen} onSelect={setPrompt} />
             <AssetPickerModal open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
-            <Modal title="删除生成记录" open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={deleteSelectedLogs} okText="删除" okButtonProps={{ danger: true }} cancelText="取消">
-                确定删除选中的 {selectedLogIds.length} 条生成记录吗？
+            <Modal title={t("删除生成记录")} open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={deleteSelectedLogs} okText={t("删除")} okButtonProps={{ danger: true }} cancelText={t("取消")}>
+                {t("确定删除选中的 {count} 条生成记录吗？", { count: selectedLogIds.length })}
             </Modal>
         </div>
     );
@@ -1644,13 +1646,14 @@ function GenerationSettings({
     openConfigDialog: (shouldPromptContinue?: boolean) => void;
     referenceCounts: { images: number; videos: number; audios: number };
 }) {
+    const { t } = useAppTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const resolvedConfig = { ...config, model, videoModel: model };
 
     return (
         <>
             <label className="col-span-2 block min-w-0 sm:col-span-1">
-                <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">模型</span>
+                <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">{t("模型")}</span>
                 <ModelPicker config={resolvedConfig} value={model} onChange={(value) => updateConfig("videoModel", value)} capability="video" fullWidth onMissingConfig={() => openConfigDialog(false)} />
             </label>
             <div className="col-span-2">
@@ -1681,6 +1684,7 @@ function VideoResultStage({
     onUseLastFrame?: (video: GeneratedVideo) => void;
     onDeleteFailure: (logId: string) => void;
 }) {
+    const { t } = useAppTranslation();
     const [activeId, setActiveId] = useState<string>();
 
     useEffect(() => {
@@ -1697,8 +1701,8 @@ function VideoResultStage({
                 <div className="wg-media-result-empty-icon">
                     <VideoIcon className="size-7" strokeWidth={1.6} />
                 </div>
-                <h3>让一个镜头动起来</h3>
-                <p>描述动作、镜头和氛围，生成结果会显示在这里</p>
+                <h3>{t("让一个镜头动起来")}</h3>
+                <p>{t("描述动作、镜头和氛围，生成结果会显示在这里")}</p>
             </div>
         );
     }
@@ -1715,16 +1719,16 @@ function VideoResultStage({
                 {active.status === "success" && active.video ? (
                     <ResultVideoCard video={active.video} onDownload={onDownload} onSaveAsset={onSaveAsset} onRegenerate={onRegenerate} onExtend={onExtend} onUseLastFrame={onUseLastFrame} regenerateDisabled={running} />
                 ) : active.status === "failed" ? (
-                    <FailedVideoCard error={active.error || "生成失败"} retryDisabled={running} onRetry={() => onRetry(active.id)} onDelete={() => onDeleteFailure(active.id)} />
+                    <FailedVideoCard error={active.error || t("生成失败")} retryDisabled={running} onRetry={() => onRetry(active.id)} onDelete={() => onDeleteFailure(active.id)} />
                 ) : (
                     <PendingVideoCard />
                 )}
             </div>
             {results.length > 1 ? (
-                <div className="wg-media-result-thumbnails" aria-label="生成结果列表">
+                <div className="wg-media-result-thumbnails" aria-label={t("生成结果列表")}>
                     {results.map((result, index) => (
-                        <button key={result.id} type="button" className={result.id === active.id ? "is-active" : ""} onClick={() => setActiveId(result.id)} aria-label={`查看结果 ${index + 1}`}>
-                            {result.video ? <video src={result.video.url} muted preload="metadata" /> : result.status === "failed" ? <span className="text-red-700">失败</span> : <LoaderCircle className="size-4 animate-spin" />}
+                        <button key={result.id} type="button" className={result.id === active.id ? "is-active" : ""} onClick={() => setActiveId(result.id)} aria-label={t("查看结果 {number}", { number: index + 1 })}>
+                            {result.video ? <video src={result.video.url} muted preload="metadata" /> : result.status === "failed" ? <span className="text-red-700">{t("失败")}</span> : <LoaderCircle className="size-4 animate-spin" />}
                         </button>
                     ))}
                 </div>
@@ -1750,6 +1754,7 @@ function ResultVideoCard({
     onUseLastFrame?: (video: GeneratedVideo) => void;
     regenerateDisabled: boolean;
 }) {
+    const { t } = useAppTranslation();
     return (
         <div className="wg-media-result-card overflow-hidden rounded-lg border border-stone-200 bg-background dark:border-stone-800">
             <div className="wg-media-result-card-preview">
@@ -1766,22 +1771,22 @@ function ResultVideoCard({
                 <div className="flex shrink-0 gap-1">
                     {onUseLastFrame && video.lastFrame ? (
                         <Button size="small" icon={<ImagePlus className="size-3.5" />} onClick={() => onUseLastFrame(video)}>
-                            尾帧续作
+                            {t("尾帧续作")}
                         </Button>
                     ) : null}
                     {onExtend ? (
                         <Button size="small" icon={<ArrowRight className="size-3.5" />} onClick={() => onExtend(video)}>
-                            继续延长
+                            {t("继续延长")}
                         </Button>
                     ) : null}
                     <Button size="small" icon={<RefreshCw className="size-3.5" />} disabled={regenerateDisabled} onClick={onRegenerate}>
-                        重新生成
+                        {t("重新生成")}
                     </Button>
                     <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => void onSaveAsset(video)}>
-                        保存到我的资产
+                        {t("保存到我的资产")}
                     </Button>
                     <Button size="small" icon={<Download className="size-3.5" />} onClick={() => void onDownload(video)}>
-                        下载
+                        {t("下载")}
                     </Button>
                 </div>
             </div>
@@ -1790,33 +1795,35 @@ function ResultVideoCard({
 }
 
 function PendingVideoCard() {
+    const { t } = useAppTranslation();
     return (
         <div className="relative aspect-video overflow-hidden rounded-lg border border-dashed border-stone-300 bg-stone-50 dark:border-stone-700 dark:bg-stone-900">
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-stone-500 dark:text-stone-400">
                 <LoaderCircle className="size-6 animate-spin" />
-                <span>生成中</span>
+                <span>{t("生成中")}</span>
             </div>
         </div>
     );
 }
 
 function FailedVideoCard({ error, retryDisabled, onRetry, onDelete }: { error: string; retryDisabled: boolean; onRetry: () => void; onDelete: () => void }) {
+    const { t } = useAppTranslation();
     return (
         <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50 dark:border-red-950 dark:bg-red-950/20">
             <div className="flex aspect-video flex-col items-center justify-center gap-3 p-5 text-center">
-                <div className="text-sm font-medium text-red-600 dark:text-red-300">生成失败</div>
+                <div className="text-sm font-medium text-red-600 dark:text-red-300">{t("生成失败")}</div>
                 <Typography.Paragraph ellipsis={{ rows: 4 }} className="!mb-0 !text-xs !text-red-500 dark:!text-red-300">
                     {error}
                 </Typography.Paragraph>
             </div>
             <div className="flex justify-end gap-2 border-t border-red-200 p-3 dark:border-red-950">
-                <Popconfirm title="删除这次失败结果？" description="删除后不能继续重试。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={onDelete}>
+                <Popconfirm title={t("删除这次失败结果？")} description={t("删除后不能继续重试。")} okText={t("删除")} cancelText={t("取消")} okButtonProps={{ danger: true }} onConfirm={onDelete}>
                     <Button size="small" danger type="text" icon={<Trash2 className="size-3.5" />}>
-                        删除
+                        {t("删除")}
                     </Button>
                 </Popconfirm>
                 <Button size="small" danger disabled={retryDisabled} onClick={onRetry}>
-                    重试
+                    {t("重试")}
                 </Button>
             </div>
         </div>
@@ -1840,6 +1847,7 @@ function LogPanel({
     onDeleteSelected: () => void;
     onPreviewLog: (log: GenerationLog) => void;
 }) {
+    const { t } = useAppTranslation();
     const allSelected = Boolean(logs.length) && selectedLogIds.length === logs.length;
     const selectedCount = selectedLogIds.length;
     const [managing, setManaging] = useState(false);
@@ -1853,25 +1861,25 @@ function LogPanel({
         <>
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-[15px] font-semibold">生成记录</h2>
-                    <p className="mt-0.5 text-[10px] text-[color:var(--wg-studio-muted)]">{logs.length} 条视频创作</p>
+                    <h2 className="text-[15px] font-semibold">{t("生成记录")}</h2>
+                    <p className="mt-0.5 text-[10px] text-[color:var(--wg-studio-muted)]">{t("{count} 条视频创作", { count: logs.length })}</p>
                 </div>
                 <Button type="text" size="small" icon={<CheckSquare className="size-3.5" />} onClick={toggleManaging} aria-pressed={managing}>
-                    {managing ? "完成" : "多选"}
+                    {t(managing ? "完成" : "多选")}
                 </Button>
             </div>
             <div className="mb-3 flex flex-wrap gap-2">
                 <Button size="small" icon={<Plus className="size-3.5" />} onClick={onCreateSession}>
-                    新创作
+                    {t("新创作")}
                 </Button>
                 {managing ? (
                     <>
                         <Button size="small" disabled={!logs.length} onClick={toggleAll}>
-                            {allSelected ? "取消全选" : "全选"}
+                            {t(allSelected ? "取消全选" : "全选")}
                         </Button>
-                        <span className="self-center text-[11px] text-[color:var(--wg-studio-muted)]">已选 {selectedCount} 条</span>
+                        <span className="self-center text-[11px] text-[color:var(--wg-studio-muted)]">{t("已选 {count} 条", { count: selectedCount })}</span>
                         <Button size="small" danger icon={<Trash2 className="size-3.5" />} disabled={!selectedCount} onClick={onDeleteSelected}>
-                            删除（{selectedCount}）
+                            {t("删除（{count}）", { count: selectedCount })}
                         </Button>
                     </>
                 ) : null}
@@ -1888,13 +1896,14 @@ function LogPanel({
                         onClick={() => onPreviewLog(log)}
                     />
                 ))}
-                {!logs.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-stone-300 text-center text-sm text-stone-500 dark:border-stone-700">暂无生成记录</div> : null}
+                {!logs.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-stone-300 text-center text-sm text-stone-500 dark:border-stone-700">{t("暂无生成记录")}</div> : null}
             </div>
         </>
     );
 }
 
 function LogCard({ log, managing, selected, active, onSelectedChange, onClick }: { log: GenerationLog; managing: boolean; selected: boolean; active: boolean; onSelectedChange: (checked: boolean) => void; onClick: () => void }) {
+    const { t } = useAppTranslation();
     const hailuo = isMiniMaxHailuoModel(modelOptionName(log.model));
     return (
         <div className={active ? "wg-media-history-card is-active" : "wg-media-history-card"}>
@@ -1903,19 +1912,19 @@ function LogCard({ log, managing, selected, active, onSelectedChange, onClick }:
                 <div className="flex gap-2.5">
                     <div className="wg-media-history-thumb is-video">
                         {log.video?.url ? <video src={log.video.url} muted preload="metadata" /> : <VideoIcon className="size-5" />}
-                        <span className={log.status === "失败" ? "is-failed" : ""}>{log.status}</span>
+                        <span className={log.status === "失败" ? "is-failed" : ""}>{t(log.status)}</span>
                     </div>
                     <div className="min-w-0 flex-1 py-0.5">
                         <div className="truncate pr-5 text-[12px] font-semibold">{log.title}</div>
-                        <div className="mt-1 truncate text-[10px] text-[color:var(--wg-studio-muted)]">{log.model || "视频模型"}</div>
+                        <div className="mt-1 truncate text-[10px] text-[color:var(--wg-studio-muted)]">{log.model || t("视频模型")}</div>
                         <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-[color:var(--wg-studio-muted)]">
-                            <span>{log.size || "自适应"}</span>
+                            <span>{log.size || t("自适应")}</span>
                             <span>{log.resolution}p</span>
                             <span>{log.seconds}s</span>
-                            {hailuo ? <span>{log.references.length ? "首帧" : "文生"}</span> : null}
-                            {hailuo ? <span>{log.config.minimaxVideoPromptOptimizer === "false" ? "原始提示词" : "提示词优化"}</span> : null}
-                            {hailuo && log.config.minimaxVideoFastPretreatment === "true" ? <span>快速预处理</span> : null}
-                            {hailuo && log.config.videoWatermark === "true" ? <span>水印</span> : null}
+                            {hailuo ? <span>{t(log.references.length ? "首帧" : "文生")}</span> : null}
+                            {hailuo ? <span>{t(log.config.minimaxVideoPromptOptimizer === "false" ? "原始提示词" : "提示词优化")}</span> : null}
+                            {hailuo && log.config.minimaxVideoFastPretreatment === "true" ? <span>{t("快速预处理")}</span> : null}
+                            {hailuo && log.config.videoWatermark === "true" ? <span>{t("水印")}</span> : null}
                         </div>
                         <div className="mt-1.5 truncate text-[9px] text-[color:var(--wg-studio-muted)] opacity-75">{log.time}</div>
                     </div>

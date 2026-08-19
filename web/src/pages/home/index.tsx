@@ -6,6 +6,7 @@ import {
 import { lazy, Suspense, useMemo } from "react";
 
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 import { useAgentStore } from "@/stores/use-agent-store";
@@ -14,6 +15,7 @@ import { useThemeStore } from "@/stores/use-theme-store";
 const AsciiCursor = lazy(() => import("@/components/react-bits/ascii-cursor"));
 
 export default function IndexPage() {
+    const { t } = useAppTranslation();
     const smoothNavigate = useSmoothNavigation();
     const theme = useThemeStore((state) => state.theme);
     const openZodiac = useAgentStore((state) => state.openPanel);
@@ -61,7 +63,7 @@ export default function IndexPage() {
                         onClick={startWithZodiac}
                         className="wg-sketch-button wg-sketch-button-primary mt-7 inline-flex h-11 cursor-pointer items-center gap-2 px-5 text-[13px] font-semibold focus-visible:outline-none"
                     >
-                        开始编排
+                        {t("开始编排")}
                         <ArrowRight01Icon className="size-4" strokeWidth={1.8} />
                     </button>
                 </div>
@@ -80,7 +82,7 @@ export default function IndexPage() {
                         className="wg-sketch-button-quiet inline-flex h-11 cursor-pointer items-center gap-2 px-3.5 text-[12px] font-semibold"
                     >
                         <Add01Icon className="size-4 text-[color:var(--wg-home-accent)]" strokeWidth={1.8} />
-                        新建工作流
+                        {t("新建工作流")}
                     </button>
                     <span className="h-6 w-px bg-[color:var(--wg-home-line)]" aria-hidden="true" />
                     {hydrated && recentProjects.length ? (
@@ -111,7 +113,7 @@ export default function IndexPage() {
                             }
                             className="wg-sketch-button-quiet hidden h-11 cursor-pointer items-center gap-2 px-3 text-[12px] font-medium text-[color:var(--wg-home-muted)] sm:inline-flex"
                         >
-                            打开工作台
+                            {t("打开工作台")}
                         </button>
                     )}
                 </div>

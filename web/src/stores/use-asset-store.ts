@@ -2,18 +2,21 @@ import { create } from "zustand";
 import { persist, type PersistStorage, type StorageValue } from "zustand/middleware";
 
 import { nanoid } from "nanoid";
+import type { AssetFileCategory } from "@/lib/asset-file";
 import { shouldRefreshStoredAssetCover } from "@/lib/asset-media";
 import { localForageStorage } from "@/lib/localforage-storage";
+import { cleanupUnusedAssetFiles } from "@/services/asset-file-storage";
 import { cleanupUnusedImages, resolveImageUrl, uploadImage } from "@/services/image-storage";
 import { cleanupUnusedMedia, resolveMediaUrl } from "@/services/file-storage";
 import { markMediaReferencesChanged } from "@/services/media-retention-policy";
 
-export type AssetKind = "text" | "image" | "video" | "audio";
+export type AssetKind = "text" | "image" | "video" | "audio" | "file";
 export type TextAsset = AssetBase<"text"> & { data: { content: string } };
 export type ImageAsset = AssetBase<"image"> & { data: { dataUrl: string; storageKey?: string; width: number; height: number; bytes: number; mimeType: string } };
 export type VideoAsset = AssetBase<"video"> & { data: { url: string; storageKey?: string; width: number; height: number; bytes: number; mimeType: string } };
 export type AudioAsset = AssetBase<"audio"> & { data: { url: string; storageKey?: string; durationMs?: number; bytes: number; mimeType: string } };
-export type Asset = TextAsset | ImageAsset | VideoAsset | AudioAsset;
+export type FileAsset = AssetBase<"file"> & { data: { storageKey: string; fileName: string; bytes: number; mimeType: string; extension: string; category: AssetFileCategory } };
+export type Asset = TextAsset | ImageAsset | VideoAsset | AudioAsset | FileAsset;
 
 type AssetBase<T extends AssetKind> = {
     id: string;
@@ -148,6 +151,7 @@ export const useAssetStore = create<AssetStore>()(
                     const { useCanvasStore } = await import("@/stores/canvas/use-canvas-store");
                     await cleanupUnusedImages({ assets: get().assets, projects: useCanvasStore.getState().projects, extra });
                     await cleanupUnusedMedia({ assets: get().assets, projects: useCanvasStore.getState().projects, extra });
+                    await cleanupUnusedAssetFiles({ assets: get().assets, projects: useCanvasStore.getState().projects, extra });
                 }, 0);
             },
         }),

@@ -433,14 +433,14 @@ test("MiniMax channel editor keeps its fixed protocol internal and has no entitl
     assert.doesNotMatch(source, /const unavailableModels = draft\.models\.filter/u);
     assert.match(selectSource, /catalogModelsForVendor\(vendorId\)/u);
     assert.match(selectSource, /recommendedCatalogModelsForVendor\(vendorId\)/u);
-    assert.match(selectSource, /推荐模型 \(\$\{recommendedModels\.length\}\)/u);
-    assert.match(selectSource, /模型目录 \(\$\{catalogModels\.length\}\)/u);
-    assert.match(selectSource, /接口返回 \(\$\{fetched\.length\}\)/u);
+    assert.match(selectSource, /t\("推荐模型 \(\{count\}\)", \{ count: recommendedModels\.length \}\)/u);
+    assert.match(selectSource, /t\("模型目录 \(\{count\}\)", \{ count: catalogModels\.length \}\)/u);
+    assert.match(selectSource, /t\("接口返回 \(\{count\}\)", \{ count: fetched\.length \}\)/u);
     assert.match(selectSource, /setFetched\(Array\.from\(new Set\(models\)\)\)[\s\S]*?setActiveTab\("remote"\)/u);
     assert.doesNotMatch(selectSource, /setFetched\(\(current\) => Array\.from\(new Set\(\[\.\.\.current, \.\.\.models\]\)\)\)/u);
     assert.doesNotMatch(selectSource, /models\.filter\(\(name\) => modelAvailableForVendor/u);
     assert.doesNotMatch(selectSource, /modelAvailableForVendor/u);
-    assert.match(selectSource, /已读取 \$\{models\.length\} 个接口返回模型/u);
+    assert.match(selectSource, /t\("已读取 \{count\} 个接口返回模型", \{ count: models\.length \}\)/u);
     assert.doesNotMatch(source, /minimaxPlanBaseUrl|minimaxPlanApiKey|minimaxBillingMode/u);
 });
 

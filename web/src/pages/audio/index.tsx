@@ -10,6 +10,7 @@ import { MediaWorkbenchHistory, type MediaWorkbenchHistoryItem } from "@/compone
 import { MediaWorkbenchModeTabs } from "@/components/media-workbench-mode-tabs";
 import { ModelPicker } from "@/components/model-picker";
 import { PromptSelectDialog } from "@/components/prompts/prompt-select-dialog";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { cn } from "@/lib/utils";
 import { formatBytes, formatDuration } from "@/lib/image-utils";
 import { qwenAudioLanguageOptions, qwenAudioNativeRoute } from "@/lib/qwen-audio-contract";
@@ -51,6 +52,7 @@ const taskOptions = [
 
 export default function AudioPage() {
     const { message } = App.useApp();
+    const { t } = useAppTranslation();
     const config = useConfigStore((state) => state.config);
     const updateConfig = useConfigStore((state) => state.updateConfig);
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
@@ -423,7 +425,7 @@ export default function AudioPage() {
                                         setVoice(voiceId);
                                         setModel(voiceModel);
                                         chooseTask("speech");
-                                        message.success("已带入对应模型的语音生成");
+                                        message.success(t("已带入对应模型的语音生成"));
                                     }}
                                 />
                             </div>
@@ -431,17 +433,17 @@ export default function AudioPage() {
                         <div className="wg-media-composer">
                             <div className="wg-media-composer-heading">
                                 <div>
-                                    <h2>{composerTitle(task)}</h2>
-                                    <p>{composerHint(task)}</p>
+                                    <h2>{t(composerTitle(task))}</h2>
+                                    <p>{t(composerHint(task))}</p>
                                 </div>
                                 <div className="flex flex-wrap justify-end gap-2">
                                     {task === "speech" ? (
                                         <Button size="small" icon={<BookOpen className="size-3.5" />} onClick={() => setPromptDialogOpen(true)}>
-                                            提示词库
+                                            {t("提示词库")}
                                         </Button>
                                     ) : null}
                                     <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => setAssetPickerOpen(true)}>
-                                        我的资产
+                                        {t("我的资产")}
                                     </Button>
                                 </div>
                             </div>
@@ -453,7 +455,7 @@ export default function AudioPage() {
                                     autoSize={{ minRows: 4, maxRows: 9 }}
                                     maxLength={isMiniMaxModel ? 9999 : 6000}
                                     showCount
-                                    placeholder="输入要朗读的文字…"
+                                    placeholder={t("输入要朗读的文字…")}
                                 />
                             ) : null}
                             {task === "voice-clone" || task === "transcription" ? (
@@ -461,22 +463,22 @@ export default function AudioPage() {
                                     file={sample}
                                     onChoose={() => fileInputRef.current?.click()}
                                     onClear={() => setSample(null)}
-                                    hint={isMiniMaxModel && task === "voice-clone" ? "WAV、MP3 或 M4A，10 秒–5 分钟，不超过 20 MB" : "WAV、MP3 或 M4A，不超过 10 MB"}
+                                    hint={t(isMiniMaxModel && task === "voice-clone" ? "WAV、MP3 或 M4A，10 秒–5 分钟，不超过 20 MB" : "WAV、MP3 或 M4A，不超过 10 MB")}
                                 />
                             ) : null}
                         </div>
                     </div>
                     <div className="wg-media-mobile-cta">
                         <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canRun || running} onClick={() => void run()}>
-                            {runLabel(task)}
+                            {t(runLabel(task))}
                         </Button>
                     </div>
                 </section>
                 <aside className="wg-media-workbench-pane wg-media-workbench-inspector">
                     <div className="wg-media-inspector-heading">
                         <div>
-                            <h2>模型与参数</h2>
-                            <p>按当前模型与任务调整可用选项</p>
+                            <h2>{t("模型与参数")}</h2>
+                            <p>{t("按当前模型与任务调整可用选项")}</p>
                         </div>
                     </div>
                     <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -484,7 +486,7 @@ export default function AudioPage() {
                     </div>
                     <div className="wg-media-generate-footer">
                         <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canRun || running} onClick={() => void run()}>
-                            {runLabel(task)}
+                            {t(runLabel(task))}
                         </Button>
                     </div>
                 </aside>
@@ -506,27 +508,27 @@ export default function AudioPage() {
                                 } else assertAudioFile(file);
                                 setSample(file);
                             } catch (error) {
-                                message.error(error instanceof Error ? error.message : "音频无效");
+                                message.error(error instanceof Error ? error.message : t("音频无效"));
                             }
                         })();
                     }
                 }}
             />
-            <Drawer rootClassName="wg-media-workbench-drawer" title="生成记录" placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
+            <Drawer rootClassName="wg-media-workbench-drawer" title={t("生成记录")} placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
                 <AudioLogPanel logs={logs} activeId={result?.id} selectedIds={selectedLogIds} onSelectedIdsChange={setSelectedLogIds} onCreate={createSession} onDeleteSelected={() => setDeleteConfirmOpen(true)} onSelect={previewLog} />
             </Drawer>
-            <Drawer rootClassName="wg-media-workbench-drawer" title="模型与参数" placement="bottom" size="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
+            <Drawer rootClassName="wg-media-workbench-drawer" title={t("模型与参数")} placement="bottom" size="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
                 <div className="grid grid-cols-2 gap-4 pb-24">{inspector}</div>
                 <div className="fixed inset-x-0 bottom-0 border-t border-stone-200 bg-white/95 p-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/95">
                     <Button type="primary" size="large" block loading={running} disabled={!canRun || running} onClick={() => void run()}>
-                        {runLabel(task)}
+                        {t(runLabel(task))}
                     </Button>
                 </div>
             </Drawer>
             <PromptSelectDialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen} onSelect={setText} />
             <AssetPickerModal open={assetPickerOpen} defaultTab="my-assets" acceptedKinds={acceptedAssetKinds} onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
-            <Modal title="删除生成记录" open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={() => void deleteSelectedLogs()} okText="删除" okButtonProps={{ danger: true }} cancelText="取消">
-                确定删除选中的 {selectedLogIds.length} 条生成记录吗？已保存到“我的资产”的内容不受影响。
+            <Modal title={t("删除生成记录")} open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={() => void deleteSelectedLogs()} okText={t("删除")} okButtonProps={{ danger: true }} cancelText={t("取消")}>
+                {t("确定删除选中的 {count} 条生成记录吗？已保存到“我的资产”的内容不受影响。", { count: selectedLogIds.length })}
             </Modal>
         </div>
     );
@@ -570,6 +572,7 @@ type InspectorProps = {
 };
 
 function AudioInspector(props: InspectorProps) {
+    const { t } = useAppTranslation();
     const modelName = modelOptionName(props.model);
     const miniMax = isMiniMaxAudioModel(props.config, props.model);
     const qwenAudioTts = modelName.startsWith("qwen-audio-");
@@ -590,8 +593,8 @@ function AudioInspector(props: InspectorProps) {
     return (
         <>
             <label className="col-span-2 block min-w-0 sm:col-span-1">
-                <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">模型</span>
-                <ModelPicker config={props.config} value={props.model} options={props.models} onChange={props.onModelChange} capability="audio" fullWidth placeholder="选择音频模型" onMissingConfig={props.onMissingModel} />
+                <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">{t("模型")}</span>
+                <ModelPicker config={props.config} value={props.model} options={props.models} onChange={props.onModelChange} capability="audio" fullWidth placeholder={t("选择音频模型")} onMissingConfig={props.onMissingModel} />
             </label>
             <div className="col-span-2 rounded-lg border border-[color:var(--wg-studio-line)] bg-[color:var(--wg-studio-raised)]/55 px-3 py-2.5">
                 <div className="flex items-start justify-between gap-3">
@@ -599,13 +602,13 @@ function AudioInspector(props: InspectorProps) {
                         <div className="flex flex-wrap items-center gap-1.5">
                             <div className="text-xs font-semibold text-[color:var(--wg-studio-text)]">{route.label}</div>
                             {miniMax ? (
-                                <Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-1.5 py-0 text-[10px] text-[color:var(--wg-studio-accent-strong)]">{miniMaxBillingMode === "token-plan" ? "Token Plan" : "API 计费"}</Tag>
+                                <Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-1.5 py-0 text-[10px] text-[color:var(--wg-studio-accent-strong)]">{miniMaxBillingMode === "token-plan" ? "Token Plan" : t("API 计费")}</Tag>
                             ) : null}
                         </div>
                         <code className="mt-1 block break-all text-[10px] leading-4 text-[color:var(--wg-studio-muted)]">POST {route.path}</code>
                     </div>
                     <a className="shrink-0 text-[11px] font-medium text-[color:var(--wg-studio-accent-strong)] hover:underline" href={route.docsUrl} target="_blank" rel="noreferrer">
-                        接口文档 ↗
+                        {t("接口文档 ↗")}
                     </a>
                 </div>
                 <p className="mt-1.5 text-[11px] leading-5 text-[color:var(--wg-studio-muted)]">{route.note}</p>
@@ -613,15 +616,15 @@ function AudioInspector(props: InspectorProps) {
             {props.task === "speech" ? (
                 <>
                     <Field label={miniMax ? "音色 ID" : "音色"} wide>
-                        <Input value={props.voice} onChange={(event) => props.onVoiceChange(event.target.value)} placeholder="系统音色或克隆后的 voice ID" />
+                        <Input value={props.voice} onChange={(event) => props.onVoiceChange(event.target.value)} placeholder={t("系统音色或克隆后的 voice ID")} />
                     </Field>
                     <Field label="语言" wide>
-                        <Select className="w-full" value={props.language} options={languageOptions} onChange={props.onLanguageChange} />
+                        <Select className="w-full" value={props.language} options={languageOptions.map((option) => ({ ...option, label: t(String(option.label)) }))} onChange={props.onLanguageChange} />
                     </Field>
                     {miniMax ? (
                         <>
                             <Field label="情绪" wide>
-                                <Select className="w-full" value={props.emotion} options={miniMaxEmotionOptions} onChange={props.onEmotionChange} />
+                                <Select className="w-full" value={props.emotion} options={miniMaxEmotionOptions.map((option) => ({ ...option, label: t(option.label) }))} onChange={props.onEmotionChange} />
                             </Field>
                             <div className="col-span-2 grid grid-cols-3 gap-2">
                                 <Field label="语速">
@@ -653,7 +656,7 @@ function AudioInspector(props: InspectorProps) {
                     ) : qwenAudioTts ? (
                         <>
                             <Field label="声音指令" wide>
-                                <Input.TextArea value={props.instruction} onChange={(event) => props.onInstructionChange(event.target.value)} autoSize={{ minRows: 2, maxRows: 5 }} placeholder="例如：温暖、沉稳的纪录片旁白" />
+                                <Input.TextArea value={props.instruction} onChange={(event) => props.onInstructionChange(event.target.value)} autoSize={{ minRows: 2, maxRows: 5 }} placeholder={t("例如：温暖、沉稳的纪录片旁白")} />
                             </Field>
                             <div className="col-span-2 grid grid-cols-3 gap-2">
                                 <Field label="语速">
@@ -702,7 +705,7 @@ function AudioInspector(props: InspectorProps) {
                     </Field>
                     {miniMax ? null : (
                         <Field label="样本语言">
-                            <Select className="w-full" value={props.language} options={languageOptions} onChange={props.onLanguageChange} />
+                            <Select className="w-full" value={props.language} options={languageOptions.map((option) => ({ ...option, label: t(String(option.label)) }))} onChange={props.onLanguageChange} />
                         </Field>
                     )}
                     <Field label={miniMax ? "试听文本（可选）" : "样本文本（可选）"} wide>
@@ -726,7 +729,7 @@ function AudioInspector(props: InspectorProps) {
             {props.task === "transcription" ? (
                 <>
                     <Field label="识别语言" wide>
-                        <Select className="w-full" value={props.language} options={languageOptions} onChange={props.onLanguageChange} />
+                        <Select className="w-full" value={props.language} options={languageOptions.map((option) => ({ ...option, label: t(String(option.label)) }))} onChange={props.onLanguageChange} />
                     </Field>
                     <Toggle label="数字与日期规范化" detail="把口语数字整理成易读格式" checked={props.enableItn} onChange={props.onEnableItnChange} />
                     <Field label="专有词提示（可选）" wide>
@@ -739,19 +742,21 @@ function AudioInspector(props: InspectorProps) {
 }
 
 function Field({ label, children, wide = false }: { label: string; children: React.ReactNode; wide?: boolean }) {
+    const { t } = useAppTranslation();
     return (
         <label className={wide ? "col-span-2 block min-w-0" : "block min-w-0"}>
-            <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">{label}</span>
+            <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">{t(label)}</span>
             {children}
         </label>
     );
 }
 function Toggle({ label, detail, checked, onChange }: { label: string; detail: string; checked: boolean; onChange: (value: boolean) => void }) {
+    const { t } = useAppTranslation();
     return (
         <div className="col-span-2 flex items-center justify-between gap-4 rounded-lg border border-[color:var(--wg-studio-line)] bg-[color:var(--wg-studio-raised)]/35 p-3">
             <div>
-                <div className="text-sm font-medium">{label}</div>
-                <div className="mt-0.5 text-[11px] text-[color:var(--wg-studio-muted)]">{detail}</div>
+                <div className="text-sm font-medium">{t(label)}</div>
+                <div className="mt-0.5 text-[11px] text-[color:var(--wg-studio-muted)]">{t(detail)}</div>
             </div>
             <Switch checked={checked} onChange={onChange} />
         </div>
@@ -759,6 +764,7 @@ function Toggle({ label, detail, checked, onChange }: { label: string; detail: s
 }
 
 function AudioDropZone({ file, onChoose, onClear, hint }: { file: File | null; onChoose: () => void; onClear: () => void; hint: string }) {
+    const { t } = useAppTranslation();
     return (
         <div className="rounded-xl border border-dashed border-stone-300 p-5 text-center dark:border-stone-700">
             {file ? (
@@ -771,13 +777,13 @@ function AudioDropZone({ file, onChoose, onClear, hint }: { file: File | null; o
                         <div className="text-xs text-stone-500">{formatBytes(file.size)}</div>
                     </div>
                     <Button size="small" icon={<Trash2 className="size-3.5" />} onClick={onClear}>
-                        移除
+                        {t("移除")}
                     </Button>
                 </div>
             ) : (
                 <button type="button" className="w-full py-6 text-stone-500" onClick={onChoose}>
                     <Upload className="mx-auto mb-2 size-5" />
-                    <span className="block text-sm font-medium text-stone-700 dark:text-stone-200">添加音频文件</span>
+                    <span className="block text-sm font-medium text-stone-700 dark:text-stone-200">{t("添加音频文件")}</span>
                     <span className="mt-1 block text-xs">{hint}</span>
                 </button>
             )}
@@ -798,14 +804,15 @@ function AudioResult({
     onDownload: (item: AudioWorkbenchLog) => void;
     onUseVoice: (voice: string, model: string) => void;
 }) {
+    const { t } = useAppTranslation();
     if (running)
         return (
             <div className="wg-media-result-empty">
                 <div className="wg-media-result-empty-icon">
                     <LoaderCircle className="size-7 animate-spin" strokeWidth={1.6} />
                 </div>
-                <h3>正在生成音频</h3>
-                <p>任务完成后会自动保存并显示在这里</p>
+                <h3>{t("正在生成音频")}</h3>
+                <p>{t("任务完成后会自动保存并显示在这里")}</p>
             </div>
         );
     if (!result)
@@ -814,15 +821,15 @@ function AudioResult({
                 <div className="wg-media-result-empty-icon">
                     <WandSparkles className="size-7" strokeWidth={1.6} />
                 </div>
-                <h3>从一个声音想法开始</h3>
-                <p>选择任务并填写内容，生成结果会显示在这里</p>
+                <h3>{t("从一个声音想法开始")}</h3>
+                <p>{t("选择任务并填写内容，生成结果会显示在这里")}</p>
             </div>
         );
     if (result.status === "失败")
         return (
             <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50 dark:border-red-950 dark:bg-red-950/20">
                 <div className="flex min-h-56 flex-col items-center justify-center gap-3 p-5 text-center">
-                    <div className="text-sm font-medium text-red-600 dark:text-red-300">生成失败</div>
+                    <div className="text-sm font-medium text-red-600 dark:text-red-300">{t("生成失败")}</div>
                     <div className="text-xs text-red-500 dark:text-red-300">{result.error}</div>
                 </div>
             </div>
@@ -847,20 +854,20 @@ function AudioResult({
             <div className="wg-media-result-card-actions flex flex-wrap justify-end gap-2 border-t border-stone-200 px-3 py-2.5 dark:border-stone-800">
                 {result.voiceId ? (
                     <Button size="small" icon={<Speech className="size-3.5" />} onClick={() => onUseVoice(result.voiceId!, result.model)}>
-                        用于语音生成
+                        {t("用于语音生成")}
                     </Button>
                 ) : null}
                 {result.outputText ? (
                     <Button size="small" icon={<Copy className="size-3.5" />} onClick={() => void navigator.clipboard.writeText(result.outputText!)}>
-                        复制文本
+                        {t("复制文本")}
                     </Button>
                 ) : null}
                 <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => void onSave(result)}>
-                    保存到我的资产
+                    {t("保存到我的资产")}
                 </Button>
                 {result.audio ? (
                     <Button size="small" icon={<Download className="size-3.5" />} onClick={() => void onDownload(result)}>
-                        下载
+                        {t("下载")}
                     </Button>
                 ) : null}
             </div>
@@ -885,20 +892,21 @@ function AudioLogPanel({
     onDeleteSelected: () => void;
     onSelect: (item: AudioWorkbenchLog) => void;
 }) {
+    const { t } = useAppTranslation();
     const items: MediaWorkbenchHistoryItem[] = logs.map((item) => ({
         id: item.id,
         title: item.input || item.title,
-        model: modelOptionName(item.model) || "音频模型",
-        details: [taskLabel(item.task), audioResultTypeLabel(item), formatDuration(item.durationMs)],
+        model: modelOptionName(item.model) || t("音频模型"),
+        details: [t(taskLabel(item.task)), t(audioResultTypeLabel(item)), formatDuration(item.durationMs)],
         time: new Date(item.createdAt).toLocaleString(),
-        badge: item.status,
+        badge: t(item.status),
         badgeTone: item.status === "失败" ? "failed" : "default",
         icon: item.task === "transcription" ? <FileAudio className="size-5" /> : item.task === "voice-clone" ? <Mic2 className="size-5" /> : <Speech className="size-5" />,
     }));
 
     return (
         <MediaWorkbenchHistory
-            countLabel={`${logs.length} 条音频创作`}
+            countLabel={t("{count} 条音频创作", { count: logs.length })}
             items={items}
             activeId={activeId}
             selectedIds={selectedIds}

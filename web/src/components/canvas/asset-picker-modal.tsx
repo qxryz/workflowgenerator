@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { Empty, Input, Modal, Pagination, Tag } from "antd";
-import { Search } from "lucide-react";
+import { File as FileIcon, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
 import { useAssetStore, type Asset, type AssetKind } from "@/stores/use-asset-store";
@@ -9,7 +9,8 @@ export type InsertAssetPayload =
     | { kind: "text"; content: string; title: string }
     | { kind: "image"; dataUrl: string; title: string; storageKey?: string; width?: number; height?: number; bytes?: number; mimeType?: string }
     | { kind: "video"; url: string; title: string; storageKey?: string; width?: number; height?: number; bytes?: number; mimeType?: string }
-    | { kind: "audio"; url: string; title: string; storageKey?: string; durationMs?: number; bytes: number; mimeType: string };
+    | { kind: "audio"; url: string; title: string; storageKey?: string; durationMs?: number; bytes: number; mimeType: string }
+    | { kind: "file"; title: string; storageKey: string; fileName: string; bytes: number; mimeType: string; extension: string; category: import("@/lib/asset-file").AssetFileCategory };
 
 type Props = {
     open: boolean;
@@ -35,6 +36,7 @@ const kindOptions: Array<{ label: string; value: "all" | AssetKind }> = [
     { label: "图片", value: "image" },
     { label: "视频", value: "video" },
     { label: "音频", value: "audio" },
+    { label: "文件", value: "file" },
 ];
 
 function PickerCard({ title, kind, cover, onClick }: { title: string; kind: string; cover: string; onClick: () => void }) {
@@ -47,12 +49,15 @@ function PickerCard({ title, kind, cover, onClick }: { title: string; kind: stri
             {cover ? (
                 <img src={cover} alt={title} className="aspect-[4/3] w-full object-cover" />
             ) : (
-                <div className="flex aspect-[4/3] items-center justify-center bg-stone-100 p-3 text-center text-xs leading-5 text-stone-500 dark:bg-stone-800 dark:text-stone-400">{title}</div>
+                <div className="flex aspect-[4/3] flex-col items-center justify-center gap-2 bg-stone-100 p-3 text-center text-xs leading-5 text-stone-500 dark:bg-stone-800 dark:text-stone-400">
+                    {kind === "file" ? <FileIcon className="size-7 opacity-45" /> : null}
+                    <span className="line-clamp-2 break-all">{title}</span>
+                </div>
             )}
             <div className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
                     <span className="line-clamp-1 text-xs font-medium text-stone-800 dark:text-stone-200">{title}</span>
-                    <Tag className="m-0 shrink-0 text-[10px]">{kind === "image" ? "图片" : kind === "video" ? "视频" : kind === "audio" ? "音频" : "文本"}</Tag>
+                    <Tag className="m-0 shrink-0 text-[10px]">{kind === "image" ? "图片" : kind === "video" ? "视频" : kind === "audio" ? "音频" : kind === "file" ? "文件" : "文本"}</Tag>
                 </div>
             </div>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-stone-950/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-stone-950/55 group-hover:opacity-100">插入</div>
@@ -65,7 +70,7 @@ function MyAssetsTab({ acceptedKinds, onInsert }: { acceptedKinds?: readonly Ass
     const [keyword, setKeyword] = useState("");
     const [kindFilter, setKindFilter] = useState("all");
     const [page, setPage] = useState(1);
-    const acceptedKindSet = useMemo(() => new Set<AssetKind>(acceptedKinds || ["text", "image", "video", "audio"]), [acceptedKinds]);
+    const acceptedKindSet = useMemo(() => new Set<AssetKind>(acceptedKinds || ["text", "image", "video", "audio", "file"]), [acceptedKinds]);
     const visibleKindOptions = useMemo(() => kindOptions.filter((option) => option.value === "all" || acceptedKindSet.has(option.value)), [acceptedKindSet]);
 
     const filtered = useMemo(() => {
@@ -95,6 +100,8 @@ function MyAssetsTab({ acceptedKinds, onInsert }: { acceptedKinds?: readonly Ass
             onInsert({ kind: "text", content: asset.data.content, title: asset.title });
         } else if (asset.kind === "audio") {
             onInsert({ kind: "audio", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title, durationMs: asset.data.durationMs, bytes: asset.data.bytes, mimeType: asset.data.mimeType });
+        } else if (asset.kind === "file") {
+            onInsert({ kind: "file", title: asset.title, storageKey: asset.data.storageKey, fileName: asset.data.fileName, bytes: asset.data.bytes, mimeType: asset.data.mimeType, extension: asset.data.extension, category: asset.data.category });
         } else {
             onInsert(
                 asset.kind === "video"

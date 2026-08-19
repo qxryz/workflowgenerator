@@ -2,6 +2,7 @@ import { useState, type ReactNode } from "react";
 import { Button, Checkbox } from "antd";
 import { CheckSquare, ImagePlus, Plus, Trash2 } from "lucide-react";
 
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { cn } from "@/lib/utils";
 
 export type MediaWorkbenchHistoryItem = {
@@ -30,6 +31,7 @@ type MediaWorkbenchHistoryProps = {
 };
 
 export function MediaWorkbenchHistory({ countLabel, items, activeId, selectedIds, onSelectedIdsChange, onCreate, onDeleteSelected, onOpen, children }: MediaWorkbenchHistoryProps) {
+    const { t } = useAppTranslation();
     const selectableIds = items.filter((item) => !item.selectionDisabled).map((item) => item.id);
     const selectedCount = selectedIds.length;
     const allSelected = Boolean(selectableIds.length) && selectableIds.every((id) => selectedIds.includes(id));
@@ -46,26 +48,26 @@ export function MediaWorkbenchHistory({ countLabel, items, activeId, selectedIds
         <>
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-[15px] font-semibold">生成记录</h2>
+                    <h2 className="text-[15px] font-semibold">{t("生成记录")}</h2>
                     <p className="mt-0.5 text-[10px] text-[color:var(--wg-studio-muted)]">{countLabel}</p>
                 </div>
                 <Button type="text" size="small" icon={<CheckSquare className="size-3.5" />} onClick={toggleManaging} aria-pressed={managing}>
-                    {managing ? "完成" : "多选"}
+                    {t(managing ? "完成" : "多选")}
                 </Button>
             </div>
 
             <div className="mb-3 flex flex-wrap gap-2">
                 <Button size="small" icon={<Plus className="size-3.5" />} onClick={onCreate}>
-                    新创作
+                    {t("新创作")}
                 </Button>
                 {managing ? (
                     <>
                         <Button size="small" disabled={!selectableIds.length} onClick={toggleAll}>
-                            {allSelected ? "取消全选" : "全选"}
+                            {t(allSelected ? "取消全选" : "全选")}
                         </Button>
-                        <span className="self-center text-[11px] text-[color:var(--wg-studio-muted)]">已选 {selectedCount} 条</span>
+                        <span className="self-center text-[11px] text-[color:var(--wg-studio-muted)]">{t("已选 {count} 条", { count: selectedCount })}</span>
                         <Button size="small" danger icon={<Trash2 className="size-3.5" />} disabled={!selectedCount} onClick={onDeleteSelected}>
-                            删除（{selectedCount}）
+                            {t("删除（{count}）", { count: selectedCount })}
                         </Button>
                     </>
                 ) : null}
@@ -79,7 +81,7 @@ export function MediaWorkbenchHistory({ countLabel, items, activeId, selectedIds
                                 className="absolute right-2 top-2 z-10"
                                 checked={selectedIds.includes(item.id)}
                                 disabled={item.selectionDisabled}
-                                aria-label={`选择记录：${item.title}`}
+                                aria-label={t("选择记录：{title}", { title: item.title })}
                                 onClick={(event) => event.stopPropagation()}
                                 onChange={(event) => onSelectedIdsChange(event.target.checked ? [...selectedIds, item.id] : selectedIds.filter((id) => id !== item.id))}
                             />
@@ -106,7 +108,7 @@ export function MediaWorkbenchHistory({ countLabel, items, activeId, selectedIds
                         </button>
                     </div>
                 ))}
-                {!items.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-stone-300 text-center text-sm text-stone-500 dark:border-stone-700">暂无生成记录</div> : null}
+                {!items.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-stone-300 text-center text-sm text-stone-500 dark:border-stone-700">{t("暂无生成记录")}</div> : null}
             </div>
             {children}
         </>

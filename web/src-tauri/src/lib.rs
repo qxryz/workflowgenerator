@@ -304,6 +304,8 @@ struct TerminalSessionInput {
     text: Option<String>,
     data_url: Option<String>,
     storage_key: Option<String>,
+    file_name: Option<String>,
+    mime_type: Option<String>,
 }
 
 #[derive(serde::Deserialize, serde::Serialize)]
@@ -1489,6 +1491,8 @@ fn materialize_terminal_inputs(
         if let Some(storage_key) = input.storage_key.as_deref() {
             let bucket = if storage_key.starts_with("image:") {
                 "images"
+            } else if input.kind == "file" && storage_key.starts_with("file:") {
+                "files"
             } else {
                 "media"
             };
@@ -1499,17 +1503,34 @@ fn materialize_terminal_inputs(
                 storage_key,
                 &temporary_path,
             )?;
-            if !mime_type.starts_with(&format!("{}/", input.kind)) {
+            if input.kind != "file" && !mime_type.starts_with(&format!("{}/", input.kind)) {
                 let _ = fs::remove_file(&temporary_path);
                 return Err("终端输入类型与媒体内容不一致".into());
             }
-            let extension = extension_for_mime(&mime_type, &input.kind);
-            let path = input_dir.join(format!(
-                "{}-{}.{}",
-                index + 1,
-                stem.trim_matches('-'),
-                extension
-            ));
+            if input.kind == "file"
+                && input
+                    .mime_type
+                    .as_deref()
+                    .is_some_and(|expected| expected != mime_type)
+            {
+                let _ = fs::remove_file(&temporary_path);
+                return Err("终端输入文件类型与存储记录不一致".into());
+            }
+            let path = if input.kind == "file" {
+                input_dir.join(safe_terminal_input_file_name(
+                    index,
+                    input.file_name.as_deref().unwrap_or(&input.name),
+                    &mime_type,
+                ))
+            } else {
+                let extension = extension_for_mime(&mime_type, &input.kind);
+                input_dir.join(format!(
+                    "{}-{}.{}",
+                    index + 1,
+                    stem.trim_matches('-'),
+                    extension
+                ))
+            };
             if let Err(error) = fs::rename(&temporary_path, &path) {
                 let _ = fs::remove_file(&temporary_path);
                 return Err(format!("无法准备终端输入媒体：{error}"));
@@ -1560,6 +1581,14 @@ fn extension_for_mime(header: &str, kind: &str) -> &'static str {
         "wav"
     } else if header.contains("audio/") {
         "mp3"
+    } else if header.contains("application/pdf") {
+        "pdf"
+    } else if header.contains("application/json") {
+        "json"
+    } else if header.contains("text/csv") {
+        "csv"
+    } else if header.contains("text/") {
+        "txt"
     } else if kind == "image" {
         "png"
     } else if kind == "video" {
@@ -1567,6 +1596,28 @@ fn extension_for_mime(header: &str, kind: &str) -> &'static str {
     } else {
         "bin"
     }
+}
+
+fn safe_terminal_input_file_name(index: usize, value: &str, mime_type: &str) -> String {
+    let normalized = value.replace('\\', "/");
+    let leaf = normalized.rsplit('/').next().unwrap_or("file");
+    let mut safe = leaf
+        .chars()
+        .filter(|character| !character.is_control())
+        .map(|character| match character {
+            '/' | '\\' | ':' => '-',
+            _ => character,
+        })
+        .take(140)
+        .collect::<String>();
+    safe = safe.trim().trim_matches('.').to_string();
+    if safe.is_empty() {
+        safe = format!("file.{}", extension_for_mime(mime_type, "file"));
+    } else if Path::new(&safe).extension().is_none() {
+        safe.push('.');
+        safe.push_str(extension_for_mime(mime_type, "file"));
+    }
+    format!("{}-{safe}", index + 1)
 }
 
 fn mime_for_path(path: &Path) -> &'static str {
@@ -1597,27 +1648,52 @@ fn mime_for_path(path: &Path) -> &'static str {
         "css" => "text/css",
         "js" | "mjs" | "cjs" => "text/javascript",
         "ts" | "tsx" | "jsx" => "text/plain",
+        "pdf" => "application/pdf",
+        "doc" => "application/msword",
+        "docx" => "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        "xls" => "application/vnd.ms-excel",
+        "xlsx" => "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        "ppt" => "application/vnd.ms-powerpoint",
+        "pptx" => "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+        "rtf" => "application/rtf",
+        "odt" => "application/vnd.oasis.opendocument.text",
+        "ods" => "application/vnd.oasis.opendocument.spreadsheet",
+        "odp" => "application/vnd.oasis.opendocument.presentation",
+        "epub" => "application/epub+zip",
+        "tsv" => "text/tab-separated-values",
+        "jsonl" => "application/x-ndjson",
+        "toml" => "application/toml",
+        "zip" => "application/zip",
+        "gz" => "application/gzip",
+        "tar" => "application/x-tar",
+        "7z" => "application/x-7z-compressed",
+        "rar" => "application/vnd.rar",
+        "obj" => "model/obj",
+        "stl" => "model/stl",
+        "gltf" => "model/gltf+json",
+        "glb" => "model/gltf-binary",
         _ => "application/octet-stream",
     }
 }
 
 fn terminal_artifact_snapshot(output_dir: &Path) -> HashMap<PathBuf, (u64, u128)> {
-    terminal_artifact_snapshot_with_depth(output_dir, 5)
+    terminal_artifact_snapshot_with_depth(output_dir, 5, true)
 }
 
 fn terminal_working_artifact_snapshot(working_dir: &Path) -> HashMap<PathBuf, (u64, u128)> {
     // A terminal agent often writes the final file next to the project it is
     // working in. Keep this scan deliberately shallow so a large repository
     // cannot turn the once-per-second watcher into a full tree traversal.
-    terminal_artifact_snapshot_with_depth(working_dir, 1)
+    terminal_artifact_snapshot_with_depth(working_dir, 1, false)
 }
 
 fn terminal_artifact_snapshot_with_depth(
     directory: &Path,
     depth: usize,
+    include_unknown: bool,
 ) -> HashMap<PathBuf, (u64, u128)> {
     let mut files = Vec::new();
-    collect_terminal_artifacts(directory, depth, &mut files);
+    collect_terminal_artifacts(directory, depth, include_unknown, &mut files);
     files
         .into_iter()
         .filter_map(|path| {
@@ -1652,7 +1728,12 @@ fn terminal_artifact_reference(
     (!relative.is_empty()).then(|| format!("./{relative}"))
 }
 
-fn collect_terminal_artifacts(directory: &Path, remaining_depth: usize, files: &mut Vec<PathBuf>) {
+fn collect_terminal_artifacts(
+    directory: &Path,
+    remaining_depth: usize,
+    include_unknown: bool,
+    files: &mut Vec<PathBuf>,
+) {
     let Ok(entries) = fs::read_dir(directory) else {
         return;
     };
@@ -1672,8 +1753,10 @@ fn collect_terminal_artifacts(directory: &Path, remaining_depth: usize, files: &
             {
                 continue;
             }
-            collect_terminal_artifacts(&path, remaining_depth - 1, files);
-        } else if file_type.is_file() && mime_for_path(&path) != "application/octet-stream" {
+            collect_terminal_artifacts(&path, remaining_depth - 1, include_unknown, files);
+        } else if file_type.is_file()
+            && (include_unknown || mime_for_path(&path) != "application/octet-stream")
+        {
             files.push(path);
         }
     }
@@ -1732,6 +1815,7 @@ async fn import_terminal_output_file(
         "image" if mime_type.starts_with("image/") => ("images", "image:"),
         "video" if mime_type.starts_with("video/") => ("media", "terminal-output:"),
         "audio" if mime_type.starts_with("audio/") => ("media", "terminal-output:"),
+        "file" => ("files", "file:"),
         "image" | "video" | "audio" => return Err("输出文件类型与节点设置不一致".into()),
         _ => return Err("终端输出类型无效".into()),
     };
@@ -1833,12 +1917,15 @@ mod terminal_artifact_tests {
         fs::create_dir_all(output_dir.join("nested")).expect("create output directory");
         let working_asset = working_dir.join("unrelated.png");
         let output_asset = output_dir.join("nested").join("result.png");
+        let output_file = output_dir.join("nested").join("report.custom");
         fs::write(&working_asset, b"working").expect("write working asset");
         fs::write(&output_asset, b"output").expect("write output asset");
+        fs::write(&output_file, b"generic").expect("write generic output");
 
         let snapshot = terminal_artifact_snapshot(&output_dir);
 
         assert!(snapshot.contains_key(&output_asset));
+        assert!(snapshot.contains_key(&output_file));
         assert!(!snapshot.contains_key(&working_asset));
         let _ = fs::remove_dir_all(&root);
     }
@@ -1863,6 +1950,7 @@ mod terminal_artifact_tests {
         let working_dir = root.join("working");
         let direct_asset = working_dir.join("result.png");
         let nested_asset = working_dir.join("generated").join("preview.png");
+        let unknown_asset = working_dir.join("report.custom");
         let deep_asset = working_dir
             .join("generated")
             .join("nested")
@@ -1876,12 +1964,14 @@ mod terminal_artifact_tests {
         .expect("create nested working directory");
         fs::write(&direct_asset, b"direct").expect("write direct asset");
         fs::write(&nested_asset, b"nested").expect("write nested asset");
+        fs::write(&unknown_asset, b"generic").expect("write unknown working asset");
         fs::write(&deep_asset, b"deep").expect("write deep asset");
 
         let snapshot = terminal_working_artifact_snapshot(&working_dir);
 
         assert!(snapshot.contains_key(&direct_asset));
         assert!(snapshot.contains_key(&nested_asset));
+        assert!(!snapshot.contains_key(&unknown_asset));
         assert!(!snapshot.contains_key(&deep_asset));
         assert_eq!(
             terminal_artifact_reference(&output_dir, &working_dir, &direct_asset),

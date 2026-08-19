@@ -2,7 +2,7 @@ import { create } from "zustand";
 
 import type { CanvasNodeDefinition } from "@/types/canvas-plugin";
 
-const BUILTIN_NODE_TYPES = new Set(["text", "config", "image", "video", "audio", "terminal", "group"]);
+const BUILTIN_NODE_TYPES = new Set(["text", "file", "config", "image", "video", "audio", "terminal", "group"]);
 
 const definitions = new Map<string, CanvasNodeDefinition>();
 const ownerByType = new Map<string, string>(); // type -> pluginId(内置为 "builtin")

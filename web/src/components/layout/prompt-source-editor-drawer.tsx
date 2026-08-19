@@ -1,10 +1,12 @@
 import { App, Button, Drawer, Input, Space, Switch } from "antd";
 import { useEffect, useState } from "react";
 
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import type { PromptSource } from "@/services/api/prompt-source-presets";
 
 export function PromptSourceEditorDrawer({ open, source, onSave, onClose }: { open: boolean; source: PromptSource | null; onSave: (source: PromptSource) => void; onClose: () => void }) {
     const { message } = App.useApp();
+    const { language, t } = useAppTranslation();
     const [draft, setDraft] = useState<PromptSource | null>(source);
 
     useEffect(() => {
@@ -18,9 +20,9 @@ export function PromptSourceEditorDrawer({ open, source, onSave, onClose }: { op
     const save = () => {
         const name = draft.name.trim();
         const url = draft.url.trim();
-        if (!name) return message.warning("请输入来源名称");
-        if (!isHttpUrl(url)) return message.warning("请输入有效的 JSON URL");
-        if (draft.homepage.trim() && !isHttpUrl(draft.homepage.trim())) return message.warning("请输入有效的主页地址");
+        if (!name) return message.warning(t("请输入来源名称"));
+        if (!isHttpUrl(url)) return message.warning(t("请输入有效的 JSON URL"));
+        if (draft.homepage.trim() && !isHttpUrl(draft.homepage.trim())) return message.warning(t("请输入有效的主页地址"));
         onSave({ ...draft, name, url, homepage: draft.homepage.trim(), builtIn: false });
         onClose();
     };
@@ -29,38 +31,48 @@ export function PromptSourceEditorDrawer({ open, source, onSave, onClose }: { op
         <Drawer
             open={open}
             width={560}
-            title={source?.name === "新来源" ? "新增提示词来源" : "编辑提示词来源"}
+            title={t(source?.name === "新来源" ? "新增提示词来源" : "编辑提示词来源")}
             onClose={onClose}
             styles={{ body: { paddingTop: 16 } }}
             extra={
                 <Space>
-                    <Button onClick={onClose}>取消</Button>
+                    <Button onClick={onClose}>{t("取消")}</Button>
                     <Button type="primary" onClick={save}>
-                        保存
+                        {t("保存")}
                     </Button>
                 </Space>
             }
         >
             <div className="space-y-5">
                 <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium">来源名称</span>
-                    <Input value={draft.name} onChange={(event) => patch({ name: event.target.value })} placeholder="用于分类展示" />
+                    <span className="mb-1.5 block text-sm font-medium">{t("来源名称")}</span>
+                    <Input value={draft.name} onChange={(event) => patch({ name: event.target.value })} placeholder={t("用于分类展示")} />
                 </label>
                 <label className="block">
                     <span className="mb-1.5 block text-sm font-medium">JSON URL</span>
                     <Input value={draft.url} onChange={(event) => patch({ url: event.target.value })} placeholder="https://example.com/prompts.json" />
                 </label>
                 <label className="block">
-                    <span className="mb-1.5 block text-sm font-medium">来源主页（可选）</span>
+                    <span className="mb-1.5 block text-sm font-medium">{t("来源主页（可选）")}</span>
                     <Input value={draft.homepage} onChange={(event) => patch({ homepage: event.target.value })} placeholder="https://example.com" />
                 </label>
                 <div className="flex items-center justify-between border-y border-stone-200 py-3 dark:border-stone-800">
-                    <span className="text-sm font-medium">启用来源</span>
+                    <span className="text-sm font-medium">{t("启用来源")}</span>
                     <Switch checked={draft.enabled} onChange={(enabled) => patch({ enabled })} />
                 </div>
                 <div>
-                    <div className="mb-2 text-sm font-medium">JSON 格式</div>
-                    <pre className="overflow-x-auto rounded-md bg-stone-100 p-3 text-xs leading-5 text-stone-600 dark:bg-stone-900 dark:text-stone-300">{`[
+                    <div className="mb-2 text-sm font-medium">{t("JSON 格式")}</div>
+                    <pre className="overflow-x-auto rounded-md bg-stone-100 p-3 text-xs leading-5 text-stone-600 dark:bg-stone-900 dark:text-stone-300">{language === "en-US" ? `[
+  {
+    "id": "product-photo-1",
+    "title": "White-background product photo",
+    "prompt": "Create a professional white-background product photo",
+    "description": "",
+    "coverUrl": "",
+    "referenceImageUrls": [],
+    "tags": ["product", "photography"]
+  }
+]` : `[
   {
     "id": "product-photo-1",
     "title": "白底商品图",

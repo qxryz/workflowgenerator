@@ -135,7 +135,7 @@ test("MiniMax Hailuo model and parameters persist in logs and canvas results", (
     assert.match(configStoreSource, /minimaxVideoPromptOptimizer: string/u);
     assert.match(configStoreSource, /minimaxVideoFastPretreatment: string/u);
     assert.match(videoPageSource, /GenerationLogConfig = Pick<\s*AiConfig,[^;]*"minimaxVideoPromptOptimizer"[^;]*"minimaxVideoFastPretreatment"/u);
-    assert.match(videoPageSource, /log\.model \|\| "视频模型"/u);
+    assert.match(videoPageSource, /log\.model \|\| t\("视频模型"\)/u);
     assert.match(videoPageSource, /log\.config\.minimaxVideoPromptOptimizer/u);
     assert.match(videoPageSource, /log\.config\.minimaxVideoFastPretreatment/u);
     assert.match(canvasTypesSource, /minimaxVideoPromptOptimizer\?: string/u);

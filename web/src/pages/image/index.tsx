@@ -8,6 +8,7 @@ import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
 import { ModelPicker } from "@/components/model-picker";
 import { PromptSelectDialog } from "@/components/prompts/prompt-select-dialog";
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { modelExperienceKind } from "@/lib/model-providers";
 import {
@@ -112,6 +113,7 @@ const logStore = createDesktopJsonStore({
 
 export default function ImagePage() {
     const { message } = App.useApp();
+    const { t } = useAppTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
     const dragDepthRef = useRef(0);
     const config = useConfigStore((state) => state.config);
@@ -840,10 +842,10 @@ export default function ImagePage() {
                         <div className="wg-media-workbench-result-stage">
                             <div className="wg-media-section-heading">
                                 <div>
-                                    <h2>生成结果</h2>
-                                    <p>{results.length ? results.length + " 个结果" : "结果会显示在这里"}</p>
+                                    <h2>{t("生成结果")}</h2>
+                                    <p>{results.length ? t("{count} 个结果", { count: results.length }) : t("结果会显示在这里")}</p>
                                 </div>
-                                {running ? <Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-2.5 py-1 text-[color:var(--wg-studio-accent-strong)]">生成中 · {formatDuration(elapsedMs)}</Tag> : null}
+                                {running ? <Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-2.5 py-1 text-[color:var(--wg-studio-accent-strong)]">{t("生成中 · {time}", { time: formatDuration(elapsedMs) })}</Tag> : null}
                             </div>
                             <ImageResultStage
                                 results={results}
@@ -861,31 +863,31 @@ export default function ImagePage() {
                         <div className="wg-media-composer">
                             <div className="wg-media-composer-heading">
                                 <div>
-                                    <h2>描述你想生成的图片</h2>
-                                    <p>写清主体、环境、光线和风格</p>
+                                    <h2>{t("描述你想生成的图片")}</h2>
+                                    <p>{t("写清主体、环境、光线和风格")}</p>
                                 </div>
                                 <div className="flex flex-wrap justify-end gap-2">
                                     <Button size="small" icon={<BookOpen className="size-3.5" />} onClick={() => setPromptDialogOpen(true)}>
-                                        提示词库
+                                        {t("提示词库")}
                                     </Button>
                                     <Button size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => setAssetPickerOpen(true)}>
-                                        我的资产
+                                        {t("我的资产")}
                                     </Button>
                                 </div>
                             </div>
-                            <Input.TextArea className="wg-media-prompt-input" value={prompt} onChange={(event) => setPrompt(event.target.value)} autoSize={{ minRows: 3, maxRows: 7 }} placeholder="例如：清晨薄雾中的玻璃温室，柔和逆光，电影感构图…" />
+                            <Input.TextArea className="wg-media-prompt-input" value={prompt} onChange={(event) => setPrompt(event.target.value)} autoSize={{ minRows: 3, maxRows: 7 }} placeholder={t("例如：清晨薄雾中的玻璃温室，柔和逆光，电影感构图…")} />
 
                             <div className="wg-media-reference-heading">
                                 <div>
-                                    <span>参考图</span>
-                                    <small>{imageExperience === "minimax-image" ? "支持 1 张清晰人物参考图，用于保持人物特征" : "用于控制人物、风格、构图和细节"}</small>
+                                    <span>{t("参考图")}</span>
+                                    <small>{t(imageExperience === "minimax-image" ? "支持 1 张清晰人物参考图，用于保持人物特征" : "用于控制人物、风格、构图和细节")}</small>
                                 </div>
                                 <div className="flex gap-2">
                                     <Button size="small" icon={<ClipboardPaste className="size-3.5" />} onClick={() => void addReferencesFromClipboard()}>
-                                        剪切板
+                                        {t("剪切板")}
                                     </Button>
                                     <Button size="small" icon={<Upload className="size-3.5" />} onClick={() => fileInputRef.current?.click()}>
-                                        添加图片
+                                        {t("添加图片")}
                                     </Button>
                                 </div>
                             </div>
@@ -925,7 +927,7 @@ export default function ImagePage() {
                                 {!references.length ? (
                                     <button type="button" className="wg-media-reference-empty" onClick={() => fileInputRef.current?.click()}>
                                         <ImagePlus className="size-5" />
-                                        <span>{isReferenceDragActive ? "松开即可添加参考图" : "拖入图片，或点此添加参考图"}</span>
+                                        <span>{t(isReferenceDragActive ? "松开即可添加参考图" : "拖入图片，或点此添加参考图")}</span>
                                     </button>
                                 ) : null}
                             </div>
@@ -933,7 +935,7 @@ export default function ImagePage() {
                     </div>
                     <div className="wg-media-mobile-cta">
                         <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                            生成图片 · {generationCount} 张
+                            {t("生成图片 · {count} 张", { count: generationCount })}
                         </Button>
                     </div>
                 </section>
@@ -941,8 +943,8 @@ export default function ImagePage() {
                 <aside className="wg-media-workbench-pane wg-media-workbench-inspector">
                     <div className="wg-media-inspector-heading">
                         <div>
-                            <h2>模型与参数</h2>
-                            <p>按当前模型调整可用选项</p>
+                            <h2>{t("模型与参数")}</h2>
+                            <p>{t("按当前模型调整可用选项")}</p>
                         </div>
                     </div>
                     <div className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-4">
@@ -952,7 +954,7 @@ export default function ImagePage() {
                     </div>
                     <div className="wg-media-generate-footer">
                         <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                            生成图片 · {generationCount} 张
+                            {t("生成图片 · {count} 张", { count: generationCount })}
                         </Button>
                     </div>
                 </aside>
@@ -969,7 +971,7 @@ export default function ImagePage() {
                     event.target.value = "";
                 }}
             />
-            <Drawer rootClassName="wg-media-workbench-drawer" title="生成记录" placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
+            <Drawer rootClassName="wg-media-workbench-drawer" title={t("生成记录")} placement="bottom" size="large" open={logsOpen} onClose={() => setLogsOpen(false)}>
                 <LogPanel
                     logs={logs}
                     selectedLogIds={selectedLogIds}
@@ -980,33 +982,34 @@ export default function ImagePage() {
                     onPreviewLog={(log) => void previewGenerationLog(log)}
                 />
             </Drawer>
-            <Drawer rootClassName="wg-media-workbench-drawer" title="模型与参数" placement="bottom" size="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
+            <Drawer rootClassName="wg-media-workbench-drawer" title={t("模型与参数")} placement="bottom" size="82vh" open={settingsOpen} onClose={() => setSettingsOpen(false)}>
                 <div className="grid grid-cols-2 gap-4 pb-24">
                     <GenerationSettings config={selectedImageConfig} model={model} updateConfig={updateConfig} openConfigDialog={openConfigDialog} />
                 </div>
                 <div className="fixed inset-x-0 bottom-0 border-t border-stone-200 bg-white/95 p-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/95">
                     <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                        生成图片 · {generationCount} 张
+                        {t("生成图片 · {count} 张", { count: generationCount })}
                     </Button>
                 </div>
             </Drawer>
             <PromptSelectDialog open={promptDialogOpen} onOpenChange={setPromptDialogOpen} onSelect={setPrompt} />
             <AssetPickerModal open={assetPickerOpen} defaultTab="my-assets" onInsert={(payload) => void insertPickedAsset(payload)} onClose={() => setAssetPickerOpen(false)} />
-            <Modal title="删除生成记录" open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={deleteSelectedLogs} okText="删除" okButtonProps={{ danger: true }} cancelText="取消">
-                确定删除选中的 {selectedLogIds.length} 条生成记录吗？
+            <Modal title={t("删除生成记录")} open={deleteConfirmOpen} onCancel={() => setDeleteConfirmOpen(false)} onOk={deleteSelectedLogs} okText={t("删除")} okButtonProps={{ danger: true }} cancelText={t("取消")}>
+                {t("确定删除选中的 {count} 条生成记录吗？", { count: selectedLogIds.length })}
             </Modal>
         </div>
     );
 }
 
 function GenerationSettings({ config, model, updateConfig, openConfigDialog }: { config: AiConfig; model: string; updateConfig: UpdateAiConfig; openConfigDialog: (shouldPromptContinue?: boolean) => void }) {
+    const { t } = useAppTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const resolvedConfig = { ...config, model, imageModel: model };
 
     return (
         <>
             <label className="col-span-2 block min-w-0 sm:col-span-1">
-                <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">模型</span>
+                <span className="mb-1.5 block text-sm font-semibold sm:mb-2 sm:text-base">{t("模型")}</span>
                 <ModelPicker config={resolvedConfig} value={model} onChange={(value) => updateConfig("imageModel", value)} capability="image" fullWidth onMissingConfig={() => openConfigDialog(false)} />
             </label>
             <div className="col-span-2">
@@ -1037,6 +1040,7 @@ function ImageResultStage({
     onDelete: (logId: string | undefined, imageId: string) => void;
     onDeleteFailure: (logId: string | undefined, resultId: string) => void;
 }) {
+    const { t } = useAppTranslation();
     const [activeId, setActiveId] = useState<string>();
 
     useEffect(() => {
@@ -1053,8 +1057,8 @@ function ImageResultStage({
                 <div className="wg-media-result-empty-icon">
                     <ImagePlus className="size-7" strokeWidth={1.6} />
                 </div>
-                <h3>从一个画面想法开始</h3>
-                <p>描述主体、环境和风格，生成结果会显示在这里</p>
+                <h3>{t("从一个画面想法开始")}</h3>
+                <p>{t("描述主体、环境和风格，生成结果会显示在这里")}</p>
             </div>
         );
     }
@@ -1071,16 +1075,16 @@ function ImageResultStage({
                 {active.status === "success" && active.image ? (
                     <ResultImageCard image={active.image} index={activeIndex} onEdit={onEdit} onDownload={onDownload} onSaveAsset={onSaveAsset} onRegenerate={() => onRegenerate(active.logId)} onDelete={() => onDelete(active.logId, active.image!.id)} regenerateDisabled={running} />
                 ) : active.status === "failed" ? (
-                    <FailedImageCard error={active.error || "生成失败"} retryDisabled={running} onRetry={() => onRetry(active.id)} onDelete={() => onDeleteFailure(active.logId, active.id)} />
+                    <FailedImageCard error={active.error || t("生成失败")} retryDisabled={running} onRetry={() => onRetry(active.id)} onDelete={() => onDeleteFailure(active.logId, active.id)} />
                 ) : (
                     <PendingImageCard />
                 )}
             </div>
             {results.length > 1 ? (
-                <div className="wg-media-result-thumbnails" aria-label="生成结果列表">
+                <div className="wg-media-result-thumbnails" aria-label={t("生成结果列表")}>
                     {results.map((result, index) => (
-                        <button key={result.id} type="button" className={result.id === active.id ? "is-active" : ""} onClick={() => setActiveId(result.id)} aria-label={`查看结果 ${index + 1}`}>
-                            {result.image ? <img src={result.image.dataUrl} alt="" /> : result.status === "failed" ? <span className="text-red-700">失败</span> : <LoaderCircle className="size-4 animate-spin" />}
+                        <button key={result.id} type="button" className={result.id === active.id ? "is-active" : ""} onClick={() => setActiveId(result.id)} aria-label={t("查看结果 {number}", { number: index + 1 })}>
+                            {result.image ? <img src={result.image.dataUrl} alt="" /> : result.status === "failed" ? <span className="text-red-700">{t("失败")}</span> : <LoaderCircle className="size-4 animate-spin" />}
                         </button>
                     ))}
                 </div>
@@ -1108,10 +1112,11 @@ function ResultImageCard({
     onDelete: () => void;
     regenerateDisabled: boolean;
 }) {
+    const { t } = useAppTranslation();
     return (
         <div className="wg-media-result-card overflow-hidden rounded-lg border border-stone-200 bg-background dark:border-stone-800">
             <div className="wg-media-result-card-preview flex min-h-48 items-center justify-center bg-stone-100/70 dark:bg-stone-950/40">
-                <Image rootClassName="block w-full" src={image.dataUrl} alt={`生成结果 ${index + 1}`} className="block h-auto max-h-[560px] w-full object-contain" />
+                <Image rootClassName="block w-full" src={image.dataUrl} alt={t("查看结果 {number}", { number: index + 1 })} className="block h-auto max-h-[560px] w-full object-contain" />
             </div>
             <div className="wg-media-result-card-actions space-y-2 border-t border-stone-200 px-3 py-2.5 dark:border-stone-800">
                 <div className="flex min-w-0 gap-x-2 gap-y-1 text-xs text-stone-500 dark:text-stone-400">
@@ -1120,29 +1125,29 @@ function ResultImageCard({
                     </span>
                     <span>{formatBytes(image.bytes)}</span>
                     <span>{formatDuration(image.durationMs)}</span>
-                    <Popconfirm title="删除这次生成结果？" description="不会影响同一记录中的其他结果。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={onDelete}>
+                    <Popconfirm title={t("删除这次生成结果？")} description={t("不会影响同一记录中的其他结果。")} okText={t("删除")} cancelText={t("取消")} okButtonProps={{ danger: true }} onConfirm={onDelete}>
                         <Button type="text" danger size="small" className="ml-auto !h-5 !px-1" icon={<Trash2 className="size-3.5" />} aria-label={`删除生成结果 ${index + 1}`} />
                     </Popconfirm>
                 </div>
                 <div className="grid min-w-0 grid-cols-2 gap-2 sm:grid-cols-4">
-                    <Tooltip title="按当前提示词和参数再生成一组，原结果会保留">
+                    <Tooltip title={t("按当前提示词和参数再生成一组，原结果会保留")}>
                         <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<RefreshCw className="size-3.5" />} disabled={regenerateDisabled} onClick={onRegenerate}>
-                            重新生成
+                            {t("重新生成")}
                         </Button>
                     </Tooltip>
-                    <Tooltip title="添加到资产">
+                    <Tooltip title={t("添加到资产")}>
                         <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => void onSaveAsset(image, index)}>
-                            保存到我的资产
+                            {t("保存到我的资产")}
                         </Button>
                     </Tooltip>
-                    <Tooltip title="加入参考图">
+                    <Tooltip title={t("加入参考图")}>
                         <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<PenLine className="size-3.5" />} onClick={() => void onEdit(image, index)}>
-                            加入参考图
+                            {t("加入参考图")}
                         </Button>
                     </Tooltip>
-                    <Tooltip title="下载">
+                    <Tooltip title={t("下载")}>
                         <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<Download className="size-3.5" />} onClick={() => void onDownload(image, index)}>
-                            下载
+                            {t("下载")}
                         </Button>
                     </Tooltip>
                 </div>
@@ -1152,6 +1157,7 @@ function ResultImageCard({
 }
 
 function PendingImageCard() {
+    const { t } = useAppTranslation();
     return (
         <div className="relative aspect-square overflow-hidden rounded-lg border border-dashed border-stone-300 bg-stone-50 dark:border-stone-700 dark:bg-stone-900">
             <div
@@ -1163,29 +1169,30 @@ function PendingImageCard() {
             />
             <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-sm text-stone-500 dark:text-stone-400">
                 <LoaderCircle className="size-6 animate-spin" />
-                <span>生成中</span>
+                <span>{t("生成中")}</span>
             </div>
         </div>
     );
 }
 
 function FailedImageCard({ error, retryDisabled, onRetry, onDelete }: { error: string; retryDisabled: boolean; onRetry: () => void; onDelete: () => void }) {
+    const { t } = useAppTranslation();
     return (
         <div className="overflow-hidden rounded-lg border border-red-200 bg-red-50 dark:border-red-950 dark:bg-red-950/20">
             <div className="flex aspect-square flex-col items-center justify-center gap-3 p-5 text-center">
-                <div className="text-sm font-medium text-red-600 dark:text-red-300">生成失败</div>
+                <div className="text-sm font-medium text-red-600 dark:text-red-300">{t("生成失败")}</div>
                 <Typography.Paragraph ellipsis={{ rows: 4 }} className="!mb-0 !text-xs !text-red-500 dark:!text-red-300">
                     {error}
                 </Typography.Paragraph>
             </div>
             <div className="flex justify-end gap-2 border-t border-red-200 p-3 dark:border-red-950">
-                <Popconfirm title="删除这次失败结果？" description="不会影响同一记录中的其他结果。" okText="删除" cancelText="取消" okButtonProps={{ danger: true }} onConfirm={onDelete}>
+                <Popconfirm title={t("删除这次失败结果？")} description={t("不会影响同一记录中的其他结果。")} okText={t("删除")} cancelText={t("取消")} okButtonProps={{ danger: true }} onConfirm={onDelete}>
                     <Button size="small" danger type="text" icon={<Trash2 className="size-3.5" />}>
-                        删除
+                        {t("删除")}
                     </Button>
                 </Popconfirm>
                 <Button size="small" danger disabled={retryDisabled} onClick={onRetry}>
-                    重试
+                    {t("重试")}
                 </Button>
             </div>
         </div>
@@ -1209,6 +1216,7 @@ function LogPanel({
     onDeleteSelected: () => void;
     onPreviewLog: (log: GenerationLog) => void;
 }) {
+    const { t } = useAppTranslation();
     const allSelected = Boolean(logs.length) && selectedLogIds.length === logs.length;
     const selectedCount = selectedLogIds.length;
     const [managing, setManaging] = useState(false);
@@ -1222,25 +1230,25 @@ function LogPanel({
         <>
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div>
-                    <h2 className="text-[15px] font-semibold">生成记录</h2>
-                    <p className="mt-0.5 text-[10px] text-[color:var(--wg-studio-muted)]">{logs.length} 条图片创作</p>
+                    <h2 className="text-[15px] font-semibold">{t("生成记录")}</h2>
+                    <p className="mt-0.5 text-[10px] text-[color:var(--wg-studio-muted)]">{t("{count} 条图片创作", { count: logs.length })}</p>
                 </div>
                 <Button type="text" size="small" icon={<CheckSquare className="size-3.5" />} onClick={toggleManaging} aria-pressed={managing}>
-                    {managing ? "完成" : "多选"}
+                    {t(managing ? "完成" : "多选")}
                 </Button>
             </div>
             <div className="mb-3 flex flex-wrap gap-2">
                 <Button size="small" icon={<Plus className="size-3.5" />} onClick={onCreateSession}>
-                    新创作
+                    {t("新创作")}
                 </Button>
                 {managing ? (
                     <>
                         <Button size="small" disabled={!logs.length} onClick={toggleAll}>
-                            {allSelected ? "取消全选" : "全选"}
+                            {t(allSelected ? "取消全选" : "全选")}
                         </Button>
-                        <span className="self-center text-[11px] text-[color:var(--wg-studio-muted)]">已选 {selectedCount} 条</span>
+                        <span className="self-center text-[11px] text-[color:var(--wg-studio-muted)]">{t("已选 {count} 条", { count: selectedCount })}</span>
                         <Button size="small" danger icon={<Trash2 className="size-3.5" />} disabled={!selectedCount} onClick={onDeleteSelected}>
-                            删除（{selectedCount}）
+                            {t("删除（{count}）", { count: selectedCount })}
                         </Button>
                     </>
                 ) : null}
@@ -1257,30 +1265,31 @@ function LogPanel({
                         onClick={() => onPreviewLog(log)}
                     />
                 ))}
-                {!logs.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-stone-300 text-center text-sm text-stone-500 dark:border-stone-700">暂无生成记录</div> : null}
+                {!logs.length ? <div className="flex min-h-48 items-center justify-center rounded-lg border border-dashed border-stone-300 text-center text-sm text-stone-500 dark:border-stone-700">{t("暂无生成记录")}</div> : null}
             </div>
         </>
     );
 }
 
 function LogCard({ log, managing, selected, active, onSelectedChange, onClick }: { log: GenerationLog; managing: boolean; selected: boolean; active: boolean; onSelectedChange: (checked: boolean) => void; onClick: () => void }) {
+    const { t } = useAppTranslation();
     const thumbnail = (log.thumbnails || []).find(Boolean);
 
     return (
         <div className={active ? "wg-media-history-card is-active" : "wg-media-history-card"}>
-            {managing ? <Checkbox className="absolute right-2 top-2 z-10" checked={selected} onChange={(event) => onSelectedChange(event.target.checked)} aria-label={`选择记录：${log.title}`} /> : null}
+            {managing ? <Checkbox className="absolute right-2 top-2 z-10" checked={selected} onChange={(event) => onSelectedChange(event.target.checked)} aria-label={t("选择记录：{title}", { title: log.title })} /> : null}
             <button type="button" className="block w-full text-left focus-visible:outline-none" onClick={onClick}>
                 <div className="flex gap-2.5">
                     <div className="wg-media-history-thumb">
                         {thumbnail ? <img src={thumbnail} alt="" /> : <ImagePlus className="size-5" />}
-                        <span className={log.failCount && !log.successCount ? "is-failed" : ""}>{log.failCount && !log.successCount ? "失败" : `${log.imageCount} 张`}</span>
+                        <span className={log.failCount && !log.successCount ? "is-failed" : ""}>{log.failCount && !log.successCount ? t("失败") : t("{count} 张", { count: log.imageCount })}</span>
                     </div>
                     <div className="min-w-0 flex-1 py-0.5">
                         <div className="truncate pr-5 text-[12px] font-semibold">{log.title}</div>
-                        <div className="mt-1 truncate text-[10px] text-[color:var(--wg-studio-muted)]">{log.model || "图片模型"}</div>
+                        <div className="mt-1 truncate text-[10px] text-[color:var(--wg-studio-muted)]">{log.model || t("图片模型")}</div>
                         <div className="mt-2 flex flex-wrap gap-x-2 gap-y-1 text-[10px] text-[color:var(--wg-studio-muted)]">
-                            <span>{log.size || "自适应"}</span>
-                            <span>{log.quality || "自动"}</span>
+                            <span>{log.size || t("自适应")}</span>
+                            <span>{log.quality || t("自动")}</span>
                             <span>{formatDuration(log.durationMs)}</span>
                         </div>
                         <div className="mt-1.5 truncate text-[9px] text-[color:var(--wg-studio-muted)] opacity-75">{log.time}</div>

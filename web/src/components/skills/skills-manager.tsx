@@ -3,6 +3,7 @@ import { ArrowDown, ArrowUp, Download, ExternalLink, FileUp, Pencil, Plus, Refre
 import { useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 
 import { AuthorNote } from "@/components/author-library/author-note";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { downloadRegistrySkill, fetchRegistrySkillBody, fetchSkillRegistry, registryEntryIntegrity, type SkillRegistryEntry } from "@/services/skills/skill-registry";
 import { createPersonalSkill, type InstalledSkill } from "@/services/skills/skill-presets";
 import { useSkillStore } from "@/stores/use-skill-store";
@@ -15,6 +16,7 @@ const ALL = "全部";
 
 export function SkillsManager() {
     const { message } = App.useApp();
+    const { t } = useAppTranslation();
     const importRef = useRef<HTMLInputElement>(null);
     const skills = useSkillStore((state) => state.skills);
     const save = useSkillStore((state) => state.save);
@@ -165,19 +167,19 @@ export function SkillsManager() {
                     <div className="wg-library-actions flex min-w-0 flex-1 items-center gap-2 md:ml-auto md:justify-end">
                         <label className="wg-library-search w-full md:max-w-md">
                             <Search className="size-4 shrink-0" />
-                            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder="搜索名称、用途或标签" aria-label="搜索 Skills" />
+                            <input value={keyword} onChange={(event) => setKeyword(event.target.value)} placeholder={t("搜索名称、用途或标签")} aria-label={t("搜索 Skills")} />
                         </label>
                         {view === "official" ? (
                             <Button className="shrink-0" loading={loadingRegistry} icon={<RefreshCw className="size-3.5" />} onClick={() => void refreshOfficial()}>
-                                检查更新
+                                {t("检查更新")}
                             </Button>
                         ) : view === "personal" ? (
                             <>
                                 <Button className="shrink-0" icon={<FileUp className="size-3.5" />} onClick={() => importRef.current?.click()}>
-                                    导入
+                                    {t("导入")}
                                 </Button>
                                 <Button className="shrink-0" type="primary" icon={<Plus className="size-3.5" />} onClick={() => setEditing(createPersonalSkill())}>
-                                    新建
+                                    {t("新建")}
                                 </Button>
                             </>
                         ) : null}
@@ -189,10 +191,10 @@ export function SkillsManager() {
                 <div className="mx-auto grid max-w-7xl items-start gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-5">
                     <aside className="wg-library-filter-rail thin-scrollbar max-h-56 overflow-y-auto border-b pb-4 lg:sticky lg:top-0 lg:min-h-[calc(100dvh-10rem)] lg:max-h-[calc(100dvh-10rem)] lg:border-b-0 lg:border-r lg:pb-6 lg:pr-4">
                         <div className="mb-4 flex min-h-7 items-center justify-between gap-3">
-                            <h2 className="text-sm font-semibold text-stone-800 dark:text-stone-200">筛选</h2>
+                            <h2 className="text-sm font-semibold text-stone-800 dark:text-stone-200">{t("筛选")}</h2>
                             {hasActiveFilters ? (
                                 <Button type="link" size="small" className="!h-auto !px-0 text-xs" onClick={clearFilters}>
-                                    清除筛选
+                                    {t("清除筛选")}
                                 </Button>
                             ) : null}
                         </div>
@@ -222,7 +224,7 @@ export function SkillsManager() {
                                         message={registryError}
                                         action={
                                             <Button size="small" onClick={() => void refreshOfficial()}>
-                                                重新加载
+                                                {t("重新加载")}
                                             </Button>
                                         }
                                         className="mb-4"
@@ -241,14 +243,14 @@ export function SkillsManager() {
                                             ))}
                                         </div>
                                     ) : (
-                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={sourceCatalog.length ? "没有符合当前条件的 Skill" : view === "author" ? "暂时没有作者私藏" : "暂时没有官方 Skills"} className="py-14">
+                                        <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t(sourceCatalog.length ? "没有符合当前条件的 Skill" : view === "author" ? "暂时没有作者私藏" : "暂时没有官方 Skills")} className="py-14">
                                             {hasActiveFilters ? (
                                                 <Button size="small" onClick={clearFilters}>
-                                                    清除筛选
+                                                    {t("清除筛选")}
                                                 </Button>
                                             ) : view === "official" ? (
                                                 <Button size="small" onClick={() => void refreshOfficial()}>
-                                                    重新加载
+                                                    {t("重新加载")}
                                                 </Button>
                                             ) : null}
                                         </Empty>
@@ -263,18 +265,18 @@ export function SkillsManager() {
                                 })}
                             </div>
                         ) : (
-                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={personalSkills.length ? "没有符合当前条件的 Skill" : "还没有个人 Skill"} className="py-14">
+                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={t(personalSkills.length ? "没有符合当前条件的 Skill" : "还没有个人 Skill")} className="py-14">
                                 {hasActiveFilters ? (
                                     <Button size="small" onClick={clearFilters}>
-                                        清除筛选
+                                        {t("清除筛选")}
                                     </Button>
                                 ) : (
                                     <div className="flex justify-center gap-2">
                                         <Button size="small" icon={<FileUp className="size-3.5" />} onClick={() => importRef.current?.click()}>
-                                            从本机导入
+                                            {t("从本机导入")}
                                         </Button>
                                         <Button size="small" type="primary" onClick={() => setEditing(createPersonalSkill())}>
-                                            新建 Skill
+                                            {t("新建 Skill")}
                                         </Button>
                                     </div>
                                 )}
@@ -291,7 +293,7 @@ export function SkillsManager() {
                 onSave={(skill) => {
                     save(skill);
                     setEditing(null);
-                    message.success("Skill 已保存");
+                    message.success(t("Skill 已保存"));
                 }}
             />
         </div>
@@ -313,6 +315,7 @@ function SkillCatalogCard({
     onEnabledChange: (id: string, enabled: boolean) => void;
     onOwnershipChange: (id: string, zodiacOnly: boolean) => void;
 }) {
+    const { t } = useAppTranslation();
     const entry = item.entry;
     const installed = item.installed;
     const updateAvailable = isUpdateAvailable(item);
@@ -327,7 +330,7 @@ function SkillCatalogCard({
                         </div>
                         {installed ? (
                             <Tag color={updateAvailable ? "blue" : "green"} className="!m-0 shrink-0">
-                                {updateAvailable ? "可更新" : "已安装"}
+                                {t(updateAvailable ? "可更新" : "已安装")}
                             </Tag>
                         ) : null}
                     </div>
@@ -345,13 +348,13 @@ function SkillCatalogCard({
             <div className="flex items-center gap-2 px-4 pb-4">
                 {entry && (!installed || updateAvailable) ? (
                     <Button block type="primary" size="small" loading={installingId === entry.id} icon={<Download className="size-3.5" />} onClick={() => void onInstall(entry)}>
-                        {updateAvailable ? "更新" : "安装"}
+                        {t(updateAvailable ? "更新" : "安装")}
                     </Button>
                 ) : installed ? (
                     <div className="flex w-full items-center justify-between gap-2">
                         <SkillOwnershipControl skill={installed} onChange={(zodiacOnly) => onOwnershipChange(installed.id, zodiacOnly)} />
                         <div className="flex shrink-0 items-center gap-1.5 text-xs text-stone-500">
-                            <span>{installed.enabled ? "已启用" : "未启用"}</span>
+                            <span>{t(installed.enabled ? "已启用" : "未启用")}</span>
                             <Switch size="small" checked={installed.enabled} onChange={(enabled) => onEnabledChange(installed.id, enabled)} />
                         </div>
                     </div>
@@ -380,6 +383,7 @@ function PersonalSkillCard({
     onEdit: (skill: InstalledSkill) => void;
     onRemove: (id: string) => void;
 }) {
+    const { t } = useAppTranslation();
     return (
         <Card className="[content-visibility:auto] overflow-hidden [contain-intrinsic-size:220px]" styles={{ body: { padding: 0 } }}>
             <div className="p-4">
@@ -387,13 +391,13 @@ function PersonalSkillCard({
                     <button type="button" className="min-w-0 flex-1 text-left" onClick={() => onEdit(skill)}>
                         <div className="min-w-0">
                             <h2 className="line-clamp-1 text-sm font-semibold text-stone-950 dark:text-stone-100">{skill.name}</h2>
-                            <span className="mt-1 block text-xs text-stone-400 dark:text-stone-500">个人 Skill</span>
+                            <span className="mt-1 block text-xs text-stone-400 dark:text-stone-500">{t("个人 Skill")}</span>
                         </div>
                     </button>
                     <Switch size="small" checked={skill.enabled} onChange={(enabled) => onEnabledChange(skill.id, enabled)} />
                 </div>
                 <button type="button" className="block w-full text-left" onClick={() => onEdit(skill)}>
-                    <p className="mt-2 line-clamp-3 text-xs leading-5 text-stone-600 dark:text-stone-400">{skill.description || "还没有简介"}</p>
+                    <p className="mt-2 line-clamp-3 text-xs leading-5 text-stone-600 dark:text-stone-400">{skill.description || t("还没有简介")}</p>
                     <div className="mt-3 flex flex-wrap gap-1.5">
                         {skill.tags.slice(0, 3).map((tag) => (
                             <Tag key={tag} className="!m-0 text-[11px]">
@@ -406,13 +410,13 @@ function PersonalSkillCard({
             <div className="flex items-center justify-between gap-2 px-4 pb-4">
                 <SkillOwnershipControl skill={skill} onChange={(zodiacOnly) => onOwnershipChange(skill.id, zodiacOnly)} />
                 <div className="flex shrink-0 items-center gap-1">
-                    <Button type="text" size="small" aria-label="上移" disabled={index === 0} icon={<ArrowUp className="size-3.5" />} onClick={() => onMove(skill.id, -1)} />
-                    <Button type="text" size="small" aria-label="下移" disabled={index === count - 1} icon={<ArrowDown className="size-3.5" />} onClick={() => onMove(skill.id, 1)} />
+                    <Button type="text" size="small" aria-label={t("上移")} disabled={index === 0} icon={<ArrowUp className="size-3.5" />} onClick={() => onMove(skill.id, -1)} />
+                    <Button type="text" size="small" aria-label={t("下移")} disabled={index === count - 1} icon={<ArrowDown className="size-3.5" />} onClick={() => onMove(skill.id, 1)} />
                     <Button type="text" size="small" icon={<Pencil className="size-3.5" />} onClick={() => onEdit(skill)}>
-                        编辑
+                        {t("编辑")}
                     </Button>
                     <Button type="text" danger size="small" icon={<Trash2 className="size-3.5" />} onClick={() => onRemove(skill.id)}>
-                        删除
+                        {t("删除")}
                     </Button>
                 </div>
             </div>
@@ -441,6 +445,7 @@ function SkillDetailModal({
     onEnabledChange: (id: string, enabled: boolean) => void;
     onOwnershipChange: (id: string, zodiacOnly: boolean) => void;
 }) {
+    const { t } = useAppTranslation();
     const currentSkills = useSkillStore((state) => state.skills);
     const entry = item?.entry;
     const requestedInstalled = item?.installed;
@@ -471,7 +476,7 @@ function SkillDetailModal({
                     <div className="flex shrink-0 flex-wrap items-center gap-2 pt-4">
                         {entry && (!installed || updateAvailable) ? (
                             <Button type="primary" loading={installingId === entry.id} icon={<Download className="size-4" />} onClick={() => void onInstall(entry)}>
-                                {updateAvailable ? "更新 Skill" : "安装 Skill"}
+                                {t(updateAvailable ? "更新 Skill" : "安装 Skill")}
                             </Button>
                         ) : null}
                         {installed ? (
@@ -479,13 +484,13 @@ function SkillDetailModal({
                                 <SkillOwnershipControl skill={installed} onChange={(zodiacOnly) => onOwnershipChange(installed.id, zodiacOnly)} />
                                 <div className="flex items-center gap-2 text-sm">
                                     <Switch checked={installed.enabled} onChange={(enabled) => onEnabledChange(installed.id, enabled)} />
-                                    {installed.enabled ? "已启用" : "未启用"}
+                                    {t(installed.enabled ? "已启用" : "未启用")}
                                 </div>
                             </div>
                         ) : null}
                         {entry?.homepage || installed?.homepage ? (
                             <Button href={entry?.homepage || installed?.homepage} target="_blank" icon={<ExternalLink className="size-4" />}>
-                                查看来源
+                                {t("查看来源")}
                             </Button>
                         ) : null}
                     </div>
@@ -496,14 +501,15 @@ function SkillDetailModal({
 }
 
 function SkillOwnershipControl({ skill, onChange }: { skill: InstalledSkill; onChange: (zodiacOnly: boolean) => void }) {
+    const { t } = useAppTranslation();
     return (
         <Segmented
             size="small"
             className="wg-skill-ownership"
             value={skill.zodiacOnly ? "zodiac" : "terminal"}
             options={[
-                { label: "Zodiac 专属", value: "zodiac", title: "只在 Zodiac 对话框里附加使用" },
-                { label: "终端可用", value: "terminal", title: "可在画布终端节点的设置中启用" },
+                { label: t("Zodiac 专属"), value: "zodiac", title: t("只在 Zodiac 对话框里附加使用") },
+                { label: t("终端可用"), value: "terminal", title: t("可在画布终端节点的设置中启用") },
             ]}
             onChange={(value) => onChange(value === "zodiac")}
         />
@@ -511,13 +517,14 @@ function SkillOwnershipControl({ skill, onChange }: { skill: InstalledSkill; onC
 }
 
 function SkillFilter({ label, options, selected, onChange }: { label: string; options: string[]; selected: string; onChange: (value: string) => void }) {
+    const { t } = useAppTranslation();
     return (
         <div>
-            <div className="mb-2 text-xs font-medium text-stone-500">{label}</div>
+            <div className="mb-2 text-xs font-medium text-stone-500">{t(label)}</div>
             <div className="flex flex-wrap gap-1.5">
                 {options.map((option) => (
                     <Tag.CheckableTag key={option} checked={selected === option} className={cn("prompt-filter-tag", selected === option && "is-active")} onChange={() => onChange(option)}>
-                        {option}
+                        {t(option)}
                     </Tag.CheckableTag>
                 ))}
             </div>
@@ -564,43 +571,44 @@ function dedupeRegistry(entries: SkillRegistryEntry[]) {
 }
 
 export function PersonalSkillEditorModal({ skill, onClose, onSave }: { skill: InstalledSkill | null; onClose: () => void; onSave: (skill: InstalledSkill) => void }) {
+    const { t } = useAppTranslation();
     const [draft, setDraft] = useState(skill);
     useEffect(() => setDraft(skill), [skill]);
     if (!skill || !draft) return null;
     const patch = (value: Partial<InstalledSkill>) => setDraft((current) => (current ? { ...current, ...value } : current));
     return (
         <Modal
-            title={skill.name === "未命名 Skill" ? "新建 Skill" : "编辑 Skill"}
+            title={t(skill.name === "未命名 Skill" ? "新建 Skill" : "编辑 Skill")}
             open
             onCancel={onClose}
-            okText="保存"
-            cancelText="取消"
+            okText={t("保存")}
+            cancelText={t("取消")}
             width={720}
             onOk={() => onSave({ ...draft, name: draft.name.trim() || "未命名 Skill", source: "personal", updatedAt: new Date().toISOString() })}
         >
             <div className="grid gap-4 pt-2">
                 <label className="grid gap-1.5 text-xs font-medium">
-                    名称
+                    {t("名称")}
                     <Input value={draft.name} onChange={(event) => patch({ name: event.target.value })} />
                 </label>
                 <label className="grid gap-1.5 text-xs font-medium">
-                    简介
+                    {t("简介")}
                     <Input value={draft.description} onChange={(event) => patch({ description: event.target.value })} />
                 </label>
                 <label className="grid gap-1.5 text-xs font-medium">
-                    归属
+                    {t("归属")}
                     <Segmented
                         value={draft.zodiacOnly ? "zodiac" : "terminal"}
                         options={[
-                            { label: "Zodiac 专属", value: "zodiac", title: "只在 Zodiac 对话框里附加使用" },
-                            { label: "终端可用", value: "terminal", title: "可在画布终端节点的设置中启用" },
+                            { label: t("Zodiac 专属"), value: "zodiac", title: t("只在 Zodiac 对话框里附加使用") },
+                            { label: t("终端可用"), value: "terminal", title: t("可在画布终端节点的设置中启用") },
                         ]}
                         onChange={(value) => patch({ zodiacOnly: value === "zodiac" })}
                     />
                 </label>
                 <label className="grid gap-1.5 text-xs font-medium">
-                    使用方式
-                    <Input.TextArea rows={14} value={draft.body} onChange={(event) => patch({ body: event.target.value })} placeholder="写清适用场景、步骤、判断标准与交付要求。" />
+                    {t("使用方式")}
+                    <Input.TextArea rows={14} value={draft.body} onChange={(event) => patch({ body: event.target.value })} placeholder={t("写清适用场景、步骤、判断标准与交付要求。")} />
                 </label>
             </div>
         </Modal>

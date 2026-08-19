@@ -10,9 +10,11 @@ import { requestVideoGeneration, storeGeneratedVideo } from "@/services/api/vide
 import { defaultConfig, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
 import { discardUploadedImage, publishUploadedImage, resolveImageUrl, uploadImage, type UploadedImage } from "@/services/image-storage";
 import { discardUploadedMedia, publishUploadedMedia, uploadMediaFile, type UploadedFile } from "@/services/file-storage";
+import { getAssetFileBlob, publishUploadedAssetFile, uploadAssetFile, type UploadedAssetFile } from "@/services/asset-file-storage";
 import { exportDesktopMedia, isDesktopApp } from "@/services/desktop-storage";
 import { nanoid } from "nanoid";
 import { getDataUrlByteSize, readImageMeta } from "@/lib/image-utils";
+import { assetFileCategory, classifyImportedFile, fileExtension } from "@/lib/asset-file";
 import { canvasThemes, type CanvasBackgroundMode } from "@/lib/canvas-theme";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -104,7 +106,6 @@ import {
     hydrateAssistantImages,
     hydrateCanvasImages,
     imageExtension,
-    isAudioFile,
     isCurrentCanvasImageBatchSettled,
     isGenerationCanceled,
     resetInterruptedGeneration,
@@ -512,6 +513,7 @@ function InfiniteCanvasPage() {
     const pendingProjectSaveRef = useRef<PendingProjectSave | null>(null);
     const pendingUploadedImagesRef = useRef(new Map<string, UploadedImage>());
     const pendingUploadedMediaRef = useRef(new Map<string, UploadedFile>());
+    const pendingUploadedAssetFilesRef = useRef(new Map<string, UploadedAssetFile>());
     const generationImageOwnerRef = useRef(new Map<string, string>());
     const generationMediaOwnerRef = useRef(new Map<string, string>());
     const graphDerivedCacheRef = useRef<GraphDerivedCache | null>(null);
@@ -674,9 +676,14 @@ function InfiniteCanvasPage() {
         if (discarded) pendingUploadedImagesRef.current.delete(image.storageKey);
     }, []);
     const uploadCanvasMedia = useCallback(async (input: string | Blob, prefix: string) => stageUploadedMedia(await uploadMediaFile(input, prefix)), [stageUploadedMedia]);
+    const uploadCanvasAssetFile = useCallback(async (file: File) => {
+        const stored = await uploadAssetFile(file, file.name);
+        pendingUploadedAssetFilesRef.current.set(stored.storageKey, stored);
+        return stored;
+    }, []);
 
     const publishPersistedCanvasUploads = useCallback((snapshot: ProjectStateSnapshot) => {
-        const pendingKeys = new Set([...pendingUploadedImagesRef.current.keys(), ...pendingUploadedMediaRef.current.keys()]);
+        const pendingKeys = new Set([...pendingUploadedImagesRef.current.keys(), ...pendingUploadedMediaRef.current.keys(), ...pendingUploadedAssetFilesRef.current.keys()]);
         const persistedKeys = collectStorageKeys(snapshot, (storageKey) => pendingKeys.has(storageKey));
         pendingUploadedImagesRef.current.forEach((image, storageKey) => {
             if (!persistedKeys.has(storageKey)) return;
@@ -691,6 +698,10 @@ function InfiniteCanvasPage() {
                 pendingUploadedMediaRef.current.delete(storageKey);
                 generationMediaOwnerRef.current.delete(storageKey);
             }
+        });
+        pendingUploadedAssetFilesRef.current.forEach((file, storageKey) => {
+            if (!persistedKeys.has(storageKey)) return;
+            if (publishUploadedAssetFile(file)) pendingUploadedAssetFilesRef.current.delete(storageKey);
         });
     }, []);
 
@@ -2075,6 +2086,42 @@ function InfiniteCanvasPage() {
         setSelectedConnectionId(null);
     }, [uploadCanvasMedia]);
 
+    const createGenericFileNode = useCallback(async (file: File, position: Position) => {
+        const stored = await uploadCanvasAssetFile(file);
+        const spec = NODE_DEFAULT_SIZE[CanvasNodeType.File];
+        const id = `file-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+        setNodes((prev) => [
+            ...prev,
+            {
+                id,
+                type: CanvasNodeType.File,
+                title: stored.fileName,
+                position: { x: position.x - spec.width / 2, y: position.y - spec.height / 2 },
+                width: spec.width,
+                height: spec.height,
+                metadata: {
+                    storageKey: stored.storageKey,
+                    fileName: stored.fileName,
+                    fileExtension: fileExtension(stored.fileName),
+                    fileCategory: assetFileCategory(stored.fileName, stored.mimeType),
+                    bytes: stored.bytes,
+                    mimeType: stored.mimeType,
+                    status: NODE_STATUS_SUCCESS,
+                },
+            },
+        ]);
+        setSelectedNodeIds(new Set([id]));
+        setSelectedConnectionId(null);
+    }, [uploadCanvasAssetFile]);
+
+    const createImportedFileNode = useCallback(async (file: File, position: Position) => {
+        const kind = classifyImportedFile(file);
+        if (kind === "image") return createImageFileNode(file, position);
+        if (kind === "video") return createVideoFileNode(file, position);
+        if (kind === "audio") return createAudioFileNode(file, position);
+        return createGenericFileNode(file, position);
+    }, [createAudioFileNode, createGenericFileNode, createImageFileNode, createVideoFileNode]);
+
     const createTextNodeFromClipboard = useCallback(
         (text: string) => {
             const trimmed = text.trim();
@@ -2427,6 +2474,23 @@ function InfiniteCanvasPage() {
     const handleTerminalArtifact = useCallback((sourceNodeId: string, artifact: CanvasTerminalArtifact) => {
         const source = nodesRef.current.find((node) => node.id === sourceNodeId);
         if (!source) return;
+        if (artifact.kind === "file") {
+            const spec = NODE_DEFAULT_SIZE[CanvasNodeType.File];
+            const node: CanvasNodeData = {
+                id: nanoid(),
+                type: CanvasNodeType.File,
+                title: artifact.title,
+                position: { x: source.position.x + source.width + 96, y: source.position.y + source.height / 2 - spec.height / 2 },
+                width: spec.width,
+                height: spec.height,
+                metadata: { storageKey: artifact.storageKey, mimeType: artifact.mimeType, bytes: artifact.bytes, fileName: artifact.fileName, fileExtension: artifact.extension, fileCategory: artifact.category, status: NODE_STATUS_SUCCESS },
+            };
+            setNodes((prev) => [...prev, node]);
+            setConnections((prev) => [...prev, { id: nanoid(), fromNodeId: sourceNodeId, toNodeId: node.id }]);
+            setSelectedNodeIds(new Set([node.id]));
+            setSelectedConnectionId(null);
+            return;
+        }
         const spec = NODE_DEFAULT_SIZE[artifact.kind];
         const size = artifact.kind === CanvasNodeType.Audio ? { width: spec.width, height: spec.height } : fitNodeSize(artifact.width || spec.width, artifact.height || spec.height, spec.width, spec.height);
         const node: CanvasNodeData = {
@@ -2454,6 +2518,23 @@ function InfiniteCanvasPage() {
     }, []);
 
     const downloadNodeImage = useCallback(async (node: CanvasNodeData) => {
+        if (node.type === CanvasNodeType.File) {
+            if (!node.metadata?.storageKey) return;
+            const filename = node.metadata.fileName || node.title || "文件";
+            try {
+                if (isDesktopApp()) {
+                    const exportedName = await exportDesktopMedia("files", node.metadata.storageKey, filename);
+                    message.success(`已下载：${exportedName || filename}`);
+                } else {
+                    const blob = await getAssetFileBlob(node.metadata.storageKey);
+                    if (!blob) throw new Error("本地文件不存在");
+                    saveAs(blob, filename);
+                }
+            } catch (error) {
+                message.error(error instanceof Error ? `下载失败：${error.message}` : "下载失败，请重试");
+            }
+            return;
+        }
         if (!node.metadata?.content) return;
         if (node.type === CanvasNodeType.Text) {
             saveAs(new Blob([node.metadata.content], { type: "text/plain;charset=utf-8" }), `canvas-text-${node.id}.txt`);
@@ -2482,6 +2563,27 @@ function InfiniteCanvasPage() {
                     const content = node.metadata?.content?.trim();
                     if (!content) return message.error("没有可保存的文本");
                     await addAssetPersisted({ kind: "text", title: node.metadata?.prompt?.slice(0, 24) || "画布文本", coverUrl: "", tags: [], source: "Canvas", data: { content }, metadata: { source: "canvas", nodeId: node.id } });
+                    message.success("已加入我的资产");
+                    return;
+                }
+                if (node.type === CanvasNodeType.File) {
+                    if (!node.metadata?.storageKey) return message.error("没有可保存的文件");
+                    await addAssetPersisted({
+                        kind: "file",
+                        title: node.title || node.metadata.fileName || "画布文件",
+                        coverUrl: "",
+                        tags: [],
+                        source: "Canvas",
+                        data: {
+                            storageKey: node.metadata.storageKey,
+                            fileName: node.metadata.fileName || node.title || "文件",
+                            bytes: node.metadata.bytes || 0,
+                            mimeType: node.metadata.mimeType || "application/octet-stream",
+                            extension: node.metadata.fileExtension || fileExtension(node.metadata.fileName || node.title || ""),
+                            category: node.metadata.fileCategory || assetFileCategory(node.metadata.fileName || node.title || "", node.metadata.mimeType),
+                        },
+                        metadata: { source: "canvas", nodeId: node.id },
+                    });
                     message.success("已加入我的资产");
                     return;
                 }
@@ -2805,7 +2907,7 @@ function InfiniteCanvasPage() {
     const handleImageInputChange = useCallback(
         async (event: ReactChangeEvent<HTMLInputElement>) => {
             const input = event.currentTarget;
-            const files = Array.from(event.target.files || []).filter((f) => f.type.startsWith("image/") || f.type.startsWith("video/") || isAudioFile(f));
+            const files = Array.from(event.target.files || []);
             if (!files.length) {
                 uploadTargetRef.current = null;
                 input.value = "";
@@ -2820,9 +2922,10 @@ function InfiniteCanvasPage() {
                 // 如果有替换目标节点，第一个文件替换它，其余在附近新建
                 if (target?.nodeId) {
                     const [first, ...rest] = files;
+                    const firstKind = classifyImportedFile(first);
 
                     // 第一个文件：替换目标节点
-                    if (isAudioFile(first)) {
+                    if (firstKind === "audio") {
                         const audio = await uploadCanvasMedia(first, "audio");
                         const spec = NODE_DEFAULT_SIZE[CanvasNodeType.Audio];
                         setNodes((prev) =>
@@ -2835,14 +2938,14 @@ function InfiniteCanvasPage() {
                                           position: { x: node.position.x + node.width / 2 - spec.width / 2, y: node.position.y + node.height / 2 - spec.height / 2 },
                                           width: spec.width,
                                           height: spec.height,
-                                          metadata: { ...node.metadata, ...audioMetadata(audio), errorDetails: undefined },
+                                          metadata: { ...node.metadata, ...audioMetadata(audio), fileName: undefined, fileExtension: undefined, fileCategory: undefined, errorDetails: undefined },
                                       }
                                     : node,
                             ),
                         );
                         setSelectedNodeIds(new Set([target.nodeId]));
                         setSelectedConnectionId(null);
-                    } else if (first.type.startsWith("video/")) {
+                    } else if (firstKind === "video") {
                         const video = await uploadCanvasMedia(first, "video");
                         const nextSize = fitNodeSize(video.width || 1280, video.height || 720, VIDEO_NODE_MAX_WIDTH, VIDEO_NODE_MAX_HEIGHT);
                         setNodes((prev) =>
@@ -2855,14 +2958,14 @@ function InfiniteCanvasPage() {
                                           position: { x: node.position.x + node.width / 2 - nextSize.width / 2, y: node.position.y + node.height / 2 - nextSize.height / 2 },
                                           width: nextSize.width,
                                           height: nextSize.height,
-                                          metadata: { ...node.metadata, ...videoMetadata(video), errorDetails: undefined },
+                                          metadata: { ...node.metadata, ...videoMetadata(video), fileName: undefined, fileExtension: undefined, fileCategory: undefined, errorDetails: undefined },
                                       }
                                     : node,
                             ),
                         );
                         setSelectedNodeIds(new Set([target.nodeId]));
                         setSelectedConnectionId(null);
-                    } else {
+                    } else if (firstKind === "image") {
                         const image = await uploadCanvasImage(first);
                         const s = fitNodeSize(image.width, image.height);
                         setNodes((prev) =>
@@ -2877,6 +2980,9 @@ function InfiniteCanvasPage() {
                                           metadata: {
                                               ...node.metadata,
                                               ...imageMetadata(image),
+                                              fileName: undefined,
+                                              fileExtension: undefined,
+                                              fileCategory: undefined,
                                               errorDetails: undefined,
                                               freeResize: false,
                                               isBatchRoot: undefined,
@@ -2898,32 +3004,48 @@ function InfiniteCanvasPage() {
                         );
                         setSelectedNodeIds(new Set([target.nodeId]));
                         setSelectedConnectionId(null);
+                    } else {
+                        const stored = await uploadCanvasAssetFile(first);
+                        const spec = NODE_DEFAULT_SIZE[CanvasNodeType.File];
+                        setNodes((prev) =>
+                            prev.map((node) =>
+                                node.id === target.nodeId
+                                    ? {
+                                          ...node,
+                                          type: CanvasNodeType.File,
+                                          title: stored.fileName,
+                                          position: { x: node.position.x + node.width / 2 - spec.width / 2, y: node.position.y + node.height / 2 - spec.height / 2 },
+                                          width: spec.width,
+                                          height: spec.height,
+                                          metadata: {
+                                              storageKey: stored.storageKey,
+                                              fileName: stored.fileName,
+                                              fileExtension: fileExtension(stored.fileName),
+                                              fileCategory: assetFileCategory(stored.fileName, stored.mimeType),
+                                              bytes: stored.bytes,
+                                              mimeType: stored.mimeType,
+                                              status: NODE_STATUS_SUCCESS,
+                                          },
+                                      }
+                                    : node,
+                            ),
+                        );
+                        setSelectedNodeIds(new Set([target.nodeId]));
+                        setSelectedConnectionId(null);
                     }
 
                     // 剩余文件：在目标节点附近新建
                     for (let i = 0; i < rest.length; i++) {
                         const offsetPos = { x: basePosition.x + (i + 1) * STAGGER, y: basePosition.y + (i + 1) * STAGGER };
                         const f = rest[i];
-                        if (isAudioFile(f)) {
-                            await createAudioFileNode(f, offsetPos);
-                        } else if (f.type.startsWith("video/")) {
-                            await createVideoFileNode(f, offsetPos);
-                        } else {
-                            await createImageFileNode(f, offsetPos);
-                        }
+                        await createImportedFileNode(f, offsetPos);
                     }
                 } else {
                     // 无替换目标：所有文件在画布中心附近新建
                     for (let i = 0; i < files.length; i++) {
                         const offsetPos = { x: basePosition.x + i * STAGGER, y: basePosition.y + i * STAGGER };
                         const f = files[i];
-                        if (isAudioFile(f)) {
-                            await createAudioFileNode(f, offsetPos);
-                        } else if (f.type.startsWith("video/")) {
-                            await createVideoFileNode(f, offsetPos);
-                        } else {
-                            await createImageFileNode(f, offsetPos);
-                        }
+                        await createImportedFileNode(f, offsetPos);
                     }
                 }
                 message.success(target?.nodeId ? (files.length > 1 ? `已替换并导入 ${files.length} 个资产` : "已替换资产") : `已导入 ${files.length} 个资产`);
@@ -2936,13 +3058,13 @@ function InfiniteCanvasPage() {
                 input.value = "";
             }
         },
-        [createAudioFileNode, createImageFileNode, createVideoFileNode, message, screenToCanvas, size.height, size.width, uploadCanvasImage, uploadCanvasMedia],
+        [createImportedFileNode, message, screenToCanvas, size.height, size.width, uploadCanvasAssetFile, uploadCanvasImage, uploadCanvasMedia],
     );
 
     const handleDrop = useCallback(
         async (event: ReactDragEvent<HTMLDivElement>) => {
             event.preventDefault();
-            const files = Array.from(event.dataTransfer.files).filter((item) => item.type.startsWith("image/") || item.type.startsWith("video/") || isAudioFile(item));
+            const files = Array.from(event.dataTransfer.files);
             if (!files.length) return;
 
             const basePos = screenToCanvas(event.clientX, event.clientY);
@@ -2951,13 +3073,7 @@ function InfiniteCanvasPage() {
                 for (let i = 0; i < files.length; i++) {
                     const pos = { x: basePos.x + i * STAGGER, y: basePos.y + i * STAGGER };
                     const f = files[i];
-                    if (isAudioFile(f)) {
-                        await createAudioFileNode(f, pos);
-                    } else if (f.type.startsWith("video/")) {
-                        await createVideoFileNode(f, pos);
-                    } else {
-                        await createImageFileNode(f, pos);
-                    }
+                    await createImportedFileNode(f, pos);
                 }
                 message.success(`已导入 ${files.length} 个资产`);
             } catch (error) {
@@ -2966,7 +3082,7 @@ function InfiniteCanvasPage() {
                 message.error(detail ? `资产导入失败：${detail}` : "资产导入失败，请重试");
             }
         },
-        [createAudioFileNode, createImageFileNode, createVideoFileNode, message, screenToCanvas],
+        [createImportedFileNode, message, screenToCanvas],
     );
 
     const startTitleEditing = useCallback(() => {
@@ -4020,6 +4136,23 @@ function InfiniteCanvasPage() {
                     },
                 ]);
                 setSelectedNodeIds(new Set([id]));
+            } else if (payload.kind === "file") {
+                const spec = NODE_DEFAULT_SIZE[CanvasNodeType.File];
+                const center = screenToCanvas((containerRef.current?.getBoundingClientRect().left || 0) + size.width / 2, (containerRef.current?.getBoundingClientRect().top || 0) + size.height / 2);
+                const id = `file-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+                setNodes((prev) => [
+                    ...prev,
+                    {
+                        id,
+                        type: CanvasNodeType.File,
+                        title: payload.title,
+                        position: { x: center.x - spec.width / 2, y: center.y - spec.height / 2 },
+                        width: spec.width,
+                        height: spec.height,
+                        metadata: { storageKey: payload.storageKey, fileName: payload.fileName, bytes: payload.bytes, mimeType: payload.mimeType, fileExtension: payload.extension, fileCategory: payload.category, status: NODE_STATUS_SUCCESS },
+                    },
+                ]);
+                setSelectedNodeIds(new Set([id]));
             } else {
                 insertAssistantImage({ id: `asset-${Date.now()}`, prompt: payload.title, dataUrl: payload.dataUrl, storageKey: payload.storageKey });
             }
@@ -4481,7 +4614,7 @@ function InfiniteCanvasPage() {
                     />
                 ) : null}
 
-                <input ref={imageInputRef} type="file" multiple accept="image/*,video/*,audio/mpeg,audio/wav,audio/x-wav,.mp3,.wav" className="hidden" onChange={handleImageInputChange} />
+                <input ref={imageInputRef} type="file" multiple className="hidden" onChange={handleImageInputChange} />
 
                 <CanvasNodeInfoModal node={infoNode} open={Boolean(infoNode)} onClose={() => setInfoNodeId(null)} />
                 <CanvasPluginManagerModal open={pluginManagerOpen} onClose={() => setPluginManagerOpen(false)} />

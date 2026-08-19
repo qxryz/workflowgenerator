@@ -56,7 +56,7 @@ test("desktop updater checks this repository and saves state before installation
     assert.match(settings, /更新包/u);
     assert.match(hook, /fetchReleaseDownloadStats/u);
     assert.match(hook, /staleTime: 30 \* 60 \* 1000/u);
-    assert.match(configPanel, /label: "软件更新"/u);
+    assert.match(configPanel, /label: t\("软件更新"\)/u);
     assert.match(configPanel, /<AppUpdateSettings/u);
     assert.doesNotMatch(navigation, /VersionRelease|APP_VERSION/u);
     assert.match(cargo, /tauri-plugin-updater = "2"/u);

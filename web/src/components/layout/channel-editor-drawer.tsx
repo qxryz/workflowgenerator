@@ -2,6 +2,7 @@ import { Button, Drawer, Input, Segmented, Select, Space } from "antd";
 import { Check, ChevronDown, ChevronUp, ListPlus, Trash2 } from "lucide-react";
 import { lazy, Suspense, useEffect, useState } from "react";
 
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { createModelChannel, guessCapability, normalizeChannelModels, type ApiCallFormat, type ChannelModel, type ModelCapability, type ModelChannel } from "@/stores/use-config-store";
 import { adapterCapabilitySupport, adapterForLegacyProtocol, capabilitySupportLabel, getModelAdapter, legacyApiFormatForAdapter, modelAdapters, type AdapterId } from "@/lib/model-adapters";
 import { defaultAdapterForVendor, legacyApiFormatForVendor, legacyVendorForApiFormat, modelCatalog, modelVendors, recommendedCatalogModelsForVendor, resolveAdapterForModel, type VendorId } from "@/lib/model-catalog";
@@ -24,6 +25,7 @@ const capabilityOrder: ModelCapability[] = ["text", "image", "video", "audio"];
 
 type ScriptTarget = { name: string; capability: ModelCapability; value: string };
 export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: boolean; channel: ModelChannel | null; onSave: (channel: ModelChannel) => void; onClose: () => void }) {
+    const { t } = useAppTranslation();
     const [draft, setDraft] = useState<ModelChannel | null>(channel);
     const [selectOpen, setSelectOpen] = useState(false);
     const [scriptTarget, setScriptTarget] = useState<ScriptTarget | null>(null);
@@ -118,38 +120,38 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
         <Drawer
             open={open}
             size={640}
-            title="编辑渠道"
+            title={t("编辑渠道")}
             onClose={onClose}
             styles={{ body: { paddingTop: 16 } }}
             extra={
                 <Space>
-                    <Button onClick={onClose}>取消</Button>
+                    <Button onClick={onClose}>{t("取消")}</Button>
                     <Button type="primary" disabled={Boolean(minimaxCredentialError)} onClick={save}>
-                        保存
+                        {t("保存")}
                     </Button>
                 </Space>
             }
         >
             <div className="grid gap-4 md:grid-cols-2">
                 <label className="block">
-                    <span className="mb-1 block text-sm font-medium">渠道名称</span>
+                    <span className="mb-1 block text-sm font-medium">{t("渠道名称")}</span>
                     <Input value={draft.name} disabled={Boolean(draft.preset)} onChange={(event) => patch({ name: event.target.value })} />
-                    {draft.preset ? <span className="mt-1 block text-xs text-stone-500">预设渠道名称保持固定，连接信息和模型仍可调整。</span> : null}
+                    {draft.preset ? <span className="mt-1 block text-xs text-stone-500">{t("预设渠道名称保持固定，连接信息和模型仍可调整。")}</span> : null}
                 </label>
                 <label className="block">
-                    <span className="mb-1 block text-sm font-medium">厂商</span>
+                    <span className="mb-1 block text-sm font-medium">{t("厂商")}</span>
                     <Select className="w-full" value={currentVendor} options={vendorOptions} onChange={(value) => changeVendor(value as VendorId)} />
                     <span className="mt-1 block text-xs text-stone-500">{modelVendors.find((vendor) => vendor.id === currentVendor)?.description}</span>
                 </label>
                 {!isMiniMaxVendor ? (
                     <label className="block md:col-span-2">
-                        <span className="mb-1 block text-sm font-medium">接入方式（适配器）</span>
+                        <span className="mb-1 block text-sm font-medium">{t("接入方式（适配器）")}</span>
                         <Select className="w-full" value={adapter.id} options={adapterOptions} onChange={(value) => changeAdapter(value as AdapterId)} />
                         <span className="mt-1 block text-xs text-stone-500">{adapter.description}</span>
                     </label>
                 ) : null}
                 <label className="block md:col-span-2">
-                    <span className="mb-1 block text-sm font-medium">能力开关</span>
+                    <span className="mb-1 block text-sm font-medium">{t("能力开关")}</span>
                     <div className="rounded-lg border border-stone-200 px-3 py-2 dark:border-stone-800">
                         <div className="mt-2 flex flex-wrap gap-1.5">
                             {capabilityOrder.map((capability) => {
@@ -170,20 +172,20 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                                         }}
                                     >
                                         {enabled ? <Check className="size-3" /> : null}
-                                        {capability === "text" ? "文本" : capability === "image" ? "图片" : capability === "video" ? "视频" : "音频"} · {capabilitySupportLabel(support)}
+                                        {t(capability === "text" ? "文本" : capability === "image" ? "图片" : capability === "video" ? "视频" : "音频")} · {t(capabilitySupportLabel(support))}
                                     </button>
                                 );
                             })}
                         </div>
                         <span className="mt-1.5 block text-[11px] text-stone-500">
-                            关闭的能力不会出现在推荐模型里；原生或脚本支持的能力可自由开关。
+                            {t("关闭的能力不会出现在推荐模型里；原生或脚本支持的能力可自由开关。")}
                         </span>
                     </div>
                 </label>
                 <label className="block md:col-span-2">
-                    <span className="mb-1 block text-sm font-medium">接口地址</span>
+                    <span className="mb-1 block text-sm font-medium">{t("接口地址")}</span>
                     <Input value={draft.baseUrl} onChange={(event) => patch({ baseUrl: event.target.value })} placeholder="https://api.example.com" />
-                    {currentVendor === "qwen" ? <span className="mt-1 block text-xs text-stone-500">默认区域：华北 2（北京）</span> : null}
+                    {currentVendor === "qwen" ? <span className="mt-1 block text-xs text-stone-500">{t("默认区域：华北 2（北京）")}</span> : null}
                 </label>
                 <label className="block md:col-span-2">
                     <span className="mb-1 block text-sm font-medium">{currentVendor === "minimax-token-plan" ? "Token Plan Key" : "API Key"}</span>
@@ -195,7 +197,7 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                     />
                     {miniMaxCredentialMode ? (
                         <span className={`mt-1 block text-xs ${minimaxCredentialError ? "text-red-500" : "text-stone-500"}`}>
-                            {minimaxCredentialError || (miniMaxCredentialMode === "token-plan" ? "Token Plan Key 应以 sk-cp 开头" : "按量计费 API Key 应以 sk-api 开头")}
+                            {minimaxCredentialError || t(miniMaxCredentialMode === "token-plan" ? "Token Plan Key 应以 sk-cp 开头" : "按量计费 API Key 应以 sk-api 开头")}
                         </span>
                     ) : null}
                 </label>
@@ -204,15 +206,15 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
             <div className="mt-6">
                 <div className="mb-3 flex items-end justify-between gap-3">
                     <div>
-                        <div className="text-sm font-semibold">推荐模型</div>
-                        <div className="mt-0.5 text-xs text-stone-500">精选已适配模型，添加后即可在对应工作台和画布节点中使用。</div>
+                        <div className="text-sm font-semibold">{t("推荐模型")}</div>
+                        <div className="mt-0.5 text-xs text-stone-500">{t("精选已适配模型，添加后即可在对应工作台和画布节点中使用。")}</div>
                     </div>
-                    <span className="text-xs text-stone-400">{modelVendors.find((vendor) => vendor.id === currentVendor)?.label || "自定义"}</span>
+                    <span className="text-xs text-stone-400">{modelVendors.find((vendor) => vendor.id === currentVendor)?.label || t("自定义")}</span>
                 </div>
                 <div className="grid gap-2 sm:grid-cols-2">
                     {visibleRecommendedList.map((entry) => {
                         const added = draft.models.some((model) => model.name === entry.name);
-                        const adapterLabel = getModelAdapter(entry.adapter || resolveAdapterForModel(entry.name, entry.capability))?.label || "自定义";
+                        const adapterLabel = getModelAdapter(entry.adapter || resolveAdapterForModel(entry.name, entry.capability))?.label || t("自定义");
                         return (
                             <button
                                 key={entry.name}
@@ -222,14 +224,14 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                                 onClick={() => addPreset(entry)}
                             >
                                 <span className="grid size-9 shrink-0 place-items-center rounded-lg text-xs font-semibold text-white" style={{ background: modelVendors.find((vendor) => vendor.id === entry.vendor)?.accent || "#64748b" }}>
-                                    {entry.capability === "image" ? "图" : entry.capability === "video" ? "影" : entry.capability === "audio" ? "声" : "文"}
+                                    {t(entry.capability === "image" ? "图" : entry.capability === "video" ? "影" : entry.capability === "audio" ? "声" : "文")}
                                 </span>
                                 <span className="min-w-0 flex-1">
                                     <span className="block truncate text-sm font-medium">{entry.label}</span>
                                     <span className="mt-0.5 block truncate text-xs text-stone-500">{entry.description} · {adapterLabel}</span>
                                 </span>
                                 <span className="shrink-0 text-xs font-medium" style={{ color: added ? undefined : modelVendors.find((vendor) => vendor.id === entry.vendor)?.accent || "#64748b" }}>
-                                    {added ? "已添加" : "+ 添加"}
+                                    {t(added ? "已添加" : "+ 添加")}
                                 </span>
                             </button>
                         );
@@ -244,12 +246,12 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                         {recommendedExpanded ? (
                             <>
                                 <ChevronUp className="size-3.5" />
-                                收起
+                                {t("收起")}
                             </>
                         ) : (
                             <>
                                 <ChevronDown className="size-3.5" />
-                                展开全部（{visibleRecommended.length} 个）
+                                {t("展开全部（{count} 个）", { count: visibleRecommended.length })}
                             </>
                         )}
                     </button>
@@ -258,11 +260,11 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
 
             <div className="mt-6 mb-3 flex flex-wrap items-center justify-between gap-2">
                 <div>
-                    <div className="text-sm font-semibold">渠道模型</div>
-                    <div className="mt-0.5 text-xs text-stone-500">已选 {draft.models.length} 个；模型会自动使用对应的创作参数面板。</div>
+                    <div className="text-sm font-semibold">{t("渠道模型")}</div>
+                    <div className="mt-0.5 text-xs text-stone-500">{t("已选 {count} 个；模型会自动使用对应的创作参数面板。", { count: draft.models.length })}</div>
                 </div>
                 <Button type="primary" disabled={Boolean(minimaxCredentialError)} icon={<ListPlus className="size-4" />} onClick={() => setSelectOpen(true)}>
-                    选择模型
+                    {t("选择模型")}
                 </Button>
             </div>
 
@@ -275,10 +277,10 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                                     {model.name}
                                 </span>
                                 <span className="shrink-0 rounded-md bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-600 dark:bg-stone-800 dark:text-stone-300">
-                                    {getModelAdapter(model.adapter || resolveAdapterForModel(model.name, model.capability))?.label || "自定义"}
+                                    {getModelAdapter(model.adapter || resolveAdapterForModel(model.name, model.capability))?.label || t("自定义")}
                                 </span>
                                 <div className="flex shrink-0 items-center gap-2">
-                                    <Segmented size="small" value={model.capability} options={capabilityOptions} onChange={(value) => setCapability(model.name, value as ModelCapability)} />
+                                    <Segmented size="small" value={model.capability} options={capabilityOptions.map((option) => ({ ...option, label: t(option.label) }))} onChange={(value) => setCapability(model.name, value as ModelCapability)} />
                                     <Button
                                         size="small"
                                         type={model.script ? "primary" : "default"}
@@ -291,7 +293,7 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                                         }}
                                         onClick={() => setScriptTarget({ name: model.name, capability: model.capability, value: model.script || "" })}
                                     >
-                                        {model.script ? "脚本已设" : "高级脚本"}
+                                        {t(model.script ? "脚本已设" : "高级脚本")}
                                     </Button>
                                     <Button size="small" danger type="text" icon={<Trash2 className="size-3.5" />} onClick={() => removeModel(model.name)} />
                                 </div>
@@ -299,7 +301,7 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                         );
                     })
                 ) : (
-                    <div className="px-2 py-8 text-center text-sm text-stone-500">点击「选择模型」拉取或手动增加模型。</div>
+                    <div className="px-2 py-8 text-center text-sm text-stone-500">{t("点击「选择模型」拉取或手动增加模型。")}</div>
                 )}
             </div>
 

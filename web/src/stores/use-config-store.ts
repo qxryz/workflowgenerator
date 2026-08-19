@@ -4,6 +4,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { nanoid } from "nanoid";
 import { localForageStorage } from "@/lib/localforage-storage";
 import { normalizeAudioDefaultsForModel } from "@/lib/audio-defaults";
+import { normalizeAppLanguage, type AppLanguage } from "@/lib/i18n";
 import { defaultAdapterForVendor, legacyVendorForApiFormat, resolveAdapterForModel, type VendorId } from "@/lib/model-catalog";
 import { miniMaxBillingModeForAdapter } from "@/lib/model-adapters";
 import { getProviderDefinition, modelBelongsToProvider, type ProviderProtocol } from "@/lib/model-providers";
@@ -56,6 +57,7 @@ export type ModelChannel = {
 };
 
 export type AiConfig = {
+    language: AppLanguage;
     channelMode: "remote" | "local";
     baseUrl: string;
     apiKey: string;
@@ -136,6 +138,7 @@ export function resetPresetChannel(channel: ModelChannel) {
 }
 
 export const defaultConfig: AiConfig = {
+    language: "zh-CN",
     channelMode: "local",
     baseUrl: OPENAI_BASE_URL,
     apiKey: "",
@@ -520,6 +523,7 @@ export function normalizeAiConfig(persistedConfig: Partial<AiConfig>): AiConfig 
     const firstChannel = channels[0];
     return {
         ...config,
+        language: normalizeAppLanguage(config.language),
         channelMode: "local",
         baseUrl: firstChannel?.baseUrl || config.baseUrl,
         apiKey: firstChannel?.apiKey || config.apiKey,

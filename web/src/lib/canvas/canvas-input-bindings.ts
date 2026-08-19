@@ -8,7 +8,7 @@ export type CanvasBoundInput = {
     ready: boolean;
 };
 
-export type CanvasInputResourceKind = "image" | "video" | "audio" | "text";
+export type CanvasInputResourceKind = "image" | "video" | "audio" | "text" | "file";
 
 export type ResolvedCanvasInputToken<T extends CanvasBoundInput> = {
     start: number;
@@ -30,7 +30,7 @@ export function directUpstreamNodeIds(nodeId: string, connections: CanvasInputBi
 }
 
 export function builtinCanvasResourceKind(type: string, terminalOutputMode?: CanvasInputResourceKind): CanvasInputResourceKind | null {
-    if (type === "image" || type === "video" || type === "audio" || type === "text") return type;
+    if (type === "image" || type === "video" || type === "audio" || type === "text" || type === "file") return type;
     if (type === "terminal") return terminalOutputMode || "text";
     return null;
 }

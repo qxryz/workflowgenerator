@@ -1,6 +1,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { listen, type UnlistenFn } from "@tauri-apps/api/event";
 import type { CanvasResourceReference } from "@/lib/canvas/canvas-resource-references";
+import type { CanvasTerminalInputMode } from "@/types/canvas";
 import { reserveStorageKey, withMediaStorageFence } from "@/services/media-retention-policy";
 
 export type LocalAgentInstallation = {
@@ -28,10 +29,12 @@ export type TerminalArtifactEvent = {
 
 export type TerminalSessionInput = {
     name: string;
-    kind: "text" | "image" | "video" | "audio";
+    kind: "text" | "image" | "video" | "audio" | "file";
     text?: string;
     dataUrl?: string;
     storageKey?: string;
+    fileName?: string;
+    mimeType?: string;
 };
 
 export type TerminalSkillInput = {
@@ -85,7 +88,7 @@ export async function readTerminalOutputFile(sessionId: string, path: string) {
     return invoke<TerminalOutputFile>("read_terminal_output_file", { sessionId, path });
 }
 
-export async function importTerminalOutputFile(sessionId: string, path: string, outputMode: "image" | "video" | "audio", storageKey: string, previousSignature?: string) {
+export async function importTerminalOutputFile(sessionId: string, path: string, outputMode: "image" | "video" | "audio" | "file", storageKey: string, previousSignature?: string) {
     const releaseReservation = reserveStorageKey(storageKey);
     try {
         const imported = await withMediaStorageFence(() =>
@@ -143,12 +146,13 @@ export async function listenToTerminalArtifact(sessionId: string, handler: Termi
     return () => removeTerminalHandler(artifactHandlers, sessionId, handler);
 }
 
-export async function prepareTerminalInputs(references: CanvasResourceReference[], inputMode: "auto" | "text" | "image" | "video" | "audio") {
+export async function prepareTerminalInputs(references: CanvasResourceReference[], inputMode: CanvasTerminalInputMode) {
     const accepted = references.filter((reference) => inputMode === "auto" || reference.kind === inputMode);
     return Promise.all(
         accepted.map(async (reference): Promise<TerminalSessionInput> => {
             if (reference.kind === "text") return { name: reference.title, kind: "text", text: reference.text ?? "" };
-            if (reference.storageKey) return { name: reference.title, kind: reference.kind, storageKey: reference.storageKey };
+            if (reference.storageKey) return { name: reference.title, kind: reference.kind, storageKey: reference.storageKey, fileName: reference.fileName, mimeType: reference.mimeType };
+            if (reference.kind === "file") throw new Error(`“${reference.title}”没有可用的本地文件`);
             return { name: reference.title, kind: reference.kind, dataUrl: await referenceToDataUrl(reference) };
         }),
     );

@@ -113,7 +113,7 @@ export function CanvasTerminalSettingsPanel({ node, references, onChange, onClos
                     )}
                 </div>
                 {zodiacOnlyEnabledCount ? <div><span className="mr-2 opacity-50">Zodiac</span>{zodiacOnlyEnabledCount} 个专属技能仅用于 Zodiac 编排，不进入终端环境。</div> : null}
-                {outputMode === "text" ? <div><span className="mr-2 font-semibold opacity-80">输出</span>确认结果后点击“发布输出”，一次传给下游节点。</div> : <div><span className="mr-2 font-semibold opacity-80">输出</span>保存到 <code className="font-mono">WG_OUTPUT_DIR</code> 会自动进入画布；保存在工作目录时可执行 <code className="font-mono">wg-output "./文件名"</code>。</div>}
+                {outputMode === "text" ? <div><span className="mr-2 font-semibold opacity-80">输出</span>确认结果后点击“发布输出”，一次传给下游节点；文档、数据等文件放入 <code className="font-mono">WG_OUTPUT_DIR</code> 也会作为文件节点返回。</div> : <div><span className="mr-2 font-semibold opacity-80">输出</span>保存到 <code className="font-mono">WG_OUTPUT_DIR</code> 会自动进入画布；保存在工作目录时可执行 <code className="font-mono">wg-output "./文件名"</code>。</div>}
             </div>
             {needsSetup ? (
                 <div className="mt-4 flex items-center justify-between gap-3 rounded-xl border border-blue-500/25 bg-blue-500/[.06] px-3 py-2.5">
@@ -126,16 +126,17 @@ export function CanvasTerminalSettingsPanel({ node, references, onChange, onClos
 }
 
 function buildTerminalContextPrompt(references: CanvasResourceReference[], outputMode: CanvasGenerationMode, skillNames: string[]) {
-    const lines = ["请使用与本终端直接相连的上游节点输出完成任务。", "文本内容位于：$WG_INPUT_DIR/input.txt，也可从 $WG_INPUT_TEXT 读取。", "图片、视频和音频素材位于：$WG_INPUT_DIR"];
+    const lines = ["请使用与本终端直接相连的上游节点输出完成任务。", "文本内容位于：$WG_INPUT_DIR/input.txt，也可从 $WG_INPUT_TEXT 读取。", "图片、视频、音频和文件素材位于：$WG_INPUT_DIR"];
     if (references.length) {
         const counts = references.reduce<Record<string, number>>((result, reference) => ({ ...result, [reference.kind]: (result[reference.kind] || 0) + 1 }), {});
-        const labels: Record<string, string> = { text: "文本", image: "图片", video: "视频", audio: "音频" };
+        const labels: Record<string, string> = { text: "文本", image: "图片", video: "视频", audio: "音频", file: "文件" };
         lines.push(`本次已注入：${Object.entries(counts).map(([kind, count]) => `${labels[kind] || kind} ${count} 项`).join("、")}。`);
     }
     lines.push("请先读取实际内容，不要把节点名称当作输入正文。");
     if (skillNames.length) lines.push(`本轮可用 Skills：${skillNames.join("、")}。索引位于 $WG_SKILLS_INDEX，请按需读取对应 SKILL.md。`);
     if (outputMode === "text") {
         lines.push("本节点输出为文本，请在终端中给出最终文本结果。");
+        lines.push("如需同时交付文档、数据或其他普通文件，请将文件写入 $WG_OUTPUT_DIR；写入完成后会作为文件节点进入画布。");
     } else {
         const labels: Record<CanvasGenerationMode, string> = { text: "文本", image: "图片", video: "视频", audio: "音频" };
         lines.push(`本节点输出为${labels[outputMode]}。请将最终文件写入 $WG_OUTPUT_DIR，文件写入完成后会自动进入画布。`);
@@ -145,12 +146,13 @@ function buildTerminalContextPrompt(references: CanvasResourceReference[], outpu
 }
 
 function ModePicker({ label, value, onChange, allowAuto = false }: { label: string; value: CanvasTerminalInputMode | CanvasGenerationMode; onChange: (value: CanvasTerminalInputMode | CanvasGenerationMode) => void; allowAuto?: boolean }) {
+    const availableModes = allowAuto ? [...modes, { value: "file" as const, label: "文件" }] : modes;
     return (
         <div>
             <div className="mb-1.5 text-xs font-medium opacity-70">{label}</div>
             <div className="flex flex-wrap gap-1">
                 {allowAuto ? <ModeButton active={value === "auto"} onClick={() => onChange("auto")}>自动</ModeButton> : null}
-                {modes.map((mode) => <ModeButton key={mode.value} active={value === mode.value} onClick={() => onChange(mode.value)}>{mode.label}</ModeButton>)}
+                {availableModes.map((mode) => <ModeButton key={mode.value} active={value === mode.value} onClick={() => onChange(mode.value)}>{mode.label}</ModeButton>)}
             </div>
         </div>
     );

@@ -7,6 +7,7 @@ import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
 import { BrandMark } from "@/components/layout/brand-mark";
 import { UserStatusActions } from "@/components/layout/user-status-actions";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
 import { cn } from "@/lib/utils";
 import { isDesktopApp } from "@/services/desktop-storage";
@@ -37,8 +38,8 @@ function dshMenuLabel(version: string | null) {
     );
 }
 
-function playfulMenuItems(desktop: boolean, dshVersion: string | null): MenuProps["items"] {
-    const items: NonNullable<MenuProps["items"]> = [{ key: "about-author", label: "说了别点", icon: <UserRound className="size-4" strokeWidth={1.7} /> }];
+function playfulMenuItems(desktop: boolean, dshVersion: string | null, t: (message: string) => string): MenuProps["items"] {
+    const items: NonNullable<MenuProps["items"]> = [{ key: "about-author", label: t("说了别点"), icon: <UserRound className="size-4" strokeWidth={1.7} /> }];
     if (desktop) {
         items.push(
             { type: "divider" },
@@ -46,7 +47,7 @@ function playfulMenuItems(desktop: boolean, dshVersion: string | null): MenuProp
             { key: "upcoming", label: "...", icon: <Clock className="size-4" strokeWidth={1.7} />, disabled: true },
         );
     }
-    items.push({ type: "divider" }, { key: "explore", label: "探索", icon: <Compass className="size-4" strokeWidth={1.7} /> });
+    items.push({ type: "divider" }, { key: "explore", label: t("探索"), icon: <Compass className="size-4" strokeWidth={1.7} /> });
     return items;
 }
 
@@ -59,6 +60,7 @@ function navItemClass(active: boolean) {
 }
 
 export function AppTopNav() {
+    const { t } = useAppTranslation();
     const { pathname } = useLocation();
     const navigate = useNavigate();
     const smoothNavigate = useSmoothNavigation();
@@ -97,20 +99,20 @@ export function AppTopNav() {
                                 })
                             }
                             className="wg-sketch-button-quiet inline-flex h-9 shrink-0 cursor-pointer items-center gap-2.5 px-1.5"
-                            aria-label="返回首页"
+                            aria-label={t("返回首页")}
                         >
                             <BrandMark className="size-7 shadow-none" />
                             <span className="wg-ascii-label hidden text-[12px] font-semibold lg:inline">WORKFLOWGENERATOR</span>
                         </button>
 
                         {!isHome ? (
-                            <nav id="app-primary-navigation" className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 border-l border-dashed border-[color:var(--wg-pencil-soft)] pl-2 sm:flex" aria-label="工作区">
+                            <nav id="app-primary-navigation" className="hidden min-w-0 flex-1 items-center justify-center gap-0.5 border-l border-dashed border-[color:var(--wg-pencil-soft)] pl-2 sm:flex" aria-label={t("工作区")}>
                                 {destinations.map((item) => {
                                     const Icon = item.icon;
                                     return (
-                                        <NavLink key={item.path} to={item.path} title={item.label} className={({ isActive }) => navItemClass(isActive || (item.path === "/docs" && pathname === "/model-adaptations"))}>
+                                        <NavLink key={item.path} to={item.path} title={t(item.label)} className={({ isActive }) => navItemClass(isActive || (item.path === "/docs" && pathname === "/model-adaptations"))}>
                                             <Icon className="size-4 shrink-0" strokeWidth={1.7} />
-                                            <span className="hidden xl:inline">{item.label}</span>
+                                            <span className="hidden xl:inline">{t(item.label)}</span>
                                         </NavLink>
                                     );
                                 })}
@@ -126,7 +128,7 @@ export function AppTopNav() {
                                                 .catch(() => setDshVersion(null));
                                     }}
                                     menu={{
-                                        items: playfulMenuItems(desktopApp, dshVersion),
+                                        items: playfulMenuItems(desktopApp, dshVersion, t),
                                         onClick: ({ key }) => {
                                             setPlayfulMenuOpen(false);
                                             if (key === "about-author") {
@@ -144,9 +146,9 @@ export function AppTopNav() {
                                     }}
                                     styles={{ root: { minWidth: 220 } }}
                                 >
-                                    <button type="button" title="别点我" className={cn(navItemClass(pathname === "/about-author" || pathname === "/dsh"), "wg-playful-nav")} aria-haspopup="menu" aria-expanded={playfulMenuOpen}>
+                                    <button type="button" title={t("别点我")} className={cn(navItemClass(pathname === "/about-author" || pathname === "/dsh"), "wg-playful-nav")} aria-haspopup="menu" aria-expanded={playfulMenuOpen}>
                                         <UserRound className="size-4 shrink-0" strokeWidth={1.7} />
-                                        <span className="hidden text-[11px] xl:inline">别点我</span>
+                                        <span className="hidden text-[11px] xl:inline">{t("别点我")}</span>
                                         <ChevronDown className={cn("hidden size-3 shrink-0 transition-transform xl:block", playfulMenuOpen && "rotate-180")} strokeWidth={1.7} />
                                     </button>
                                 </Dropdown>
@@ -163,7 +165,7 @@ export function AppTopNav() {
                                     )}
                                     onClick={togglePanel}
                                     aria-pressed={panelOpen}
-                                    aria-label={panelOpen ? "收起 Zodiac" : "打开 Zodiac"}
+                                    aria-label={t(panelOpen ? "收起 Zodiac" : "打开 Zodiac")}
                                 >
                                     <ZodiacAvatar className="size-5 border-0 shadow-none" />
                                     <span className="hidden sm:inline">Zodiac</span>

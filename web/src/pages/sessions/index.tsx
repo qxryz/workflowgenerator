@@ -4,6 +4,7 @@ import { BubbleChatIcon, Delete02Icon, Search01Icon, ViewIcon } from "hugeicons-
 import { Streamdown } from "streamdown";
 
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import {
     deleteArchivedZodiacSession,
     listArchivedZodiacSessions,
@@ -16,6 +17,7 @@ type HistorySession = ZodiacArchivedSession<HistoryItem>;
 
 export default function ZodiacSessionsPage() {
     const { message } = App.useApp();
+    const { language, t } = useAppTranslation();
     const [sessions, setSessions] = useState<HistorySession[] | null>(null);
     const [preview, setPreview] = useState<HistorySession | null>(null);
     const [query, setQuery] = useState("");
@@ -26,9 +28,9 @@ export default function ZodiacSessionsPage() {
             .catch((error) => {
                 console.error("Failed to load Zodiac sessions.", error);
                 setSessions([]);
-                message.error("会话记录加载失败");
+                message.error(t("会话记录加载失败"));
             });
-    }, [message]);
+    }, [message, t]);
 
     const filtered = useMemo(() => {
         const keyword = query.trim().toLocaleLowerCase();
@@ -46,10 +48,10 @@ export default function ZodiacSessionsPage() {
             await deleteArchivedZodiacSession(session.id);
             setSessions((current) => current?.filter((item) => item.id !== session.id) || []);
             setPreview((current) => current?.id === session.id ? null : current);
-            message.success("会话已删除");
+            message.success(t("会话已删除"));
         } catch (error) {
             console.error("Failed to delete Zodiac session.", error);
-            message.error("删除失败，请重试");
+            message.error(t("删除失败，请重试"));
         }
     };
 
@@ -57,7 +59,7 @@ export default function ZodiacSessionsPage() {
         <main className="wg-paper-surface flex h-full min-w-0 flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
             <header className="flex min-h-[68px] shrink-0 items-center gap-4 border-b border-dashed border-[color:var(--wg-pencil-soft)] px-5 lg:px-7">
                 <div className="min-w-0">
-                    <h1 className="wg-sketch-title text-[21px] font-semibold">Zodiac 会话</h1>
+                    <h1 className="wg-sketch-title text-[21px] font-semibold">{t("Zodiac 会话")}</h1>
                     <p className="wg-ascii-label mt-0.5 text-[9px] tabular-nums text-[color:var(--wg-home-muted-strong)]">
                         SESSIONS / {String(sessions?.length || 0).padStart(2, "0")}
                     </p>
@@ -67,7 +69,7 @@ export default function ZodiacSessionsPage() {
                     <input
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
-                        placeholder="搜索会话"
+                        placeholder={t("搜索会话")}
                         className="min-w-0 flex-1 bg-transparent text-[12px] text-[color:var(--wg-home-text)] outline-none placeholder:text-[color:var(--wg-home-muted-strong)]"
                     />
                 </label>
@@ -75,7 +77,7 @@ export default function ZodiacSessionsPage() {
 
             <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4 lg:px-6 lg:py-5">
                 {sessions === null ? (
-                    <div className="flex h-64 items-center justify-center" role="status" aria-label="正在读取会话">
+                    <div className="flex h-64 items-center justify-center" role="status" aria-label={t("正在读取会话")}>
                         <Spin />
                     </div>
                 ) : null}
@@ -86,15 +88,15 @@ export default function ZodiacSessionsPage() {
                         className="py-20"
                         description={
                             <div>
-                                <div className="text-sm text-[color:var(--wg-home-text)]">还没有会话记录</div>
-                                <div className="mt-1 text-xs text-[color:var(--wg-home-muted)]">在 Zodiac 中开始新会话后，上一段对话会保存在这里。</div>
+                                <div className="text-sm text-[color:var(--wg-home-text)]">{t("还没有会话记录")}</div>
+                                <div className="mt-1 text-xs text-[color:var(--wg-home-muted)]">{t("在 Zodiac 中开始新会话后，上一段对话会保存在这里。")}</div>
                             </div>
                         }
                     />
                 ) : null}
 
                 {sessions && sessions.length > 0 && filtered.length === 0 ? (
-                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-20" description="没有匹配的会话" />
+                    <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} className="py-20" description={t("没有匹配的会话")} />
                 ) : null}
 
                 {filtered.length ? (
@@ -114,30 +116,30 @@ export default function ZodiacSessionsPage() {
                                             <div className="mt-1 flex min-w-0 items-center gap-2 text-[11px] text-[color:var(--wg-home-muted)]">
                                                 <span className="truncate">{session.workspaceTitle}</span>
                                                 <span aria-hidden>·</span>
-                                                <time className="shrink-0">{formatSessionTime(session.endedAt)}</time>
+                                                <time className="shrink-0">{formatSessionTime(session.endedAt, language)}</time>
                                             </div>
                                         </div>
-                                        <Tag className="!m-0 shrink-0">{turns.length} 条</Tag>
+                                        <Tag className="!m-0 shrink-0">{t("{count} 条", { count: turns.length })}</Tag>
                                     </div>
 
                                     <p className="mt-4 line-clamp-3 text-[12px] leading-5 text-[color:var(--wg-home-muted)]">
-                                        {excerpt || "这段会话没有可预览的内容。"}
+                                        {excerpt || t("这段会话没有可预览的内容。")}
                                     </p>
 
                                     <div className="mt-auto flex items-center justify-end gap-1 pt-4">
                                         <Button type="text" size="small" icon={<ViewIcon className="size-3.5" />} onClick={() => setPreview(session)}>
-                                            浏览
+                                            {t("浏览")}
                                         </Button>
                                         <Popconfirm
-                                            title="删除这段会话？"
-                                            description="删除后无法恢复。"
-                                            okText="删除"
-                                            cancelText="取消"
+                                            title={t("删除这段会话？")}
+                                            description={t("删除后无法恢复。")}
+                                            okText={t("删除")}
+                                            cancelText={t("取消")}
                                             okButtonProps={{ danger: true }}
                                             onConfirm={() => deleteSession(session)}
                                         >
                                             <Button danger type="text" size="small" icon={<Delete02Icon className="size-3.5" />}>
-                                                删除
+                                                {t("删除")}
                                             </Button>
                                         </Popconfirm>
                                     </div>
@@ -157,7 +159,7 @@ export default function ZodiacSessionsPage() {
                         <div className="min-w-0">
                             <div className="truncate text-sm font-semibold">{preview.title}</div>
                             <div className="mt-0.5 truncate text-[11px] font-normal text-[color:var(--wg-home-muted)]">
-                                {preview.workspaceTitle} · {formatSessionTime(preview.endedAt)}
+                                {preview.workspaceTitle} · {formatSessionTime(preview.endedAt, language)}
                             </div>
                         </div>
                     </div>
@@ -165,14 +167,14 @@ export default function ZodiacSessionsPage() {
                 onClose={() => setPreview(null)}
                 extra={preview ? (
                     <Popconfirm
-                        title="删除这段会话？"
-                        description="删除后无法恢复。"
-                        okText="删除"
-                        cancelText="取消"
+                        title={t("删除这段会话？")}
+                        description={t("删除后无法恢复。")}
+                        okText={t("删除")}
+                        cancelText={t("取消")}
                         okButtonProps={{ danger: true }}
                         onConfirm={() => deleteSession(preview)}
                     >
-                        <Button danger type="text" size="small" icon={<Delete02Icon className="size-3.5" />}>删除</Button>
+                        <Button danger type="text" size="small" icon={<Delete02Icon className="size-3.5" />}>{t("删除")}</Button>
                     </Popconfirm>
                 ) : null}
             >
@@ -183,6 +185,7 @@ export default function ZodiacSessionsPage() {
 }
 
 function SessionPreview({ session }: { session: HistorySession }) {
+    const { t } = useAppTranslation();
     const conversation = session.items.filter((item) => item.role === "user" || item.role === "assistant");
     return (
         <div className="space-y-5 pb-8">
@@ -190,7 +193,7 @@ function SessionPreview({ session }: { session: HistorySession }) {
                 <section className="rounded-xl border border-[color:var(--wg-home-line)] bg-[color:var(--wg-home-hover)] p-4">
                     <div className="mb-2 flex items-center gap-2 text-[11px] font-semibold text-[color:var(--wg-home-muted)]">
                         <BubbleChatIcon className="size-3.5" />
-                        对话摘要
+                        {t("对话摘要")}
                     </div>
                     <Streamdown className="agent-streamdown text-sm">{session.summary}</Streamdown>
                 </section>
@@ -198,7 +201,7 @@ function SessionPreview({ session }: { session: HistorySession }) {
             {conversation.map((item) => (
                 <section key={item.id} className={item.role === "user" ? "ml-10 rounded-xl bg-[color:var(--wg-home-hover)] px-4 py-3" : "mr-5"}>
                     <div className="mb-1.5 text-[10px] font-semibold uppercase tracking-[.12em] text-[color:var(--wg-home-muted)]">
-                        {item.role === "user" ? "你" : "Zodiac"}
+                        {item.role === "user" ? t("你") : "Zodiac"}
                     </div>
                     {item.role === "assistant" ? (
                         <Streamdown className="agent-streamdown text-sm">{withoutReasoning(item.text || "")}</Streamdown>
@@ -215,10 +218,10 @@ function withoutReasoning(text: string) {
     return text.replace(/<think>[\s\S]*?<\/think>/gi, "").replace(/<think>[\s\S]*$/gi, "").trim();
 }
 
-function formatSessionTime(value: string) {
+function formatSessionTime(value: string, language: "zh-CN" | "en-US") {
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return "";
-    return new Intl.DateTimeFormat("zh-CN", {
+    return new Intl.DateTimeFormat(language, {
         month: "2-digit",
         day: "2-digit",
         hour: "2-digit",

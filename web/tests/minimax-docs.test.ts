@@ -29,7 +29,8 @@ test("MiniMax documentation keeps one curated page per recommended model", () =>
     assert.match(docsSource, /架构与新增渠道示例/u);
     assert.match(docsSource, /绑定模型的原生 UI 解释/u);
     assert.match(docsSource, /Zodiac 工作流技术说明/u);
-    assert.match(docsSource, /已适配推荐模型 \/ \{String\(models\.length\).*参考 \/ 03/u);
+    assert.match(docsSource, /资产与文件/u);
+    assert.match(docsSource, /已适配推荐模型 \/ \{String\(models\.length\).*参考 \/ 04/u);
     assert.match(docsSource, /Token Plan 专属 Key（sk-cp）/u);
     assert.match(docsSource, /MiniMax API Key（sk-api）/u);
     assert.match(docsSource, /两类 Key 不能混用/u);

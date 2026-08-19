@@ -385,6 +385,7 @@ export default function Seedance25Page() {
             setAssetPickerOpen(false);
             return;
         }
+        if (payload.kind !== "audio") return;
         if (audioReferences.length >= SEEDANCE_25_REFERENCE_LIMITS.audios) {
             message.warning("参考音频已达上限");
             return;

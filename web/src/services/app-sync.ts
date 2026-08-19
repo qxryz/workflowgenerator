@@ -1,5 +1,6 @@
 import { getMediaBlob, resolveMediaUrl, setMediaBlob } from "@/services/file-storage";
 import { getImageBlob, resolveImageUrl, setImageBlob } from "@/services/image-storage";
+import { getAssetFileBlob, setAssetFileBlob } from "@/services/asset-file-storage";
 import { shouldRefreshStoredAssetCover } from "@/lib/asset-media";
 import { withMediaStorageFence } from "@/services/media-retention-policy";
 import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
@@ -178,7 +179,7 @@ async function downloadMissingFiles<T>(config: WebdavSyncConfig, domain: DomainK
     const storageKeys = collectStorageKeys(data);
     let scanned = 0;
     for (const storageKey of storageKeys) {
-        const localBlob = await withMediaStorageFence(() => (storageKey.startsWith("image:") ? getImageBlob(storageKey) : getMediaBlob(storageKey)));
+        const localBlob = await withMediaStorageFence(() => storageBlob(storageKey));
         scanned += 1;
         if (localBlob) {
             emitProgress(onProgress, { domain, label: domainLabel(domain), stage: "检查缺失媒体", current: scanned, total: storageKeys.length, status: "active" });
@@ -198,7 +199,7 @@ async function downloadMissingFiles<T>(config: WebdavSyncConfig, domain: DomainK
         if (!blob) return;
         if (blob.size !== remoteFile.bytes) throw new Error("WebDAV 文件大小与同步清单不一致");
         const typedBlob = blob.type ? blob : blob.slice(0, blob.size, remoteFile.mimeType);
-        await (remoteFile.storageKey.startsWith("image:") ? setImageBlob(remoteFile.storageKey, typedBlob) : setMediaBlob(remoteFile.storageKey, typedBlob));
+        await setStorageBlob(remoteFile.storageKey, typedBlob);
         downloaded += 1;
         emitProgress(onProgress, { domain, label: domainLabel(domain), stage: "下载媒体", current: downloaded, total: tasks.length, status: "active" });
     });
@@ -214,7 +215,7 @@ async function uploadChangedFiles<T>(config: WebdavSyncConfig, domain: DomainKey
     const storageKeys = collectStorageKeys(data);
     let scanned = 0;
     for (const storageKey of storageKeys) {
-        const blob = storageKey.startsWith("image:") ? await getImageBlob(storageKey) : await getMediaBlob(storageKey);
+        const blob = await storageBlob(storageKey);
         const remoteFile = remoteFileMap.get(storageKey);
         if (!blob) {
             if (remoteFile) files.push(remoteFile);
@@ -324,6 +325,18 @@ function fileExtension(mimeType: string, storageKey: string) {
     if (mimeType.includes("wav")) return "wav";
     if (mimeType.includes("mpeg") || mimeType.includes("mp3")) return "mp3";
     return storageKey.startsWith("image:") ? "png" : "bin";
+}
+
+function storageBlob(storageKey: string) {
+    if (storageKey.startsWith("image:")) return getImageBlob(storageKey);
+    if (storageKey.startsWith("file:")) return getAssetFileBlob(storageKey);
+    return getMediaBlob(storageKey);
+}
+
+function setStorageBlob(storageKey: string, blob: Blob) {
+    if (storageKey.startsWith("image:")) return setImageBlob(storageKey, blob);
+    if (storageKey.startsWith("file:")) return setAssetFileBlob(storageKey, blob);
+    return setMediaBlob(storageKey, blob);
 }
 
 function waitForHydration<T extends { hydrated: boolean }>(store: { getState: () => T; subscribe: (listener: (state: T) => void) => () => void }) {

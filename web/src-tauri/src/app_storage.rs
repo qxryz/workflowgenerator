@@ -380,7 +380,7 @@ pub async fn native_media_upload_begin(
 ) -> Result<String, String> {
     validate_media_identity(&bucket, &key)?;
     let mime_type = mime_type.trim().to_ascii_lowercase();
-    validate_upload_metadata(&mime_type, expected_bytes)?;
+    validate_upload_metadata(&bucket, &mime_type, expected_bytes)?;
 
     let upload_id = new_upload_id();
     validate_upload_id(&upload_id)?;
@@ -490,7 +490,7 @@ fn append_media_upload_chunk(
     bytes: &[u8],
 ) -> Result<u64, String> {
     validate_media_identity(&bucket, &key)?;
-    validate_upload_metadata(&mime_type, expected_bytes)?;
+    validate_upload_metadata(&bucket, &mime_type, expected_bytes)?;
     validate_upload_id(&upload_id)?;
     if bytes.is_empty() || bytes.len() > MAX_MEDIA_CHUNK_BYTES {
         return Err("媒体分块大小无效".to_string());
@@ -565,7 +565,7 @@ pub async fn native_media_upload_commit(
 ) -> Result<NativeMediaRecord, String> {
     validate_media_identity(&bucket, &key)?;
     let mime_type = mime_type.trim().to_ascii_lowercase();
-    validate_upload_metadata(&mime_type, expected_bytes)?;
+    validate_upload_metadata(&bucket, &mime_type, expected_bytes)?;
     validate_upload_id(&upload_id)?;
 
     // Serializing commit with chunk/abort prevents the temporary file and its
@@ -698,7 +698,7 @@ pub async fn native_media_upload_abort(
 ) -> Result<(), String> {
     validate_media_identity(&bucket, &key)?;
     let mime_type = mime_type.trim().to_ascii_lowercase();
-    validate_upload_metadata(&mime_type, expected_bytes)?;
+    validate_upload_metadata(&bucket, &mime_type, expected_bytes)?;
     validate_upload_id(&upload_id)?;
 
     let connection = storage.lock()?;
@@ -732,7 +732,7 @@ fn save_media(
     bytes: &[u8],
 ) -> Result<NativeMediaRecord, String> {
     validate_media_identity(&bucket, &key)?;
-    if !is_safe_mime(&mime_type) {
+    if !is_safe_storage_mime(&bucket, &mime_type) {
         return Err("媒体类型无效".to_string());
     }
     let (url_key, filename) = new_media_version(&key, &mime_type);
@@ -846,7 +846,7 @@ pub(crate) fn import_native_media_file_if_changed(
 ) -> Result<Option<NativeMediaImportResult>, String> {
     validate_media_identity(bucket, key)?;
     let mime_type = mime_type.trim().to_ascii_lowercase();
-    if !is_safe_mime(&mime_type) {
+    if !is_safe_storage_mime(bucket, &mime_type) {
         return Err("媒体类型无效".to_string());
     }
 
@@ -983,7 +983,7 @@ pub async fn native_media_read_data_url(
     let Some(media) = media else {
         return Ok(None);
     };
-    if !is_safe_filename(&media.filename) || !is_safe_mime(&media.mime_type) {
+    if !is_safe_filename(&media.filename) || !is_safe_storage_mime(&bucket, &media.mime_type) {
         return Err("媒体记录无效".to_string());
     }
     let path = storage.media_root.join(&bucket).join(&media.filename);
@@ -1043,7 +1043,7 @@ pub(crate) fn copy_native_media_to_path(
         let connection = storage.lock()?;
         let media = query_media_by_key(&connection, bucket, key)?
             .ok_or_else(|| "未找到终端输入媒体".to_string())?;
-        if !is_safe_filename(&media.filename) || !is_safe_mime(&media.mime_type) {
+        if !is_safe_filename(&media.filename) || !is_safe_storage_mime(bucket, &media.mime_type) {
             return Err("终端输入媒体无效".to_string());
         }
         let path = storage.media_root.join(bucket).join(&media.filename);
@@ -1213,7 +1213,7 @@ fn serve_media(
             })?
             .ok_or((http::StatusCode::NOT_FOUND, "Media not found"))?
     };
-    if !is_safe_filename(&media.filename) {
+    if !is_safe_filename(&media.filename) || !is_safe_storage_mime(bucket, &media.mime_type) {
         return Err((http::StatusCode::BAD_REQUEST, "Invalid media URL"));
     }
 
@@ -1254,9 +1254,14 @@ fn serve_media(
             .map_err(|_| (http::StatusCode::INTERNAL_SERVER_ERROR, "Media unavailable"))?;
     }
 
+    let response_mime = if bucket == "files" {
+        "application/octet-stream"
+    } else {
+        media.mime_type.as_str()
+    };
     let mut builder = http::Response::builder()
         .status(status)
-        .header(http::header::CONTENT_TYPE, media.mime_type)
+        .header(http::header::CONTENT_TYPE, response_mime)
         .header(http::header::CONTENT_LENGTH, response_length.to_string())
         .header(http::header::ACCEPT_RANGES, "bytes")
         .header(http::header::ACCESS_CONTROL_ALLOW_ORIGIN, "*")
@@ -1265,6 +1270,9 @@ fn serve_media(
             http::header::CACHE_CONTROL,
             "private, max-age=31536000, immutable",
         );
+    if bucket == "files" {
+        builder = builder.header(http::header::CONTENT_DISPOSITION, "attachment");
+    }
     if status == http::StatusCode::PARTIAL_CONTENT {
         builder = builder.header(
             http::header::CONTENT_RANGE,
@@ -1474,7 +1482,7 @@ fn decode_data_url(data_url: &str) -> Result<(String, Vec<u8>), String> {
         .unwrap_or_default()
         .trim()
         .to_ascii_lowercase();
-    if !is_safe_mime(&mime_type) {
+    if !is_well_formed_mime(&mime_type) {
         return Err("媒体类型无效".to_string());
     }
     let is_base64 = metadata_parts.any(|part| part.eq_ignore_ascii_case("base64"));
@@ -1621,8 +1629,12 @@ fn validate_media_identity(bucket: &str, key: &str) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_upload_metadata(mime_type: &str, expected_bytes: u64) -> Result<(), String> {
-    if !is_safe_mime(mime_type) {
+fn validate_upload_metadata(
+    bucket: &str,
+    mime_type: &str,
+    expected_bytes: u64,
+) -> Result<(), String> {
+    if !is_safe_storage_mime(bucket, mime_type) {
         return Err("媒体类型无效".to_string());
     }
     if expected_bytes == 0 || expected_bytes > MAX_MEDIA_BYTES {
@@ -1738,6 +1750,32 @@ fn is_safe_mime(mime_type: &str) -> bool {
             | "audio/ogg"
             | "audio/flac"
     )
+}
+
+fn is_safe_storage_mime(bucket: &str, mime_type: &str) -> bool {
+    if bucket == "files" {
+        return is_well_formed_mime(mime_type);
+    }
+    is_safe_mime(mime_type)
+}
+
+fn is_well_formed_mime(mime_type: &str) -> bool {
+    if mime_type.is_empty() || mime_type.len() > 120 {
+        return false;
+    }
+    let Some((kind, subtype)) = mime_type.split_once('/') else {
+        return false;
+    };
+    !kind.is_empty()
+        && !subtype.is_empty()
+        && kind.bytes().chain(subtype.bytes()).all(|value| {
+            value.is_ascii_lowercase()
+                || value.is_ascii_digit()
+                || matches!(
+                    value,
+                    b'!' | b'#' | b'$' | b'&' | b'^' | b'_' | b'.' | b'+' | b'-'
+                )
+        })
 }
 
 fn unix_timestamp() -> i64 {
@@ -1996,6 +2034,18 @@ mod tests {
     }
 
     #[test]
+    fn generic_file_bucket_accepts_metadata_but_media_buckets_stay_strict() {
+        assert!(is_safe_storage_mime("files", "application/pdf"));
+        assert!(is_safe_storage_mime("files", "text/html"));
+        assert!(is_safe_storage_mime("files", "image/svg+xml"));
+        assert!(is_safe_storage_mime("files", "application/octet-stream"));
+        assert!(!is_safe_storage_mime("files", "not-a-mime"));
+        assert!(!is_safe_storage_mime("files", "text/html; charset=utf-8"));
+        assert!(!is_safe_storage_mime("assets", "application/pdf"));
+        assert!(is_safe_storage_mime("assets", "image/png"));
+    }
+
+    #[test]
     fn imports_local_media_as_a_streamed_versioned_asset() {
         let root = std::env::temp_dir().join(format!(
             "workflowgenerator-native-import-{}-{}",
@@ -2111,6 +2161,21 @@ mod tests {
             )
             .unwrap();
         assert_eq!(retained_after_failure, retained_url);
+
+        let generic =
+            import_native_media_file(&storage, &source, "files", "file:paper", "application/pdf")
+                .unwrap();
+        assert_eq!(generic.record.mime_type, "application/pdf");
+        assert!(generic
+            .record
+            .url
+            .starts_with("wg-media://localhost/files/"));
+        let generic_copy = root.join("paper.pdf");
+        assert_eq!(
+            copy_native_media_to_path(&storage, "files", "file:paper", &generic_copy).unwrap(),
+            "application/pdf"
+        );
+        assert_eq!(fs::read(&generic_copy).unwrap(), b"world!");
 
         drop(storage);
         fs::remove_dir_all(root).unwrap();

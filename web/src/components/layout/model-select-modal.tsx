@@ -2,6 +2,7 @@ import { App, Button, Checkbox, Input, Modal, Tabs } from "antd";
 import { RefreshCw, Search } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { fetchChannelModels } from "@/services/api/image";
 import { getProviderDefinition } from "@/lib/model-providers";
 import { catalogModelsForVendor, getModelVendor, legacyVendorForApiFormat, recommendedCatalogModelsForVendor, type VendorId } from "@/lib/model-catalog";
@@ -13,6 +14,7 @@ type ModelSourceTab = "recommended" | "catalog" | "remote" | "existing";
 
 export function ModelSelectModal({ open, channel, selectedNames, onConfirm, onClose }: { open: boolean; channel: ModelChannel | null; selectedNames: string[]; onConfirm: (names: string[]) => void; onClose: () => void }) {
     const { message } = App.useApp();
+    const { t } = useAppTranslation();
     const [existing, setExisting] = useState<string[]>([]);
     const [fetched, setFetched] = useState<string[]>([]);
     const [selected, setSelected] = useState<Set<string>>(new Set());
@@ -61,7 +63,7 @@ export function ModelSelectModal({ open, channel, selectedNames, onConfirm, onCl
     const fetchModels = async () => {
         if (!channel) return;
         if (!channel.baseUrl.trim() || !channel.apiKey.trim()) {
-            message.error(`请先填写接口地址和${vendorId === "minimax-token-plan" ? " Token Plan Key" : " API Key"}`);
+            message.error(t("请先填写接口地址和 {credential}", { credential: vendorId === "minimax-token-plan" ? "Token Plan Key" : "API Key" }));
             return;
         }
         const credentialError = vendorId === "minimax-token-plan" ? miniMaxCredentialError("token-plan", channel.apiKey) : vendorId === "minimax-api" ? miniMaxCredentialError("payg", channel.apiKey) : "";
@@ -74,9 +76,9 @@ export function ModelSelectModal({ open, channel, selectedNames, onConfirm, onCl
             const models = await fetchChannelModels(channel);
             setFetched(Array.from(new Set(models)));
             setActiveTab("remote");
-            message.success(`已读取 ${models.length} 个接口返回模型`);
+            message.success(t("已读取 {count} 个接口返回模型", { count: models.length }));
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "拉取模型失败");
+            message.error(error instanceof Error ? error.message : t("拉取模型失败"));
         } finally {
             setLoading(false);
         }
@@ -96,61 +98,61 @@ export function ModelSelectModal({ open, channel, selectedNames, onConfirm, onCl
             onCancel={onClose}
             title={
                 <span>
-                    选择渠道模型{" "}
+                    {t("选择渠道模型")}{" "}
                     <span className="ml-2 text-xs font-normal text-stone-500">
-                        已选择 {selected.size} / {availableNames.length}
+                        {t("已选择 {selected} / {total}", { selected: selected.size, total: availableNames.length })}
                     </span>
                 </span>
             }
             styles={{ body: { maxHeight: "62vh", overflowY: "auto" } }}
             footer={[
                 <Button key="cancel" onClick={onClose}>
-                    取消
+                    {t("取消")}
                 </Button>,
                 <Button key="confirm" type="primary" onClick={confirm}>
-                    确定
+                    {t("确定")}
                 </Button>,
             ]}
         >
             <div className="flex flex-wrap items-center gap-3">
-                <Input className="min-w-[200px] flex-1" value={search} onChange={(event) => setSearch(event.target.value)} placeholder="搜索模型" prefix={<Search className="size-4 text-stone-400" />} allowClear />
+                <Input className="min-w-[200px] flex-1" value={search} onChange={(event) => setSearch(event.target.value)} placeholder={t("搜索模型")} prefix={<Search className="size-4 text-stone-400" />} allowClear />
                 <Button icon={<RefreshCw className="size-4" />} loading={loading} onClick={() => void fetchModels()}>
-                    从 {vendor?.label || provider?.label || "当前供应商"} 拉取
+                    {t("从 {provider} 拉取", { provider: vendor?.label || provider?.label || t("当前供应商") })}
                 </Button>
             </div>
-            <div className="mt-2 text-xs text-stone-500">推荐、内置目录和当前渠道接口返回结果分开显示，模型来源一目了然。</div>
+            <div className="mt-2 text-xs text-stone-500">{t("推荐、内置目录和当前渠道接口返回结果分开显示，模型来源一目了然。")}</div>
             <Tabs
                 className="mt-3"
                 activeKey={activeTab}
                 onChange={(key) => setActiveTab(key as ModelSourceTab)}
                 items={[
-                    { key: "recommended", label: `推荐模型 (${recommendedModels.length})` },
-                    { key: "catalog", label: `模型目录 (${catalogModels.length})` },
-                    { key: "remote", label: `接口返回 (${fetched.length})` },
-                    { key: "existing", label: `已添加 (${existing.length})` },
+                    { key: "recommended", label: t("推荐模型 ({count})", { count: recommendedModels.length }) },
+                    { key: "catalog", label: t("模型目录 ({count})", { count: catalogModels.length }) },
+                    { key: "remote", label: t("接口返回 ({count})", { count: fetched.length }) },
+                    { key: "existing", label: t("已添加 ({count})", { count: existing.length }) },
                 ]}
             />
 
             <div className="mb-3 text-xs text-stone-500">
                 {activeTab === "recommended"
-                    ? "精选已完成工作台适配的代表模型。"
+                    ? t("精选已完成工作台适配的代表模型。")
                     : activeTab === "catalog"
-                      ? "应用内置的当前厂商模型目录，不代表当前 Key 一定有调用权限。"
+                      ? t("应用内置的当前厂商模型目录，不代表当前 Key 一定有调用权限。")
                       : activeTab === "remote"
-                        ? "本次从当前渠道接口实际读取的模型；重新拉取会刷新此列表。"
-                        : "已经添加到当前渠道的模型。"}
+                        ? t("本次从当前渠道接口实际读取的模型；重新拉取会刷新此列表。")
+                        : t("已经添加到当前渠道的模型。")}
             </div>
 
             <div className="mb-3 flex items-center justify-between gap-2">
                 <span className="text-xs text-stone-500">
-                    当前列表已选择 {visibleSelectedCount} / {visibleList.length}
+                    {t("当前列表已选择 {selected} / {total}", { selected: visibleSelectedCount, total: visibleList.length })}
                 </span>
                 <div className="flex gap-2">
                     <Button size="small" disabled={!visibleList.length} onClick={() => selectVisible(true)}>
-                        全选当前列表
+                        {t("全选当前列表")}
                     </Button>
                     <Button size="small" disabled={!visibleSelectedCount} onClick={() => selectVisible(false)}>
-                        取消当前列表
+                        {t("取消当前列表")}
                     </Button>
                 </div>
             </div>
@@ -167,7 +169,7 @@ export function ModelSelectModal({ open, channel, selectedNames, onConfirm, onCl
                 </div>
             ) : (
                 <div className="py-8 text-center text-sm text-stone-500">
-                    {activeTab === "remote" ? "尚未从接口拉取模型，点击右上角的拉取按钮即可读取。" : activeTab === "existing" ? "当前渠道还没有添加模型。" : "当前来源暂无模型。"}
+                    {t(activeTab === "remote" ? "尚未从接口拉取模型，点击右上角的拉取按钮即可读取。" : activeTab === "existing" ? "当前渠道还没有添加模型。" : "当前来源暂无模型。")}
                 </div>
             )}
         </Modal>

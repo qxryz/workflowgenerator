@@ -1,6 +1,8 @@
 import { saveAs } from "file-saver";
 
+import { fileExtension as originalFileExtension } from "@/lib/asset-file";
 import { createZip, readZip } from "@/lib/zip";
+import { getAssetFileBlob, setAssetFileBlob } from "@/services/asset-file-storage";
 import { getMediaBlob, setMediaBlob } from "@/services/file-storage";
 import { getImageBlob, setImageBlob } from "@/services/image-storage";
 import type { Asset } from "@/stores/use-asset-store";
@@ -26,12 +28,12 @@ export async function exportAssets(assets: Asset[]) {
 
     await Promise.all(
         assets.map(async (asset) => {
-            if (asset.kind !== "image" && asset.kind !== "video" && asset.kind !== "audio") return;
+            if (asset.kind !== "image" && asset.kind !== "video" && asset.kind !== "audio" && asset.kind !== "file") return;
             const storageKey = asset.data.storageKey;
             if (!storageKey) return;
-            const blob = asset.kind === "image" ? await getImageBlob(storageKey) : await getMediaBlob(storageKey);
+            const blob = asset.kind === "image" ? await getImageBlob(storageKey) : asset.kind === "file" ? await getAssetFileBlob(storageKey) : await getMediaBlob(storageKey);
             if (!blob) return;
-            const path = `files/${safeFileName(storageKey)}.${fileExtension(blob.type, asset.kind)}`;
+            const path = `files/${safeFileName(storageKey)}.${asset.kind === "file" ? originalFileExtension(asset.data.fileName) || "bin" : fileExtension(blob.type, asset.kind)}`;
             files.push({ storageKey, path, mimeType: blob.type || asset.data.mimeType, bytes: blob.size });
             zipFiles.push({ name: path, data: blob });
         }),
@@ -52,7 +54,7 @@ export async function readAssetPackage(file: File) {
             const blob = zip.get(item.path);
             if (!blob) return;
             const typedBlob = blob.type ? blob : blob.slice(0, blob.size, item.mimeType);
-            await (item.storageKey.startsWith("image:") ? setImageBlob(item.storageKey, typedBlob) : setMediaBlob(item.storageKey, typedBlob));
+            await (item.storageKey.startsWith("image:") ? setImageBlob(item.storageKey, typedBlob) : item.storageKey.startsWith("file:") ? setAssetFileBlob(item.storageKey, typedBlob) : setMediaBlob(item.storageKey, typedBlob));
         }),
     );
     return data.assets;

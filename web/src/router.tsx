@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { createBrowserRouter, Navigate, Outlet } from "react-router-dom";
 
 import { AnalyticsTracker } from "@/components/layout/analytics-tracker";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import UserLayout from "@/layouts/user-layout";
 import NotFound from "@/pages/not-found";
 
@@ -20,12 +21,13 @@ const ZodiacSessionsPage = lazy(() => import("@/pages/sessions"));
 const SkillsPage = lazy(() => import("@/pages/skills"));
 
 function RouteOutlet() {
+    const { t } = useAppTranslation();
     return (
         <Suspense
             fallback={
                 <div className="flex h-full items-center justify-center" role="status" aria-live="polite">
                     <span className="size-5 animate-spin rounded-full border-2 border-current border-r-transparent opacity-60" />
-                    <span className="sr-only">正在打开</span>
+                    <span className="sr-only">{t("正在打开")}</span>
                 </div>
             }
         >

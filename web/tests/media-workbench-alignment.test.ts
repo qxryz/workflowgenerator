@@ -12,14 +12,14 @@ const videoSource = readFileSync(new URL("../src/pages/video/index.tsx", import.
 const styles = readFileSync(new URL("../src/styles/globals.css", import.meta.url), "utf8");
 
 test("audio and SD2.5 reuse the standard media generation history anatomy", () => {
-    assert.match(historySource, />生成记录</u);
-    assert.match(historySource, /"多选"/u);
-    assert.match(historySource, /新创作/u);
-    assert.match(historySource, /取消全选/u);
-    assert.match(historySource, /删除（\{selectedCount\}）/u);
+    assert.match(historySource, /\{t\("生成记录"\)\}/u);
+    assert.match(historySource, /t\(managing \? "完成" : "多选"\)/u);
+    assert.match(historySource, /t\("新创作"\)/u);
+    assert.match(historySource, /t\(allSelected \? "取消全选" : "全选"\)/u);
+    assert.match(historySource, /t\("删除（\{count\}）", \{ count: selectedCount \}\)/u);
     assert.match(historySource, /wg-media-history-thumb/u);
     assert.match(audioSource, /<MediaWorkbenchHistory/u);
-    assert.match(audioSource, /countLabel=\{`\$\{logs\.length\} 条音频创作`\}/u);
+    assert.match(audioSource, /countLabel=\{t\("\{count\} 条音频创作", \{ count: logs\.length \}\)\}/u);
     assert.match(audioSource, /selectedLogIds/u);
     assert.match(audioSource, /deleteSelectedLogs/u);
     assert.match(seedanceSource, /<MediaWorkbenchHistory/u);

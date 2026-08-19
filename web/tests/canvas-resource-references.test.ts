@@ -18,6 +18,7 @@ test("resource candidates come only from direct upstream edges", () => {
 test("empty built-in result slots keep their declared kind while waiting", () => {
     assert.equal(builtinCanvasResourceKind("image"), "image");
     assert.equal(builtinCanvasResourceKind("video"), "video");
+    assert.equal(builtinCanvasResourceKind("file"), "file");
     assert.equal(builtinCanvasResourceKind("terminal", "audio"), "audio");
     assert.equal(isReadyCanvasResourceValue("idle", ""), false);
     assert.equal(isReadyCanvasResourceValue("loading", "image:old-result"), false);
@@ -25,4 +26,5 @@ test("empty built-in result slots keep their declared kind while waiting", () =>
     assert.equal(isReadyCanvasResourceValue("success", "image:ready-result"), true);
     assert.equal(isReadyCanvasResourceValue("success", "image:last-usable-result", "error"), false);
     assert.equal(isReadyCanvasResourceValue("success", "image:ready-result", "ready"), true);
+    assert.equal(isReadyCanvasResourceValue("success", "file:ready-result"), true);
 });

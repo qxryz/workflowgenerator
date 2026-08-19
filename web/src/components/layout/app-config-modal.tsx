@@ -1,9 +1,10 @@
 import { App, Button, Form, Input, Modal, Progress, Select, Switch, Tabs, Tag } from "antd";
-import { Bot, CheckCircle2, CircleAlert, Cloud, Database, Download, Pencil, Plus, RefreshCw, RotateCcw, ScanLine, Trash2, Upload, Wifi, X } from "lucide-react";
+import { Bot, CheckCircle2, CircleAlert, Cloud, Database, Download, Languages, Pencil, Plus, RefreshCw, RotateCcw, ScanLine, Trash2, Upload, Wifi, X } from "lucide-react";
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
 
 import { ModelPicker } from "@/components/model-picker";
 import { AppUpdateSettings } from "@/components/layout/app-update-settings";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { exportAppConfig, importAppConfig } from "@/services/config-file";
 import { syncAppDataToWebdav, type AppSyncDomainKey, type AppSyncProgressEvent } from "@/services/app-sync";
 import { testWebdavConnection, WEBDAV_MANIFEST_FILE_NAME } from "@/services/webdav-sync";
@@ -66,15 +67,17 @@ const webdavDomainLabels: Record<AppSyncDomainKey, string> = {
 const customAudioVoiceValue = "__custom_audio_voice__";
 
 function LocalStorageLocations({ locations, error }: { locations: DesktopStorageLocations | null | undefined; error: boolean }) {
-    if (error) return <div className="mt-4 border-t border-stone-200 pt-3 text-xs text-rose-600 dark:border-stone-800 dark:text-rose-400">暂时无法读取存放目录，请重新打开此页面。</div>;
-    if (locations === undefined) return <div className="mt-4 border-t border-stone-200 pt-3 text-xs text-stone-500 dark:border-stone-800">正在读取存放目录…</div>;
-    if (locations === null) return <div className="mt-4 border-t border-stone-200 pt-3 text-xs leading-5 text-stone-500 dark:border-stone-800">网页预览的数据由当前浏览器站点存储管理；请在桌面应用中查看实际目录。</div>;
+    const { t } = useAppTranslation();
+    if (error) return <div className="mt-4 border-t border-stone-200 pt-3 text-xs text-rose-600 dark:border-stone-800 dark:text-rose-400">{t("暂时无法读取存放目录，请重新打开此页面。")}</div>;
+    if (locations === undefined) return <div className="mt-4 border-t border-stone-200 pt-3 text-xs text-stone-500 dark:border-stone-800">{t("正在读取存放目录…")}</div>;
+    if (locations === null) return <div className="mt-4 border-t border-stone-200 pt-3 text-xs leading-5 text-stone-500 dark:border-stone-800">{t("网页预览的数据由当前浏览器站点存储管理；请在桌面应用中查看实际目录。")}</div>;
 
     const entries = [
         { label: "应用数据根目录", detail: "本应用自动保存的数据都位于这里", path: locations.root, wide: true },
         { label: "配置与业务数据", detail: "配置、密钥、画布、会话、工作台记录、提示词与资产索引", path: locations.data },
         { label: "图片文件", detail: "生成图片、导入图片与导演台截图", path: locations.images },
-        { label: "视频、音频与其他文件", detail: "生成结果、参考素材与工作流文件", path: locations.media },
+        { label: "视频与音频", detail: "生成结果与工作流中的影音素材", path: locations.media },
+        { label: "通用文件", detail: "导入的文档、数据、压缩包、代码与其他文件", path: locations.files },
         { label: "临时写入", detail: "未完成的媒体写入，应用会自动清理", path: locations.temporary },
     ];
 
@@ -82,8 +85,8 @@ function LocalStorageLocations({ locations, error }: { locations: DesktopStorage
         <dl className="mt-4 grid gap-x-6 gap-y-3 border-t border-stone-200 pt-3 md:grid-cols-2 dark:border-stone-800">
             {entries.map((entry) => (
                 <div key={entry.label} className={entry.wide ? "md:col-span-2" : ""}>
-                    <dt className="text-xs font-medium text-stone-700 dark:text-stone-300">{entry.label}</dt>
-                    <dd className="mt-0.5 text-[11px] leading-4 text-stone-500">{entry.detail}</dd>
+                    <dt className="text-xs font-medium text-stone-700 dark:text-stone-300">{t(entry.label)}</dt>
+                    <dd className="mt-0.5 text-[11px] leading-4 text-stone-500">{t(entry.detail)}</dd>
                     <dd className="mt-1 break-all font-mono text-[11px] leading-4 text-stone-700 dark:text-stone-300" title={entry.path}>
                         {entry.path}
                     </dd>
@@ -94,6 +97,7 @@ function LocalStorageLocations({ locations, error }: { locations: DesktopStorage
 }
 
 function DefaultAudioVoiceField({ model, value, onChange }: { model: string; value: string; onChange: (value: string) => void }) {
+    const { t } = useAppTranslation();
     const presets = audioVoiceOptionsForModel(model);
     const normalizedValue = value.trim();
     const valueIsPreset = presets.some((option) => option.value === normalizedValue);
@@ -114,7 +118,7 @@ function DefaultAudioVoiceField({ model, value, onChange }: { model: string; val
             <Select
                 className="w-full"
                 value={selectValue}
-                options={[...presets, { value: customAudioVoiceValue, label: "自定义音色 ID" }]}
+                options={[...presets, { value: customAudioVoiceValue, label: t("自定义音色 ID") }]}
                 onChange={(nextValue) => {
                     if (nextValue === customAudioVoiceValue) {
                         setCustomMode(true);
@@ -129,8 +133,8 @@ function DefaultAudioVoiceField({ model, value, onChange }: { model: string; val
             {customMode ? (
                 <Input
                     value={customValue}
-                    aria-label="自定义音色 ID"
-                    placeholder="输入已创建的 Voice ID"
+                    aria-label={t("自定义音色 ID")}
+                    placeholder={t("输入已创建的 Voice ID")}
                     onChange={(event) => {
                         setCustomValue(event.target.value);
                         onChange(event.target.value);
@@ -153,6 +157,7 @@ function createWebdavDomainProgress(): Record<AppSyncDomainKey, WebdavDomainProg
 
 export function AppConfigPanel({ showDoneButton = false, initialTab = "channels" }: { showDoneButton?: boolean; initialTab?: ConfigTabKey }) {
     const { message, modal } = App.useApp();
+    const { language, t } = useAppTranslation();
     const configInputRef = useRef<HTMLInputElement>(null);
     const [activeTab, setActiveTab] = useState<ConfigTabKey>(initialTab);
     const [editingChannelId, setEditingChannelId] = useState("");
@@ -198,7 +203,7 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
             setScannedAgentPaths(result.searchPaths);
             scannedAgentsRef.current = true;
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "本机 Agent 扫描失败");
+            message.error(error instanceof Error ? error.message : t("本机 Agent 扫描失败"));
         } finally {
             setScanningAgents(false);
         }
@@ -216,7 +221,7 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
         const ready = config.channels.some((channel) => channel.models.some((model) => isAiConfigReady(config, encodeChannelModel(channel.id, model.name))));
         setConfigDialogOpen(false);
         if (!ready) return;
-        message.success(shouldPromptContinue ? "配置已保存，请继续刚才的请求" : "配置已保存");
+        message.success(t(shouldPromptContinue ? "配置已保存，请继续刚才的请求" : "配置已保存"));
         clearPromptContinue();
     };
     const changeTab = (key: string) => {
@@ -227,9 +232,9 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
     const loadConfigFile = async (file: File) => {
         try {
             const result = await importAppConfig(file);
-            message.success(result.strippedScripts ? "配置已导入；其中的自定义脚本已移除" : "配置与用户偏好已导入");
+            message.success(t(result.strippedScripts ? "配置已导入；其中的自定义脚本已移除" : "配置与用户偏好已导入"));
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "配置文件读取失败");
+            message.error(error instanceof Error ? error.message : t("配置文件读取失败"));
         } finally {
             if (configInputRef.current) configInputRef.current.value = "";
         }
@@ -256,11 +261,11 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
 
     const deleteChannel = (id: string) => {
         if (config.channels.find((channel) => channel.id === id)?.preset) {
-            message.info("预设渠道会保留，可使用重置恢复初始配置");
+            message.info(t("预设渠道会保留，可使用重置恢复初始配置"));
             return;
         }
         if (config.channels.length <= 1) {
-            message.warning("至少保留一个渠道");
+            message.warning(t("至少保留一个渠道"));
             return;
         }
         updateChannels(config.channels.filter((channel) => channel.id !== id));
@@ -272,29 +277,29 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
 
     const resetChannel = (channel: ModelChannel) => {
         modal.confirm({
-            title: `重置“${channel.name}”预设渠道？`,
-            content: "接口地址、模型和能力设置会恢复默认，已填写的 API Key 会被清空。",
-            okText: "重置",
-            cancelText: "取消",
+            title: t("重置“{name}”预设渠道？", { name: channel.name }),
+            content: t("接口地址、模型和能力设置会恢复默认，已填写的 API Key 会被清空。"),
+            okText: t("重置"),
+            cancelText: t("取消"),
             onOk: () => {
                 const reset = resetPresetChannel(channel);
                 updateChannels(config.channels.map((item) => (item.id === channel.id ? reset : item)));
-                message.success(`“${reset.name}”已恢复默认配置`);
+                message.success(t("“{name}”已恢复默认配置", { name: reset.name }));
             },
         });
     };
 
     const testWebdav = async () => {
         if (!webdavReady) {
-            message.error("请先填写 WebDAV 地址");
+            message.error(t("请先填写 WebDAV 地址"));
             return;
         }
         setTestingWebdav(true);
         try {
             await testWebdavConnection(webdav);
-            message.success("WebDAV 连接可用");
+            message.success(t("WebDAV 连接可用"));
         } catch (error) {
-            message.error(error instanceof Error ? error.message : "WebDAV 连接测试失败");
+            message.error(error instanceof Error ? error.message : t("WebDAV 连接测试失败"));
         } finally {
             setTestingWebdav(false);
         }
@@ -317,19 +322,19 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
 
     const syncWebdav = async () => {
         if (!webdavReady) {
-            message.error("请先填写 WebDAV 地址");
+            message.error(t("请先填写 WebDAV 地址"));
             return;
         }
         setSyncingWebdav(true);
         setWebdavDomainProgress(createWebdavDomainProgress());
-        setWebdavSyncStatus("准备同步");
+        setWebdavSyncStatus(t("准备同步"));
         try {
             const result = await syncAppDataToWebdav(webdav, updateWebdavProgress);
             updateWebdavConfig("lastSyncedAt", result.syncedAt);
-            message.success(`同步完成：${result.projects} 个画布，${result.assets} 个资产，本次上传 ${result.uploadedFiles} 个文件 ${formatBytes(result.uploadedBytes)}`);
+            message.success(t("同步完成：{projects} 个画布，{assets} 个资产，本次上传 {files} 个文件 {bytes}", { projects: result.projects, assets: result.assets, files: result.uploadedFiles, bytes: formatBytes(result.uploadedBytes) }));
         } catch (error) {
-            setWebdavSyncStatus(error instanceof Error ? error.message : "WebDAV 同步失败");
-            message.error(error instanceof Error ? error.message : "WebDAV 同步失败");
+            setWebdavSyncStatus(error instanceof Error ? error.message : t("WebDAV 同步失败"));
+            message.error(error instanceof Error ? error.message : t("WebDAV 同步失败"));
         } finally {
             setSyncingWebdav(false);
         }
@@ -356,13 +361,13 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
     return (
         <>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-3 dark:border-stone-800">
-                <div className="text-xs text-stone-500">导出文件不包含 API Key 和 WebDAV 密码。</div>
+                <div className="text-xs text-stone-500">{t("导出文件不包含 API Key 和 WebDAV 密码。")}</div>
                 <div className="flex gap-2">
                     <Button icon={<Upload className="size-4" />} onClick={() => configInputRef.current?.click()}>
-                        导入配置
+                        {t("导入配置")}
                     </Button>
                     <Button icon={<Download className="size-4" />} onClick={exportAppConfig}>
-                        导出配置
+                        {t("导出配置")}
                     </Button>
                     <input ref={configInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => event.target.files?.[0] && void loadConfigFile(event.target.files[0])} />
                 </div>
@@ -373,13 +378,13 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                 items={[
                     {
                         key: "channels",
-                        label: "渠道",
+                        label: t("渠道"),
                         children: (
                             <div>
                                 <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-                                    <div className="text-xs text-stone-500">每个渠道选择一个协议并拉取模型，为每个模型指定能力（生图/视频/文本/音频），并可自定义调用脚本。</div>
+                                    <div className="text-xs text-stone-500">{t("每个渠道选择一个协议并拉取模型，为每个模型指定能力（生图/视频/文本/音频），并可自定义调用脚本。")}</div>
                                     <Button type="primary" icon={<Plus className="size-4" />} onClick={addChannel}>
-                                        新增渠道
+                                        {t("新增渠道")}
                                     </Button>
                                 </div>
                                 <div className="space-y-2">
@@ -387,17 +392,17 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                         <div key={channel.id} className="flex items-center justify-between gap-3 rounded-lg border border-stone-200 px-4 py-3 dark:border-stone-800">
                                             <div className="min-w-0">
                                                 <div className="flex min-w-0 items-center gap-2">
-                                                    <div className="truncate text-sm font-semibold">{channel.name || "未命名渠道"}</div>
-                                                    {channel.preset ? <Tag className="m-0 shrink-0 border-0 bg-stone-100 text-[10px] text-stone-600 dark:bg-stone-800 dark:text-stone-300">预设</Tag> : null}
+                                                    <div className="truncate text-sm font-semibold">{channel.name || t("未命名渠道")}</div>
+                                                    {channel.preset ? <Tag className="m-0 shrink-0 border-0 bg-stone-100 text-[10px] text-stone-600 dark:bg-stone-800 dark:text-stone-300">{t("预设")}</Tag> : null}
                                                 </div>
                                                 <div className="mt-1 truncate text-xs text-stone-500">
-                                                    {channelVendorLabel(channel)} · {channel.models.length} 个模型 · {channelConnectionLabel(channel)}
+                                                    {channelVendorLabel(channel)} · {t("{count} 个模型", { count: channel.models.length })} · {t(channelConnectionLabel(channel))}
                                                 </div>
                                             </div>
                                             <div className="flex shrink-0 gap-2">
                                                 {channel.preset ? (
                                                     <Button size="small" icon={<RotateCcw className="size-3.5" />} onClick={() => resetChannel(channel)}>
-                                                        重置
+                                                        {t("重置")}
                                                     </Button>
                                                 ) : null}
                                                 <Button
@@ -407,7 +412,7 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                                     onFocus={() => void loadChannelEditorDrawer()}
                                                     onClick={() => setEditingChannelId(channel.id)}
                                                 >
-                                                    编辑
+                                                    {t("编辑")}
                                                 </Button>
                                                 {!channel.preset ? <Button size="small" danger icon={<Trash2 className="size-3.5" />} onClick={() => deleteChannel(channel.id)} /> : null}
                                             </div>
@@ -419,41 +424,62 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                     },
                     {
                         key: "preferences",
-                        label: "偏好设置",
+                        label: t("偏好设置"),
                         children: (
                             <Form layout="vertical" requiredMark={false}>
+                                <section className="mb-5 rounded-xl border border-stone-200 p-4 dark:border-stone-800" aria-labelledby="app-language-heading">
+                                    <div className="flex flex-wrap items-center justify-between gap-4">
+                                        <div className="flex min-w-0 items-start gap-3">
+                                            <Languages className="mt-0.5 size-4 shrink-0 text-blue-500" />
+                                            <div>
+                                                <div id="app-language-heading" className="text-sm font-semibold">{t("应用语言")}</div>
+                                                <div className="mt-1 text-xs leading-5 text-stone-500">{t("选择应用界面使用的语言，切换后立即生效。")}</div>
+                                            </div>
+                                        </div>
+                                        <Select
+                                            value={config.language}
+                                            aria-label={t("应用语言")}
+                                            className="w-full sm:w-48"
+                                            options={[
+                                                { value: "zh-CN", label: "中文（简体）" },
+                                                { value: "en-US", label: "English" },
+                                            ]}
+                                            onChange={(language) => updateConfig("language", language)}
+                                        />
+                                    </div>
+                                </section>
                                 <section className="mb-5 rounded-xl border border-stone-200 p-4 dark:border-stone-800" aria-labelledby="local-storage-heading">
                                     <div className="flex flex-wrap items-start justify-between gap-3">
                                         <div className="flex min-w-0 items-start gap-3">
                                             <Database className="mt-0.5 size-4 shrink-0 text-blue-500" />
                                             <div className="min-w-0 flex-1">
                                                 <div id="local-storage-heading" className="text-sm font-semibold">
-                                                    本机应用数据
+                                                    {t("本机应用数据")}
                                                 </div>
-                                                <div className="mt-1 text-xs leading-5 text-stone-500">画布、Zodiac 会话和媒体由应用自动保存在此设备。关闭后再次打开，可以从上次的位置继续。</div>
+                                                <div className="mt-1 text-xs leading-5 text-stone-500">{t("画布、Zodiac 会话和媒体由应用自动保存在此设备。关闭后再次打开，可以从上次的位置继续。")}</div>
                                             </div>
                                         </div>
                                         <div className="flex shrink-0 items-center gap-1 text-xs text-emerald-600 dark:text-emerald-400">
                                             <CheckCircle2 className="size-3.5" />
-                                            修改已自动保存在本机
+                                            {t("修改已自动保存在本机")}
                                         </div>
                                     </div>
                                     <LocalStorageLocations locations={storageLocations} error={storageLocationsError} />
                                 </section>
-                                <div className="mb-1 text-sm font-semibold">新任务默认模型</div>
-                                <div className="mb-3 text-xs leading-5 text-stone-500">工作台会记住最后选择，并把它作为下一次创作和新建节点的初始模型；不会改动已有节点。</div>
+                                <div className="mb-1 text-sm font-semibold">{t("新任务默认模型")}</div>
+                                <div className="mb-3 text-xs leading-5 text-stone-500">{t("工作台会记住最后选择，并把它作为下一次创作和新建节点的初始模型；不会改动已有节点。")}</div>
                                 <div className="mb-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                                     {modelGroups.map((group) => (
-                                        <Form.Item key={group.modelKey} label={group.defaultLabel} className="mb-0">
+                                        <Form.Item key={group.modelKey} label={t(group.defaultLabel)} className="mb-0">
                                             <ModelPicker config={config} value={config[group.modelKey]} onChange={(model) => changeDefaultModel(group, model)} capability={group.capability} fullWidth />
                                         </Form.Item>
                                     ))}
                                 </div>
                                 <section className="mt-5 border-t border-stone-200 pt-5 dark:border-stone-800">
-                                    <div className="mb-1 text-sm font-semibold">工作流节点默认值</div>
-                                    <div className="mb-3 text-xs leading-5 text-stone-500">只在新建生成节点时复制为初始值，之后可在节点内独立修改。</div>
+                                    <div className="mb-1 text-sm font-semibold">{t("工作流节点默认值")}</div>
+                                    <div className="mb-3 text-xs leading-5 text-stone-500">{t("只在新建生成节点时复制为初始值，之后可在节点内独立修改。")}</div>
                                     <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                                        <Form.Item label="生图张数" extra="实际范围会按所选图片模型限制。" className="mb-4">
+                                        <Form.Item label={t("生图张数")} extra={t("实际范围会按所选图片模型限制。")} className="mb-4">
                                             <Input
                                                 type="number"
                                                 min={1}
@@ -463,17 +489,17 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                                 onBlur={(event) => updateConfig("canvasImageCount", normalizeImageCount(event.target.value))}
                                             />
                                         </Form.Item>
-                                        <Form.Item label="默认音色" extra="音色列表会随默认音频模型更新；克隆或设计的音色可填写 Voice ID。" className="mb-4">
+                                        <Form.Item label={t("默认音色")} extra={t("音色列表会随默认音频模型更新；克隆或设计的音色可填写 Voice ID。")} className="mb-4">
                                             <DefaultAudioVoiceField model={config.audioModel} value={config.audioVoice} onChange={(value) => updateConfig("audioVoice", value)} />
                                         </Form.Item>
-                                        <Form.Item label="默认音频格式" className="mb-4">
+                                        <Form.Item label={t("默认音频格式")} className="mb-4">
                                             <Select
                                                 value={audioDefaultFormatOptions.some((option) => option.value === config.audioFormat) ? config.audioFormat : "mp3"}
                                                 options={audioDefaultFormatOptions}
                                                 onChange={(value) => updateConfig("audioFormat", value)}
                                             />
                                         </Form.Item>
-                                        <Form.Item label="默认音频语速" extra={`${audioSpeedRange.min}–${audioSpeedRange.max} 倍`} className="mb-4">
+                                        <Form.Item label={t("默认音频语速")} extra={t("{min}–{max} 倍", audioSpeedRange)} className="mb-4">
                                             <Input
                                                 type="number"
                                                 min={audioSpeedRange.min}
@@ -486,20 +512,20 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                         </Form.Item>
                                     </div>
                                     {audioDefaultsKind !== "minimax" ? (
-                                        <Form.Item label="默认声音指令" extra="仅用于支持声音指令的语音生成模型。" className="mb-0">
-                                            <Input.TextArea rows={2} value={config.audioInstructions} placeholder="例如：自然、温暖、适合旁白。" onChange={(event) => updateConfig("audioInstructions", event.target.value)} />
+                                        <Form.Item label={t("默认声音指令")} extra={t("仅用于支持声音指令的语音生成模型。")} className="mb-0">
+                                            <Input.TextArea rows={2} value={config.audioInstructions} placeholder={t("例如：自然、温暖、适合旁白。")} onChange={(event) => updateConfig("audioInstructions", event.target.value)} />
                                         </Form.Item>
                                     ) : null}
                                 </section>
                                 <section className="mt-5 border-t border-stone-200 pt-5 dark:border-stone-800">
-                                    <div className="mb-1 text-sm font-semibold">提示词行为</div>
-                                    <div className="mb-3 text-xs leading-5 text-stone-500">不同场景分别保存，避免一条全局提示词意外改变所有生成结果。</div>
+                                    <div className="mb-1 text-sm font-semibold">{t("提示词行为")}</div>
+                                    <div className="mb-3 text-xs leading-5 text-stone-500">{t("不同场景分别保存，避免一条全局提示词意外改变所有生成结果。")}</div>
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <Form.Item label="Zodiac 默认角色" extra="只影响 Zodiac 会话，不会进入媒体生成或工作流节点。" className="mb-0">
-                                            <Input.TextArea rows={4} value={config.zodiacSystemPrompt} placeholder="例如：回答简洁，先给结论，再给可执行步骤。" onChange={(event) => updateConfig("zodiacSystemPrompt", event.target.value)} />
+                                        <Form.Item label={t("Zodiac 默认角色")} extra={t("只影响 Zodiac 会话，不会进入媒体生成或工作流节点。")} className="mb-0">
+                                            <Input.TextArea rows={4} value={config.zodiacSystemPrompt} placeholder={t("例如：回答简洁，先给结论，再给可执行步骤。")} onChange={(event) => updateConfig("zodiacSystemPrompt", event.target.value)} />
                                         </Form.Item>
-                                        <Form.Item label="图片提示前缀" extra="只在图片生成请求前加入，不影响视频、音频和会话。" className="mb-0">
-                                            <Input.TextArea rows={4} value={config.imagePromptPrefix} placeholder="例如：电影感写实摄影，光线自然，构图克制。" onChange={(event) => updateConfig("imagePromptPrefix", event.target.value)} />
+                                        <Form.Item label={t("图片提示前缀")} extra={t("只在图片生成请求前加入，不影响视频、音频和会话。")} className="mb-0">
+                                            <Input.TextArea rows={4} value={config.imagePromptPrefix} placeholder={t("例如：电影感写实摄影，光线自然，构图克制。")} onChange={(event) => updateConfig("imagePromptPrefix", event.target.value)} />
                                         </Form.Item>
                                     </div>
                                 </section>
@@ -507,16 +533,16 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                     <div className="flex items-start justify-between gap-4">
                                         <div className="min-w-0">
                                             <div id="private-network-media-heading" className="text-sm font-semibold">
-                                                允许私有网络媒体下载
+                                                {t("允许私有网络媒体下载")}
                                             </div>
-                                            <div className="mt-1 text-xs leading-5 text-stone-500">使用自定义 Fake-IP、TUN 代理或局域网媒体服务时开启。默认关闭。</div>
+                                            <div className="mt-1 text-xs leading-5 text-stone-500">{t("使用自定义 Fake-IP、TUN 代理或局域网媒体服务时开启。默认关闭。")}</div>
                                         </div>
-                                        <Switch checked={config.allowPrivateNetworkMedia} onChange={(checked) => updateConfig("allowPrivateNetworkMedia", checked)} aria-label="允许私有网络媒体下载" />
+                                        <Switch checked={config.allowPrivateNetworkMedia} onChange={(checked) => updateConfig("allowPrivateNetworkMedia", checked)} aria-label={t("允许私有网络媒体下载")} />
                                     </div>
                                     {config.allowPrivateNetworkMedia ? (
                                         <div className="mt-3 flex items-start gap-2 rounded-lg bg-amber-50 px-3 py-2 text-xs leading-5 text-amber-800 dark:bg-amber-950/40 dark:text-amber-300" role="alert">
                                             <CircleAlert className="mt-0.5 size-3.5 shrink-0" />
-                                            开启后，模型返回的 HTTPS 下载地址可以连接本机、局域网及代理映射地址。请只使用可信的模型渠道和插件。
+                                            {t("开启后，模型返回的 HTTPS 下载地址可以连接本机、局域网及代理映射地址。请只使用可信的模型渠道和插件。")}
                                         </div>
                                     ) : null}
                                 </section>
@@ -525,7 +551,7 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                     },
                     {
                         key: "agents",
-                        label: "终端工具",
+                        label: t("终端工具"),
                         children: (
                             <AgentNodeSettings
                                 terminalApp={config.terminalApp}
@@ -542,10 +568,10 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                     },
                     {
                         key: "prompt-sources",
-                        label: "提示词来源",
+                        label: t("提示词来源"),
                         children:
                             activeTab === "prompt-sources" ? (
-                                <Suspense fallback={<div className="flex min-h-32 items-center justify-center text-xs text-stone-500">正在打开提示词来源...</div>}>
+                                <Suspense fallback={<div className="flex min-h-32 items-center justify-center text-xs text-stone-500">{t("正在打开提示词来源...")}</div>}>
                                     <ConfigPromptSources />
                                 </Suspense>
                             ) : null,
@@ -560,32 +586,32 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                                         <div>
                                             <div className="flex items-center gap-2 text-sm font-semibold">
                                                 <Cloud className="size-4" />
-                                                WebDAV 同步
+                                                {t("云端同步")}
                                             </div>
-                                            <div className="mt-1 text-xs text-stone-500">同步画布、我的资产、生成记录和本地媒体文件，不包含 AI API Key；应用会直接连接 WebDAV 服务。</div>
+                                            <div className="mt-1 text-xs text-stone-500">{t("同步画布、我的资产、生成记录和本地媒体文件，不包含 AI API Key；应用会直接连接 WebDAV 服务。")}</div>
                                         </div>
-                                        <div className="text-xs text-stone-500">{webdav.lastSyncedAt ? `上次同步 ${formatWebdavTime(webdav.lastSyncedAt)}` : "尚未同步"}</div>
+                                        <div className="text-xs text-stone-500">{webdav.lastSyncedAt ? t("上次同步 {time}", { time: formatWebdavTime(webdav.lastSyncedAt, language) }) : t("尚未同步")}</div>
                                     </div>
                                     <div className="grid gap-4 md:grid-cols-2">
-                                        <Form.Item label="WebDAV 地址" className="mb-4">
+                                        <Form.Item label={t("WebDAV 地址")} className="mb-4">
                                             <Input value={webdav.url} placeholder="https://nas.example.com/webdav" onChange={(event) => updateWebdavConfig("url", event.target.value)} />
                                         </Form.Item>
-                                        <Form.Item label="远程目录" extra={`会在该目录下分业务目录保存，每个目录包含 ${WEBDAV_MANIFEST_FILE_NAME} 和 files/`} className="mb-4">
+                                        <Form.Item label={t("远程目录")} extra={t("会在该目录下分业务目录保存，每个目录包含 {manifest} 和 files/", { manifest: WEBDAV_MANIFEST_FILE_NAME })} className="mb-4">
                                             <Input value={webdav.directory} placeholder="workflowgenerator" onChange={(event) => updateWebdavConfig("directory", event.target.value)} />
                                         </Form.Item>
-                                        <Form.Item label="用户名" className="mb-0">
+                                        <Form.Item label={t("用户名")} className="mb-0">
                                             <Input value={webdav.username} autoComplete="username" onChange={(event) => updateWebdavConfig("username", event.target.value)} />
                                         </Form.Item>
-                                        <Form.Item label="密码 / 应用密码" className="mb-0">
+                                        <Form.Item label={t("密码 / 应用密码")} className="mb-0">
                                             <Input.Password value={webdav.password} autoComplete="current-password" onChange={(event) => updateWebdavConfig("password", event.target.value)} />
                                         </Form.Item>
                                     </div>
                                     <div className="mt-4 flex flex-wrap items-center gap-2">
                                         <Button icon={<Wifi className="size-4" />} disabled={!webdavReady || syncingWebdav} loading={testingWebdav} onClick={() => void testWebdav()}>
-                                            测试连接
+                                            {t("测试连接")}
                                         </Button>
                                         <Button type="primary" icon={<RefreshCw className="size-4" />} disabled={!webdavReady || testingWebdav} loading={syncingWebdav} onClick={() => void syncWebdav()}>
-                                            {syncingWebdav ? "同步中" : "立即同步"}
+                                            {t(syncingWebdav ? "同步中" : "立即同步")}
                                         </Button>
                                         {webdavSyncStatus ? <span className="text-xs text-stone-500">{webdavSyncStatus}</span> : null}
                                     </div>
@@ -596,16 +622,16 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
                     },
                     {
                         key: "updates",
-                        label: "软件更新",
+                        label: t("软件更新"),
                         children: <AppUpdateSettings />,
                     },
                 ]}
             />
             {showDoneButton ? (
                 <div className="mt-4 flex items-center justify-end gap-3">
-                    <span className="text-xs text-stone-500">修改已自动保存在本机</span>
+                    <span className="text-xs text-stone-500">{t("修改已自动保存在本机")}</span>
                     <Button type="primary" onClick={finishConfig}>
-                        关闭
+                        {t("关闭")}
                     </Button>
                 </div>
             ) : null}
@@ -619,6 +645,7 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
 }
 
 export function AppConfigModal() {
+    const { t } = useAppTranslation();
     const isConfigOpen = useConfigStore((state) => state.isConfigOpen);
     const configTab = useConfigStore((state) => state.configTab);
     const setConfigDialogOpen = useConfigStore((state) => state.setConfigDialogOpen);
@@ -626,8 +653,8 @@ export function AppConfigModal() {
         <Modal
             title={
                 <div>
-                    <div className="text-lg font-semibold">配置与用户偏好</div>
-                    <div className="mt-1 text-xs font-normal text-stone-500">渠道聚合、默认模型和同步偏好</div>
+                    <div className="text-lg font-semibold">{t("配置与用户偏好")}</div>
+                    <div className="mt-1 text-xs font-normal text-stone-500">{t("渠道聚合、默认模型和同步偏好")}</div>
                 </div>
             }
             open={isConfigOpen}
@@ -663,6 +690,7 @@ function AgentNodeSettings({
     onAddScanPath: (path: string) => void;
     onRemoveScanPath: (path: string) => void;
 }) {
+    const { t } = useAppTranslation();
     const [pathDraft, setPathDraft] = useState("");
     const [showMissing, setShowMissing] = useState(false);
     const foundInstallations = installations.filter((installation) => installation.path);
@@ -675,16 +703,16 @@ function AgentNodeSettings({
                     <div>
                         <div className="flex items-center gap-2 text-sm font-semibold">
                             <Bot className="size-4" />
-                            本机终端工具
+                            {t("本机终端工具")}
                         </div>
-                        <div className="mt-1 text-xs text-stone-500">已发现 {foundInstallations.length} 个。它们可以直接在终端节点中运行。</div>
+                        <div className="mt-1 text-xs text-stone-500">{t("已发现 {count} 个。它们可以直接在终端节点中运行。", { count: foundInstallations.length })}</div>
                     </div>
                     <Button icon={<ScanLine className="size-4" />} loading={scanning} onClick={onScan}>
-                        扫描本机
+                        {scanning ? t("扫描中") : t("重新扫描")}
                     </Button>
                 </div>
                 <div className="mt-4 max-w-sm">
-                    <div className="mb-1.5 text-xs font-medium text-stone-600 dark:text-stone-300">默认外部终端</div>
+                    <div className="mb-1.5 text-xs font-medium text-stone-600 dark:text-stone-300">{t("默认外部终端")}</div>
                     <Select
                         value={terminalApp}
                         className="w-full"
@@ -694,7 +722,7 @@ function AgentNodeSettings({
                             { value: "ghostty", label: "Ghostty" },
                         ]}
                     />
-                    <div className="mt-1.5 text-[11px] text-stone-500">从终端节点的设置面板可按此偏好打开当前工作目录。</div>
+                    <div className="mt-1.5 text-[11px] text-stone-500">{t("从终端节点的设置面板可按此偏好打开当前工作目录。")}</div>
                 </div>
             </section>
 
@@ -711,20 +739,20 @@ function AgentNodeSettings({
                                         </div>
                                         <div className="mt-1 font-mono text-[11px] text-stone-500">{installation.command}</div>
                                     </div>
-                                    <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">可运行</span>
+                                    <span className="rounded-full bg-emerald-500/10 px-2 py-1 text-xs font-medium text-emerald-600 dark:text-emerald-400">{t("可运行")}</span>
                                 </div>
                             </div>
                         );
                     })
                 ) : (
-                    <div className="px-4 py-8 text-center text-sm text-stone-500">还没有发现可用终端工具。可以重新扫描，或添加扫描位置。</div>
+                    <div className="px-4 py-8 text-center text-sm text-stone-500">{t("还没有发现可用终端工具。可以重新扫描，或添加扫描位置。")}</div>
                 )}
             </section>
 
             {missingInstallations.length ? (
                 <button type="button" onClick={() => setShowMissing((value) => !value)} className="flex w-full items-center justify-between rounded-lg px-2 py-2 text-left text-xs text-stone-500 transition hover:bg-stone-100 dark:hover:bg-stone-900">
-                    <span>未发现的工具（{missingInstallations.length}）</span>
-                    <span>{showMissing ? "收起" : "查看"}</span>
+                    <span>{t("未发现的工具（{count}）", { count: missingInstallations.length })}</span>
+                    <span>{t(showMissing ? "收起" : "查看")}</span>
                 </button>
             ) : null}
             {showMissing ? (
@@ -740,14 +768,14 @@ function AgentNodeSettings({
 
             <details className="group rounded-xl border border-stone-200 dark:border-stone-800">
                 <summary className="flex cursor-pointer list-none items-center justify-between px-4 py-3 text-sm font-medium">
-                    <span>扫描位置</span>
-                    <span className="text-xs font-normal text-stone-500">{scannedPaths.length ? `当前 ${scannedPaths.length} 个位置` : "添加自定义位置"}</span>
+                    <span>{t("扫描位置")}</span>
+                    <span className="text-xs font-normal text-stone-500">{scannedPaths.length ? t("当前 {count} 个位置", { count: scannedPaths.length }) : t("添加自定义位置")}</span>
                 </summary>
                 <div className="border-t border-stone-200 p-4 dark:border-stone-800">
                     <div className="flex gap-2">
                         <Input
                             value={pathDraft}
-                            placeholder="添加要扫描的本机工具目录"
+                            placeholder={t("添加要扫描的本机工具目录")}
                             onChange={(event) => setPathDraft(event.target.value)}
                             onPressEnter={() => {
                                 onAddScanPath(pathDraft);
@@ -760,7 +788,7 @@ function AgentNodeSettings({
                                 setPathDraft("");
                             }}
                         >
-                            添加
+                            {t("添加")}
                         </Button>
                     </div>
                     {scanPaths.length ? (
@@ -770,8 +798,8 @@ function AgentNodeSettings({
                                     key={path}
                                     className="inline-flex max-w-full items-center gap-1 rounded-md border border-stone-200 bg-stone-50 py-1 pl-2 pr-1 font-mono text-[11px] text-stone-600 dark:border-stone-700 dark:bg-stone-900 dark:text-stone-300"
                                 >
-                                    <span className="max-w-[360px] truncate">{localLocationLabel(path, `自定义位置 ${index + 1}`)}</span>
-                                    <button type="button" className="grid size-5 place-items-center rounded hover:bg-stone-200 dark:hover:bg-stone-800" aria-label={`移除自定义位置 ${index + 1}`} onClick={() => onRemoveScanPath(path)}>
+                                    <span className="max-w-[360px] truncate">{localLocationLabel(path, t("自定义位置 {number}", { number: index + 1 }))}</span>
+                                    <button type="button" className="grid size-5 place-items-center rounded hover:bg-stone-200 dark:hover:bg-stone-800" aria-label={t("移除自定义位置 {number}", { number: index + 1 })} onClick={() => onRemoveScanPath(path)}>
                                         <X className="size-3" />
                                     </button>
                                 </span>
@@ -780,11 +808,11 @@ function AgentNodeSettings({
                     ) : null}
                     {scannedPaths.length ? (
                         <div className="mt-4 text-xs text-stone-500">
-                            <div className="mb-2">本次扫描位置</div>
+                            <div className="mb-2">{t("本次扫描位置")}</div>
                             <div className="flex max-h-28 flex-wrap gap-1.5 overflow-y-auto">
                                 {scannedPaths.map((path, index) => (
                                     <span key={path} className="rounded bg-stone-100 px-1.5 py-1 font-mono text-[10px] dark:bg-stone-900">
-                                        {localLocationLabel(path, `系统位置 ${index + 1}`)}
+                                        {localLocationLabel(path, t("系统位置 {number}", { number: index + 1 }))}
                                     </span>
                                 ))}
                             </div>
@@ -847,11 +875,12 @@ function channelVendorLabel(channel: ModelChannel) {
     return vendor?.label || apiFormatLabel(channel.apiFormat);
 }
 
-function formatWebdavTime(value: string) {
-    return new Date(value).toLocaleString("zh-CN", { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
+function formatWebdavTime(value: string, language: string) {
+    return new Date(value).toLocaleString(language, { month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
 function WebdavProgressGrid({ progress }: { progress: Record<AppSyncDomainKey, WebdavDomainProgress> }) {
+    const { t } = useAppTranslation();
     return (
         <div className="mt-3 grid gap-2">
             {webdavDomainKeys.map((key) => {
@@ -860,9 +889,9 @@ function WebdavProgressGrid({ progress }: { progress: Record<AppSyncDomainKey, W
                 return (
                     <div key={key} className="rounded-md border border-stone-200 px-3 py-2 dark:border-stone-800">
                         <div className="mb-1 flex min-w-0 items-center justify-between gap-3 text-xs">
-                            <span className="shrink-0 font-medium text-stone-700 dark:text-stone-200">{item.label}</span>
+                            <span className="shrink-0 font-medium text-stone-700 dark:text-stone-200">{t(item.label)}</span>
                             <span className="min-w-0 truncate text-right text-stone-500">
-                                {item.stage}
+                                {item.stage.startsWith("上传清单 ") ? t("上传清单 {size}", { size: item.stage.slice("上传清单 ".length) }) : item.stage.startsWith("上传媒体 ") ? t("上传媒体 {size}", { size: item.stage.slice("上传媒体 ".length) }) : t(item.stage)}
                                 {count ? ` · ${count}` : ""}
                             </span>
                         </div>

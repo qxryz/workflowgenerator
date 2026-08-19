@@ -12,6 +12,7 @@ export type ViewportTransform = {
 export enum CanvasNodeType {
     Image = "image",
     Text = "text",
+    File = "file",
     Config = "config",
     Video = "video",
     Audio = "audio",
@@ -24,7 +25,7 @@ export type CanvasNodeTypeId = CanvasNodeType | (string & {});
 
 export type CanvasNodeStatus = "idle" | "success" | "loading" | "error";
 export type CanvasGenerationMode = "text" | "image" | "video" | "audio";
-export type CanvasTerminalInputMode = "auto" | CanvasGenerationMode;
+export type CanvasTerminalInputMode = "auto" | CanvasGenerationMode | "file";
 export type CanvasImageGenerationType = "generation" | "edit";
 
 /**
@@ -121,6 +122,9 @@ export type CanvasNodeMetadata = {
     storageKey?: string;
     mimeType?: string;
     bytes?: number;
+    fileName?: string;
+    fileExtension?: string;
+    fileCategory?: import("@/lib/asset-file").AssetFileCategory;
     durationMs?: number;
     groupId?: string;
     interactive?: boolean; // 插件节点「交互 ⇄ 移动」开关状态(见 CanvasNodeDefinition.interactionToggle)
@@ -165,17 +169,28 @@ export type CanvasNodeData = {
     metadata?: CanvasNodeMetadata;
 };
 
-export type CanvasTerminalArtifact = {
-    kind: Exclude<CanvasGenerationMode, "text">;
-    url: string;
-    storageKey: string;
-    mimeType: string;
-    bytes: number;
-    width?: number;
-    height?: number;
-    durationMs?: number;
-    title: string;
-};
+export type CanvasTerminalArtifact =
+    | {
+          kind: Exclude<CanvasGenerationMode, "text">;
+          url: string;
+          storageKey: string;
+          mimeType: string;
+          bytes: number;
+          width?: number;
+          height?: number;
+          durationMs?: number;
+          title: string;
+      }
+    | {
+          kind: "file";
+          storageKey: string;
+          mimeType: string;
+          bytes: number;
+          title: string;
+          fileName: string;
+          extension: string;
+          category: import("@/lib/asset-file").AssetFileCategory;
+      };
 
 export type CanvasConnection = {
     id: string;

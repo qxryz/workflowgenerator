@@ -1480,7 +1480,7 @@ function decisionForSnapshot(decision: ZodiacDecisionUi, snapshot?: ZodiacCanvas
 }
 
 function isSnapshotResourceNode(node: ZodiacCanvasSnapshot["nodes"][number]) {
-    if ([CanvasNodeType.Text, CanvasNodeType.Image, CanvasNodeType.Video, CanvasNodeType.Audio].includes(node.type as CanvasNodeType)) return true;
+    if ([CanvasNodeType.Text, CanvasNodeType.Image, CanvasNodeType.Video, CanvasNodeType.Audio, CanvasNodeType.File].includes(node.type as CanvasNodeType)) return true;
     if (node.metadata?.role === "result-slot") return true;
     return node.type === CanvasNodeType.Terminal && ["text", "image", "video", "audio"].includes(String(node.metadata?.terminalOutputMode || ""));
 }

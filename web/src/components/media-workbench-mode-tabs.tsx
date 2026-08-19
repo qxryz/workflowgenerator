@@ -1,5 +1,7 @@
 import type { ComponentType } from "react";
 
+import { useAppTranslation } from "@/hooks/use-app-translation";
+
 type MediaWorkbenchModeTab<Value extends string> = {
     value: Value;
     label: string;
@@ -14,8 +16,9 @@ type MediaWorkbenchModeTabsProps<Value extends string> = {
 };
 
 export function MediaWorkbenchModeTabs<Value extends string>({ ariaLabel, items, value, onChange }: MediaWorkbenchModeTabsProps<Value>) {
+    const { t } = useAppTranslation();
     return (
-        <div className="flex shrink-0 items-center border-b border-[color:var(--wg-studio-line)] px-4" role="tablist" aria-label={ariaLabel}>
+        <div className="flex shrink-0 items-center border-b border-[color:var(--wg-studio-line)] px-4" role="tablist" aria-label={t(ariaLabel)}>
             {items.map((item) => {
                 const active = value === item.value;
                 return (
@@ -28,7 +31,7 @@ export function MediaWorkbenchModeTabs<Value extends string>({ ariaLabel, items,
                         onClick={() => onChange(item.value)}
                     >
                         <item.icon className="size-4" />
-                        <span>{item.label}</span>
+                        <span>{t(item.label)}</span>
                         {active ? <span className="absolute inset-x-3 bottom-0 h-0.5 bg-[color:var(--wg-studio-accent-strong)]" /> : null}
                     </button>
                 );

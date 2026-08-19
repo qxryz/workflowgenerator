@@ -40,6 +40,7 @@ export type DesktopStorageLocations = {
     data: string;
     images: string;
     media: string;
+    files: string;
     temporary: string;
 };
 
@@ -69,8 +70,14 @@ export async function getDesktopStorageLocations() {
 async function resolveDesktopStorageLocations(): Promise<DesktopStorageLocations> {
     const { appDataDir, homeDir, join } = await import("@tauri-apps/api/path");
     const [root, home] = await Promise.all([appDataDir(), homeDir()]);
-    const [data, images, media, temporary] = await Promise.all([join(root, "data"), join(root, "media", "images"), join(root, "media", "media"), join(root, "media", ".uploads")]);
-    return Object.fromEntries(Object.entries({ root, data, images, media, temporary }).map(([key, value]) => [key, abbreviateHomePath(value, home)])) as DesktopStorageLocations;
+    const [data, images, media, files, temporary] = await Promise.all([
+        join(root, "data"),
+        join(root, "media", "images"),
+        join(root, "media", "media"),
+        join(root, "media", "files"),
+        join(root, "media", ".uploads"),
+    ]);
+    return Object.fromEntries(Object.entries({ root, data, images, media, files, temporary }).map(([key, value]) => [key, abbreviateHomePath(value, home)])) as DesktopStorageLocations;
 }
 
 function abbreviateHomePath(path: string, home: string) {

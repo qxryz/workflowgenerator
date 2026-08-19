@@ -4,7 +4,7 @@ import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { builtinCanvasResourceKind, directUpstreamNodeIds, isReadyCanvasResourceValue } from "@/lib/canvas/canvas-input-bindings";
 import { CanvasNodeType, type CanvasConnection, type CanvasNodeData } from "@/types/canvas";
 
-export type CanvasResourceKind = "image" | "video" | "audio" | "text";
+export type CanvasResourceKind = "image" | "video" | "audio" | "text" | "file";
 
 export type CanvasResourceReference = {
     id: string;
@@ -15,6 +15,9 @@ export type CanvasResourceReference = {
     previewUrl?: string;
     storageKey?: string;
     text?: string;
+    fileName?: string;
+    mimeType?: string;
+    bytes?: number;
     /** Stable input revision used by terminal sessions; live terminal text does not rev on every output chunk. */
     inputRevision?: string;
     /** Pending result slots remain selectable, but are not valid execution inputs yet. */
@@ -49,7 +52,7 @@ function getContextResourceNodes(nodeId: string, nodes: CanvasNodeData[], connec
 }
 
 function labelResourceNodes(nodes: CanvasNodeData[]) {
-    const counts: Record<CanvasResourceKind, number> = { image: 0, video: 0, audio: 0, text: 0 };
+    const counts: Record<CanvasResourceKind, number> = { image: 0, video: 0, audio: 0, text: 0, file: 0 };
     return nodes.flatMap((node): CanvasResourceReference[] => {
         const kind = getCanvasResourceKind(node);
         if (!kind) return [];
@@ -76,6 +79,9 @@ function labelResourceNodes(nodes: CanvasNodeData[]) {
                 previewUrl: ready ? resource?.url || node.metadata?.content : undefined,
                 storageKey: ready ? node.metadata?.terminalOutputArtifactStorageKey || node.metadata?.storageKey : undefined,
                 text: ready ? text : "等待上游结果",
+                fileName: ready && kind === "file" ? resource?.fileName || node.metadata?.fileName || node.title : undefined,
+                mimeType: ready ? resource?.mimeType || node.metadata?.mimeType : undefined,
+                bytes: ready ? resource?.bytes || node.metadata?.bytes : undefined,
                 inputRevision,
                 ready,
                 active: true,
@@ -88,6 +94,7 @@ function labelForKind(kind: CanvasResourceKind, index: number) {
     if (kind === "image") return imageReferenceLabel(index);
     if (kind === "video") return seedanceReferenceLabel("video", index);
     if (kind === "audio") return seedanceReferenceLabel("audio", index);
+    if (kind === "file") return `文件${index + 1}`;
     return `文本${index + 1}`;
 }
 
@@ -110,5 +117,6 @@ export function isCanvasResourceNodeReady(node: CanvasNodeData) {
     const resultSlotState = node.metadata?.role === "result-slot" ? node.metadata.slotState : undefined;
     if (kind === "text") return isReadyCanvasResourceValue(node.metadata?.status, resourceText(node), resultSlotState);
     const resource = getNodeDefinition(node.type)?.resource?.(node);
+    if (kind === "file") return isReadyCanvasResourceValue(node.metadata?.status, resource?.storageKey || node.metadata?.storageKey, resultSlotState);
     return isReadyCanvasResourceValue(node.metadata?.status, resource?.kind === kind ? resource.url || node.metadata?.content : node.metadata?.content, resultSlotState);
 }

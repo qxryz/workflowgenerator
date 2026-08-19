@@ -41,7 +41,8 @@ test("preferences UI and request paths expose separate scopes", () => {
     assert.match(configUi, /应用数据根目录/u);
     assert.match(configUi, /配置与业务数据/u);
     assert.match(configUi, /图片文件/u);
-    assert.match(configUi, /视频、音频与其他文件/u);
+    assert.match(configUi, /视频与音频/u);
+    assert.match(configUi, /通用文件/u);
     assert.match(configUi, /临时写入/u);
     assert.match(configUi, /允许私有网络媒体下载/u);
     assert.match(configUi, /只使用可信的模型渠道和插件/u);
@@ -50,6 +51,7 @@ test("preferences UI and request paths expose separate scopes", () => {
     assert.match(desktopStorage, /join\(root, "data"\)/u);
     assert.match(desktopStorage, /join\(root, "media", "images"\)/u);
     assert.match(desktopStorage, /join\(root, "media", "media"\)/u);
+    assert.match(desktopStorage, /join\(root, "media", "files"\)/u);
     assert.match(desktopStorage, /join\(root, "media", "\.uploads"\)/u);
     assert.match(desktopStorage, /allowPrivateNetwork: options\.allowPrivateNetwork === true/u);
     assert.match(fileStorage, /config\.allowPrivateNetworkMedia/u);

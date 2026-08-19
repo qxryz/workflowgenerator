@@ -114,6 +114,7 @@ export function buildNodeGenerationInputs(nodeId: string, nodes: CanvasNodeData[
         if (!type) return [];
         const ready = isCanvasResourceNodeReady(node);
         const title = ready ? node.title : `${node.title} · 等待结果`;
+        if (type === "file") return [];
         if (type === "image") return [{ nodeId: node.id, type, title, ready, image: ready ? readReferenceImage(node) || undefined : undefined }];
         if (type === "video") return [{ nodeId: node.id, type, title, ready, video: ready ? readReferenceVideo(node) || undefined : undefined }];
         if (type === "audio") return [{ nodeId: node.id, type, title, ready, audio: ready ? readReferenceAudio(node) || undefined : undefined }];

@@ -1,12 +1,14 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
-import { ChevronRight, Group, Image as ImageIcon, Music2, Puzzle, RefreshCw, Settings2, Star, Video } from "lucide-react";
+import { ChevronRight, File, Group, Image as ImageIcon, Music2, Puzzle, RefreshCw, Settings2, Star, Video } from "lucide-react";
 import type { Terminal as XTermInstance } from "@xterm/xterm";
 import type { FitAddon as FitAddonInstance } from "@xterm/addon-fit";
 import "@xterm/xterm/css/xterm.css";
 import { nanoid } from "nanoid";
 
 import { canvasThemes } from "@/lib/canvas-theme";
+import { useAppTranslation } from "@/hooks/use-app-translation";
+import { assetFileCategory, assetFileCategoryLabel, classifyImportedFile, fileExtension, safeOriginalFileName } from "@/lib/asset-file";
 import { formatBytes, readImageMeta } from "@/lib/image-utils";
 import { getNodeDefinition } from "@/lib/canvas/node-registry";
 import { buildNodeContext } from "@/lib/canvas/plugin-node-context";
@@ -132,6 +134,7 @@ export const CanvasNode = React.memo(function CanvasNode({
     onViewImage,
     onContextMenu,
 }: CanvasNodeProps) {
+    const { t } = useAppTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const [hovered, setHovered] = useState(false);
     const definition = getNodeDefinition(data.type);
@@ -353,13 +356,13 @@ export const CanvasNode = React.memo(function CanvasNode({
                             type="button"
                             className="block max-w-full truncate border-b border-dashed border-transparent px-0 py-0.5 text-left text-xs font-medium opacity-75 transition hover:border-current hover:opacity-100"
                             style={{ color: theme.node.text }}
-                            title="双击修改节点名称"
+                            title={t("双击修改节点名称")}
                             onDoubleClick={(event) => {
                                 event.stopPropagation();
                                 setIsEditingTitle(true);
                             }}
                         >
-                            {data.title || "未命名节点"}
+                            {data.title || t("未命名节点")}
                         </button>
                     )}
                 </div>
@@ -493,6 +496,7 @@ function NodeContent(props: NodeContentRendererProps) {
 
 const nodeContentRenderers = {
     [CanvasNodeType.Text]: TextContent,
+    [CanvasNodeType.File]: FileNodeContent,
     [CanvasNodeType.Image]: ImageNodeContent,
     [CanvasNodeType.Config]: EmptyImageContent,
     [CanvasNodeType.Video]: VideoNodeContent,
@@ -501,16 +505,41 @@ const nodeContentRenderers = {
     [CanvasNodeType.Group]: GroupNodeContent,
 } satisfies Record<CanvasNodeType, (props: NodeContentRendererProps) => ReactNode>;
 
+function FileNodeContent({ node, theme }: NodeContentRendererProps) {
+    const { t } = useAppTranslation();
+    const extension = node.metadata?.fileExtension?.toLocaleUpperCase() || "FILE";
+    const category = node.metadata?.fileCategory ? assetFileCategoryLabel(node.metadata.fileCategory) : "文件";
+    return (
+        <div className="flex h-full w-full items-center gap-4 overflow-hidden px-5 py-4">
+            <span className="grid size-12 shrink-0 place-items-center rounded-xl border" style={{ borderColor: theme.node.stroke, color: theme.node.muted }}>
+                <File className="size-6" />
+            </span>
+            <div className="min-w-0 flex-1">
+                <div className="truncate text-sm font-semibold" style={{ color: theme.node.text }} title={node.metadata?.fileName || node.title}>
+                    {node.metadata?.fileName || t(node.title || "文件")}
+                </div>
+                <div className="mt-1.5 flex flex-wrap items-center gap-1.5 text-[11px]" style={{ color: theme.node.muted }}>
+                    <span className="rounded border px-1.5 py-0.5 font-mono" style={{ borderColor: theme.node.stroke }}>{extension}</span>
+                    <span>{t(category)}</span>
+                    {node.metadata?.bytes !== undefined ? <span>· {formatBytes(node.metadata.bytes)}</span> : null}
+                </div>
+                <div className="mt-2 truncate text-[10px] opacity-55" style={{ color: theme.node.text }} title={node.metadata?.mimeType}>{node.metadata?.mimeType || "application/octet-stream"}</div>
+            </div>
+        </div>
+    );
+}
+
 function GroupNodeContent({ node, theme, groupChildCount }: NodeContentRendererProps) {
+    const { t } = useAppTranslation();
     return (
         <div className="pointer-events-none flex h-full w-full flex-col p-4">
             <div className="flex items-center gap-2 text-sm font-semibold" style={{ color: theme.node.text }}>
                 <span className="grid size-8 place-items-center rounded-xl" style={{ background: theme.toolbar.activeBg, color: theme.node.muted }}>
                     <Group className="size-4" />
                 </span>
-                <span>组</span>
+                <span>{t("组")}</span>
                 <span className="ml-auto rounded-full px-2 py-1 text-[11px] font-medium" style={{ background: theme.node.fill, color: theme.node.muted }}>
-                    {groupChildCount} 个节点
+                    {t("{count} 个节点", { count: groupChildCount })}
                 </span>
             </div>
             <div className="mt-3 flex-1 rounded-2xl border border-dashed" style={{ borderColor: theme.node.stroke, background: `${theme.node.fill}55` }} />
@@ -519,18 +548,20 @@ function GroupNodeContent({ node, theme, groupChildCount }: NodeContentRendererP
 }
 
 function LoadingContent({ theme }: Pick<NodeContentRendererProps, "theme">) {
+    const { t } = useAppTranslation();
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-3" style={{ color: theme.node.activeStroke }}>
             <div className="size-10 animate-spin rounded-full border-2" style={{ borderColor: theme.node.stroke, borderTopColor: theme.node.activeStroke }} />
-            <span className="text-[10px] tracking-[0.2em]">生成中</span>
+            <span className="text-[10px] tracking-[0.2em]">{t("生成中")}</span>
         </div>
     );
 }
 
 function ErrorContent({ node, theme, onRetry }: Pick<NodeContentRendererProps, "node" | "theme" | "onRetry">) {
+    const { t } = useAppTranslation();
     return (
         <div className="flex max-w-[260px] flex-col items-center gap-3 px-5 text-center">
-            <div className="text-xs leading-5 text-red-300">{node.metadata?.errorDetails || "生成失败"}</div>
+            <div className="text-xs leading-5 text-red-300">{node.metadata?.errorDetails || t("生成失败")}</div>
             <button
                 type="button"
                 className="inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-xs font-medium transition hover:scale-[1.02]"
@@ -542,23 +573,25 @@ function ErrorContent({ node, theme, onRetry }: Pick<NodeContentRendererProps, "
                 onMouseDown={(event) => event.stopPropagation()}
             >
                 <RefreshCw className="size-3.5" />
-                重试
+                {t("重试")}
             </button>
         </div>
     );
 }
 
 function MissingPluginContent({ theme, type }: Pick<NodeContentRendererProps, "theme"> & { type: string }) {
+    const { t } = useAppTranslation();
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-2 px-4 text-center" style={{ color: theme.node.placeholder }}>
             <Puzzle className="size-7 opacity-40" />
-            <span className="text-sm">缺少插件</span>
-            <span className="text-[11px] opacity-70">节点类型 “{type}” 的插件未安装或未启用</span>
+            <span className="text-sm">{t("缺少插件")}</span>
+            <span className="text-[11px] opacity-70">{t("节点类型 “{type}” 的插件未安装或未启用", { type })}</span>
         </div>
     );
 }
 
 function TextContent({ node, theme, isEditingContent, textareaRef, mentionReferences, onContentChange, onStopEditing, onGenerateImage }: NodeContentRendererProps) {
+    const { t } = useAppTranslation();
     const fontSize = node.metadata?.fontSize || 14;
     const textStyle = { fontSize: `${fontSize}px`, lineHeight: `${Math.round(fontSize * 1.65)}px`, color: theme.node.text, boxSizing: "border-box" } as React.CSSProperties;
 
@@ -574,11 +607,11 @@ function TextContent({ node, theme, isEditingContent, textareaRef, mentionRefere
                 }}
                 onMouseDown={(event) => event.stopPropagation()}
                 onPointerDown={(event) => event.stopPropagation()}
-                title="用文本生图"
-                aria-label="用文本生图"
+                title={t("用文本生图")}
+                aria-label={t("用文本生图")}
             >
                 <ImageIcon className="size-3.5" />
-                生图
+                {t("生图")}
             </button>
             {isEditingContent ? (
                 <CanvasResourceMentionTextarea
@@ -599,7 +632,7 @@ function TextContent({ node, theme, isEditingContent, textareaRef, mentionRefere
                 />
             ) : (
                 <div className="thin-scrollbar block h-full w-full overflow-y-auto whitespace-pre-wrap break-words bg-transparent pl-4 pr-14 pt-0 pb-4 font-mono" style={textStyle} onWheel={(event) => event.stopPropagation()}>
-                    {node.metadata?.content || <span style={{ color: theme.node.placeholder }}>双击编辑文字</span>}
+                    {node.metadata?.content || <span style={{ color: theme.node.placeholder }}>{t("双击编辑文字")}</span>}
                 </div>
             )}
         </div>
@@ -639,12 +672,13 @@ function ImageNodeContent(props: NodeContentRendererProps) {
 }
 
 function EmptyImageContent({ theme, isBatchRoot, batchCount, batchExpanded, batchOpening, batchRecovering, onToggleBatch }: NodeContentRendererProps) {
+    const { t } = useAppTranslation();
     const content = (
         <div className="flex h-full w-full flex-col items-center justify-center gap-3" style={{ color: theme.node.placeholder }}>
             <div className="flex size-14 items-center justify-center rounded-2xl" style={{ background: theme.toolbar.activeBg }}>
                 <ImageIcon className="size-6 opacity-30" />
             </div>
-            <span className="text-[10px] tracking-[0.18em] opacity-50">空图片节点</span>
+            <span className="text-[10px] tracking-[0.18em] opacity-50">{t("空图片节点")}</span>
         </div>
     );
     if (isBatchRoot)
@@ -657,11 +691,12 @@ function EmptyImageContent({ theme, isBatchRoot, batchCount, batchExpanded, batc
 }
 
 function VideoNodeContent({ node, theme }: NodeContentRendererProps) {
+    const { t } = useAppTranslation();
     if (!node.metadata?.content)
         return (
             <div className="flex h-full w-full flex-col items-center justify-center gap-3" style={{ color: theme.node.placeholder }}>
                 <Video className="size-7 opacity-35" />
-                <span className="text-sm">空视频节点</span>
+                <span className="text-sm">{t("空视频节点")}</span>
             </div>
         );
     const model = node.metadata.model ? modelOptionName(node.metadata.model) : "";
@@ -673,7 +708,7 @@ function VideoNodeContent({ node, theme }: NodeContentRendererProps) {
             {summary ? (
                 <div className="pointer-events-none absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-md bg-black/60 px-2 py-1 text-[10px] leading-4 text-white backdrop-blur-sm">
                     <div className="truncate">{summary}</div>
-                    {options ? <div className="truncate text-white/70">{options}</div> : null}
+                    {options ? <div className="truncate text-white/70">{options.split(" · ").map((option) => t(option)).join(" · ")}</div> : null}
                 </div>
             ) : null}
         </div>
@@ -681,18 +716,19 @@ function VideoNodeContent({ node, theme }: NodeContentRendererProps) {
 }
 
 function AudioNodeContent({ node, theme }: NodeContentRendererProps) {
+    const { t } = useAppTranslation();
     if (!node.metadata?.content)
         return (
             <div className="flex h-full w-full flex-col items-center justify-center gap-2" style={{ color: theme.node.placeholder }}>
                 <Music2 className="size-7 opacity-35" />
-                <span className="text-sm">空音频节点</span>
+                <span className="text-sm">{t("空音频节点")}</span>
             </div>
         );
     return (
         <div className="flex h-full w-full flex-col justify-center gap-3 px-4" style={{ background: theme.node.fill, color: theme.node.text }}>
             <div className="flex min-w-0 items-center gap-2 text-sm opacity-70">
                 <Music2 className="size-4 shrink-0" />
-                <span className="truncate">音频</span>
+                <span className="truncate">{t("音频")}</span>
             </div>
             <audio src={node.metadata.content} controls className="w-full" data-canvas-no-zoom />
         </div>
@@ -709,17 +745,18 @@ function TerminalNodeContent(props: NodeContentRendererProps) {
 }
 
 function TerminalSetupContent({ theme }: Pick<NodeContentRendererProps, "theme">) {
+    const { t } = useAppTranslation();
     return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-3 px-7 text-center" style={{ color: theme.node.text }}>
             <span className="grid size-11 place-items-center rounded-2xl bg-emerald-400/[.12] text-emerald-400">
                 <Settings2 className="size-5" />
             </span>
             <div>
-                <div className="text-sm font-semibold">终端等待配置</div>
-                <p className="mt-1.5 text-[11px] leading-5 opacity-55">先确认工作目录、接收内容和输出类型，再启动终端。</p>
+                <div className="text-sm font-semibold">{t("终端等待配置")}</div>
+                <p className="mt-1.5 text-[11px] leading-5 opacity-55">{t("先确认工作目录、接收内容和输出类型，再启动终端。")}</p>
             </div>
             <span className="rounded-full border px-2.5 py-1 text-[10px] opacity-65" style={{ borderColor: theme.node.stroke }}>
-                点击节点继续配置
+                {t("点击节点继续配置")}
             </span>
         </div>
     );
@@ -771,20 +808,25 @@ function TerminalSessionContent({ node, onMetadataChange, onTerminalArtifact, me
         sessionReadyRef.current = false;
         let metadataFlushTimer: number | undefined;
         let outputMetadataDirty = false;
-        const importArtifact = (path: string, mimeType?: string) => {
+        const importArtifact = (path: string, mimeType?: string, explicit = false) => {
             if (cancelled) return;
             const outputMode = outputModeRef.current;
-            if (outputMode === "text" || (mimeType && !mimeType.startsWith(`${outputMode}/`))) return;
+            const artifactKind = terminalArtifactKind(path, mimeType);
+            if (artifactKind === "file") {
+                if (!explicit && !path.startsWith("$WG_OUTPUT_DIR/")) return;
+            } else if (outputMode === "text" || artifactKind !== outputMode) {
+                return;
+            }
             if (importingArtifactPathsRef.current.has(path)) {
                 queuedArtifactPathsRef.current.set(path, mimeType);
                 return;
             }
             importingArtifactPathsRef.current.add(path);
             const previousSignature = importedArtifactSignaturesRef.current.get(path);
-            void importTerminalOutputWhenReady(runtimeSessionId, path, outputMode, terminalArtifactStorageKey(outputMode), previousSignature)
+            void importTerminalOutputWhenReady(runtimeSessionId, path, artifactKind, terminalArtifactStorageKey(artifactKind), previousSignature)
                 .then(async (file) => {
                     if (cancelled || !file) return;
-                    const imported = await importTerminalArtifact(file, path, outputMode, node.id, onMetadataChange, onTerminalArtifact);
+                    const imported = await importTerminalArtifact(file, path, artifactKind, node.id, onMetadataChange, onTerminalArtifact);
                     if (!imported || cancelled) return;
                     importedArtifactSignaturesRef.current.set(path, file.signature);
                     onMetadataChange?.(node.id, {
@@ -804,7 +846,7 @@ function TerminalSessionContent({ node, onMetadataChange, onTerminalArtifact, me
                     if (!queuedArtifactPathsRef.current.has(path)) return;
                     const queuedMimeType = queuedArtifactPathsRef.current.get(path);
                     queuedArtifactPathsRef.current.delete(path);
-                    importArtifact(path, queuedMimeType);
+                    importArtifact(path, queuedMimeType, explicit);
                 });
         };
         const flushOutputMetadata = () => {
@@ -832,7 +874,7 @@ function TerminalSessionContent({ node, onMetadataChange, onTerminalArtifact, me
             scheduleOutputMetadataFlush();
             const completedLines = `${markerBufferRef.current}${data}`.split(/\r?\n/gu);
             markerBufferRef.current = completedLines.pop() || "";
-            completedLines.forEach((line) => terminalArtifactPaths(terminalPlainText(line)).forEach((path) => importArtifact(path)));
+            completedLines.forEach((line) => terminalArtifactPaths(terminalPlainText(line)).forEach((path) => importArtifact(path, undefined, true)));
         };
         let cancelled = false;
         let unlistenOutput: (() => void) | undefined;
@@ -861,7 +903,7 @@ function TerminalSessionContent({ node, onMetadataChange, onTerminalArtifact, me
                 await startTerminalSession(runtimeSessionId, directory, inputs, activeSkills);
                 if (cancelled) return;
                 sessionReadyRef.current = true;
-                terminalArtifactPaths(terminalPlainText(outputRef.current)).forEach((path) => importArtifact(path));
+                terminalArtifactPaths(terminalPlainText(outputRef.current)).forEach((path) => importArtifact(path, undefined, true));
                 const terminal = terminalRef.current;
                 if (terminal) {
                     fitAddonRef.current?.fit();
@@ -1027,13 +1069,27 @@ function isTerminalMouseSequence(value: string) {
 async function importTerminalArtifact(
     file: TerminalImportedMedia,
     path: string,
-    outputMode: Exclude<CanvasGenerationMode, "text">,
+    outputMode: Exclude<CanvasGenerationMode, "text"> | "file",
     nodeId: string,
     onMetadataChange?: (nodeId: string, patch: Partial<CanvasNodeData["metadata"]>) => void,
     onTerminalArtifact?: (nodeId: string, artifact: CanvasTerminalArtifact) => void,
 ) {
     try {
         const stored = file.record;
+        if (outputMode === "file") {
+            const fileName = terminalArtifactFileName(path);
+            onTerminalArtifact?.(nodeId, {
+                kind: "file",
+                storageKey: stored.key,
+                mimeType: stored.mimeType,
+                bytes: stored.bytes,
+                title: fileName,
+                fileName,
+                extension: fileExtension(fileName),
+                category: assetFileCategory(fileName, stored.mimeType),
+            });
+            return true;
+        }
         if (outputMode === "image") {
             const image = await readImageMeta(stored.url);
             onMetadataChange?.(nodeId, { terminalOutputArtifactUrl: stored.url, terminalOutputArtifactStorageKey: stored.key, terminalOutputMimeType: stored.mimeType, terminalOutputValue: stored.url, status: "success", errorDetails: undefined });
@@ -1065,7 +1121,7 @@ async function importTerminalArtifact(
     }
 }
 
-async function importTerminalOutputWhenReady(sessionId: string, path: string, outputMode: Exclude<CanvasGenerationMode, "text">, storageKey: string, previousSignature?: string) {
+async function importTerminalOutputWhenReady(sessionId: string, path: string, outputMode: Exclude<CanvasGenerationMode, "text"> | "file", storageKey: string, previousSignature?: string) {
     let lastError: unknown;
     for (let attempt = 0; attempt < 3; attempt += 1) {
         try {
@@ -1078,9 +1134,17 @@ async function importTerminalOutputWhenReady(sessionId: string, path: string, ou
     throw lastError;
 }
 
-function terminalArtifactStorageKey(outputMode: Exclude<CanvasGenerationMode, "text">) {
-    const prefix = outputMode === "image" ? "image" : "terminal-output";
+function terminalArtifactStorageKey(outputMode: Exclude<CanvasGenerationMode, "text"> | "file") {
+    const prefix = outputMode === "image" ? "image" : outputMode === "file" ? "file" : "terminal-output";
     return `${prefix}:${nanoid()}`;
+}
+
+function terminalArtifactKind(path: string, mimeType?: string): Exclude<CanvasGenerationMode, "text"> | "file" {
+    return classifyImportedFile({ name: path, type: mimeType || "" });
+}
+
+function terminalArtifactFileName(path: string) {
+    return safeOriginalFileName(path.replace(/\\/gu, "/").split("/").at(-1) || "终端输出");
 }
 
 function terminalArtifactTitle(path: string) {
