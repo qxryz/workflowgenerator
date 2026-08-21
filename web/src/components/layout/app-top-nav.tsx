@@ -11,7 +11,6 @@ import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useSmoothNavigation } from "@/hooks/use-smooth-navigation";
 import { cn } from "@/lib/utils";
 import { isDesktopApp } from "@/services/desktop-storage";
-import { getDshDesktopVersion } from "@/services/dsh-launcher";
 import { openExternalUrl } from "@/services/external-links";
 import { useAgentStore } from "@/stores/use-agent-store";
 import { useConfigStore } from "@/stores/use-config-store";
@@ -29,23 +28,10 @@ const destinations = [
     { label: "文档", path: "/docs", icon: FileText },
 ];
 
-function dshMenuLabel(version: string | null) {
-    return (
-        <span className="flex min-w-36 items-center justify-between gap-6">
-            <span>DSH</span>
-            {version ? <span className="font-mono text-[10px] text-[color:var(--wg-home-muted)]">v{version}</span> : null}
-        </span>
-    );
-}
-
-function playfulMenuItems(desktop: boolean, dshVersion: string | null, t: (message: string) => string): MenuProps["items"] {
+function playfulMenuItems(desktop: boolean, t: (message: string) => string): MenuProps["items"] {
     const items: NonNullable<MenuProps["items"]> = [{ key: "about-author", label: t("说了别点"), icon: <UserRound className="size-4" strokeWidth={1.7} /> }];
     if (desktop) {
-        items.push(
-            { type: "divider" },
-            { key: "dsh", label: dshMenuLabel(dshVersion), icon: <img src="/icons/deepseek.svg" alt="" className="size-4" /> },
-            { key: "upcoming", label: "...", icon: <Clock className="size-4" strokeWidth={1.7} />, disabled: true },
-        );
+        items.push({ type: "divider" }, { key: "upcoming", label: "...", icon: <Clock className="size-4" strokeWidth={1.7} />, disabled: true });
     }
     items.push({ type: "divider" }, { key: "explore", label: t("探索"), icon: <Compass className="size-4" strokeWidth={1.7} /> });
     return items;
@@ -65,7 +51,6 @@ export function AppTopNav() {
     const navigate = useNavigate();
     const smoothNavigate = useSmoothNavigation();
     const [playfulMenuOpen, setPlayfulMenuOpen] = useState(false);
-    const [dshVersion, setDshVersion] = useState<string | null>(null);
     const desktopApp = isDesktopApp();
     const isHome = pathname === "/";
     const configOpen = useConfigStore((state) => state.isConfigOpen);
@@ -120,23 +105,13 @@ export function AppTopNav() {
                                     trigger={["click"]}
                                     placement="bottomRight"
                                     open={playfulMenuOpen}
-                                    onOpenChange={(open) => {
-                                        setPlayfulMenuOpen(open);
-                                        if (open && desktopApp)
-                                            void getDshDesktopVersion()
-                                                .then(setDshVersion)
-                                                .catch(() => setDshVersion(null));
-                                    }}
+                                    onOpenChange={setPlayfulMenuOpen}
                                     menu={{
-                                        items: playfulMenuItems(desktopApp, dshVersion, t),
+                                        items: playfulMenuItems(desktopApp, t),
                                         onClick: ({ key }) => {
                                             setPlayfulMenuOpen(false);
                                             if (key === "about-author") {
                                                 navigate("/about-author");
-                                                return;
-                                            }
-                                            if (key === "dsh") {
-                                                navigate("/dsh");
                                                 return;
                                             }
                                             if (key === "explore") {
@@ -146,7 +121,7 @@ export function AppTopNav() {
                                     }}
                                     styles={{ root: { minWidth: 220 } }}
                                 >
-                                    <button type="button" title={t("别点我")} className={cn(navItemClass(pathname === "/about-author" || pathname === "/dsh"), "wg-playful-nav")} aria-haspopup="menu" aria-expanded={playfulMenuOpen}>
+                                    <button type="button" title={t("别点我")} className={cn(navItemClass(pathname === "/about-author"), "wg-playful-nav")} aria-haspopup="menu" aria-expanded={playfulMenuOpen}>
                                         <UserRound className="size-4 shrink-0" strokeWidth={1.7} />
                                         <span className="hidden text-[11px] xl:inline">{t("别点我")}</span>
                                         <ChevronDown className={cn("hidden size-3 shrink-0 transition-transform xl:block", playfulMenuOpen && "rotate-180")} strokeWidth={1.7} />

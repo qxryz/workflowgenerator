@@ -26,7 +26,7 @@ xattr -dr com.apple.quarantine /Applications/WorkflowGenerator.app
 - 图片、视频、音频、SD2.5 等几个常用工作台。
 - 3D 导演台，先摆人物、机位和构图，再拿去生成。
 - Skills、提示词、我的资产和作者私藏。
-- DSH Launcher 和一些我自己会用的小入口。
+- 一些我自己会用的小入口。
 - 数据默认留在本机，模型用自己的 Key。
 
 ## 网络代理

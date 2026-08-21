@@ -15,7 +15,6 @@ const HomePage = lazy(() => import("@/pages/home"));
 const WorkbenchPage = lazy(() => import("@/pages/workbench"));
 const DirectorPage = lazy(() => import("@/pages/director"));
 const DocsPage = lazy(() => import("@/pages/model-adaptations"));
-const DshLauncherPage = lazy(() => import("@/pages/dsh"));
 const PromptsPage = lazy(() => import("@/pages/prompts"));
 const ZodiacSessionsPage = lazy(() => import("@/pages/sessions"));
 const SkillsPage = lazy(() => import("@/pages/skills"));
@@ -56,7 +55,6 @@ export const router = createBrowserRouter([
             { path: "/director", element: <DirectorPage /> },
             { path: "/image", element: <Navigate to="/workbench/image" replace /> },
             { path: "/docs", element: <DocsPage /> },
-            { path: "/dsh", element: <DshLauncherPage /> },
             { path: "/model-adaptations", element: <DocsPage /> },
             { path: "/sessions", element: <ZodiacSessionsPage /> },
             { path: "/skills", element: <SkillsPage /> },

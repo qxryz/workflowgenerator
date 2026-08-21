@@ -395,56 +395,6 @@
         background-image: repeating-linear-gradient(0deg, transparent 0 7px, var(--wg-pencil-faint) 7px 7.35px), repeating-linear-gradient(91deg, transparent 0 17px, color-mix(in srgb, var(--wg-pencil-faint) 55%, transparent) 17px 17.3px);
     }
 
-    .wg-dsh-launcher {
-        isolation: isolate;
-        position: relative;
-        background:
-            radial-gradient(circle at 76% 43%, color-mix(in srgb, #4d6bfe 18%, transparent) 0%, color-mix(in srgb, #4d6bfe 8%, transparent) 24%, transparent 47%),
-            linear-gradient(118deg, color-mix(in srgb, var(--wg-paper) 94%, transparent), color-mix(in srgb, var(--wg-home-bg) 91%, #4d6bfe 9%));
-    }
-
-    .wg-dsh-launcher::before {
-        position: absolute;
-        z-index: 0;
-        inset: 0;
-        background-image:
-            linear-gradient(90deg, transparent 0 49.88%, color-mix(in srgb, var(--wg-pencil) 7%, transparent) 49.88% 50%, transparent 50% 100%),
-            linear-gradient(0deg, transparent 0 49.88%, color-mix(in srgb, var(--wg-pencil) 6%, transparent) 49.88% 50%, transparent 50% 100%);
-        background-size: 72px 72px;
-        content: "";
-        opacity: 0.6;
-        pointer-events: none;
-    }
-
-    .wg-dsh-launcher::after {
-        position: absolute;
-        z-index: 0;
-        right: -12%;
-        bottom: -62%;
-        width: 58%;
-        aspect-ratio: 1;
-        border: 1px dashed color-mix(in srgb, #4d6bfe 34%, transparent);
-        border-radius: 999px;
-        content: "";
-        pointer-events: none;
-    }
-
-    .wg-dsh-launcher-orbit {
-        animation: wg-dsh-orbit 36s linear infinite;
-    }
-
-    @keyframes wg-dsh-orbit {
-        to {
-            transform: rotate(360deg);
-        }
-    }
-
-    @media (prefers-reduced-motion: reduce) {
-        .wg-dsh-launcher-orbit {
-            animation: none;
-        }
-    }
-
     .wg-sketch-panel {
         border: 1px solid var(--wg-pencil-soft);
         border-radius: 13px 17px 14px 16px;

@@ -1,6 +1,6 @@
 [package]
 name = "workflowgenerator"
-version = "0.1.3"
+version = "0.1.4"
 description = "WorkflowGenerator desktop app"
 authors = ["WorkflowGenerator contributors"]
 edition = "2021"
