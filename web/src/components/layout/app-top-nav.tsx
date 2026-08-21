@@ -87,7 +87,7 @@ export function AppTopNav() {
                             aria-label={t("返回首页")}
                         >
                             <BrandMark className="size-7 shadow-none" />
-                            <span className="wg-ascii-label hidden text-[12px] font-semibold lg:inline">WORKFLOWGENERATOR</span>
+                            <span className="wg-ascii-label hidden text-[12px] font-semibold lg:inline">WG</span>
                         </button>
 
                         {!isHome ? (
