@@ -15,11 +15,11 @@ import { getImageBlob } from "@/services/image-storage";
 import { getMediaBlob } from "@/services/file-storage";
 import { exportDesktopMedia, isDesktopApp } from "@/services/desktop-storage";
 import { cn } from "@/lib/utils";
-import { useAssetStore, type Asset, type AssetKind, type ImageAsset } from "@/stores/use-asset-store";
+import { isStructuredAsset, useAssetStore, type Asset, type AssetKind, type ImageAsset } from "@/stores/use-asset-store";
 import { exportAssets, readAssetPackage } from "./asset-transfer";
 
 type AssetFormValues = {
-    kind: AssetKind;
+    kind: "text" | "image";
     title: string;
     coverUrl: string;
     tags: string[];
@@ -37,6 +37,8 @@ const kindOptions = [
     { label: "视频", value: "video" },
     { label: "音频", value: "audio" },
     { label: "文件", value: "file" },
+    { label: "人物", value: "character" },
+    { label: "场景", value: "scene" },
 ];
 
 export default function AssetsPage() {
@@ -62,13 +64,13 @@ export default function AssetsPage() {
     const [isAssetOpen, setIsAssetOpen] = useState(false);
     const [previewAsset, setPreviewAsset] = useState<Asset | null>(null);
     const [deletingAsset, setDeletingAsset] = useState<Asset | null>(null);
-    const [formKind, setFormKind] = useState<AssetKind>("text");
+    const [formKind, setFormKind] = useState<AssetFormValues["kind"]>("text");
     const [imageDraft, setImageDraft] = useState<ImageDraft>(null);
     const coverUrl = Form.useWatch("coverUrl", form) || "";
     const title = Form.useWatch("title", form) || "";
     const tags = Form.useWatch("tags", form) || [];
     const content = Form.useWatch("content", form) || "";
-    const validAssets = useMemo(() => assets.filter((asset) => asset.kind === "text" || asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "file"), [assets]);
+    const validAssets = useMemo(() => assets.filter((asset) => asset.kind === "text" || asset.kind === "image" || asset.kind === "video" || asset.kind === "audio" || asset.kind === "file" || asset.kind === "character" || asset.kind === "scene"), [assets]);
     const hasActiveFilters = Boolean(keyword.trim()) || kindFilter !== "all";
 
     const filteredAssets = useMemo(() => {
@@ -99,6 +101,7 @@ export default function AssetsPage() {
     };
 
     const openEdit = (asset: Asset) => {
+        if (asset.kind !== "text" && asset.kind !== "image") return;
         setEditingAsset(asset);
         setFormKind(asset.kind);
         setImageDraft(asset.kind === "image" ? asset.data : null);
@@ -398,7 +401,7 @@ export default function AssetsPage() {
                                     { label: t("文本"), value: "text" },
                                     { label: t("图片"), value: "image" },
                                 ]}
-                                onChange={(value) => setFormKind(value)}
+                                onChange={(value: AssetFormValues["kind"]) => setFormKind(value)}
                             />
                         </Form.Item>
                         <Form.Item name="title" label={t("标题")} rules={[{ required: true, message: t("请输入标题") }]}>
@@ -509,7 +512,7 @@ export default function AssetsPage() {
 
 function AssetCard({ asset, onOpen, onEdit, onCopy, onDownload, onDelete }: { asset: Asset; onOpen: () => void; onEdit: () => void; onCopy: (asset: Asset) => void; onDownload: (asset: Asset) => void; onDelete: () => void }) {
     const { t } = useAppTranslation();
-    const cover = asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : "");
+    const cover = asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : isStructuredAsset(asset) ? asset.data.images[0]?.dataUrl || "" : "");
     const summary = assetSummary(asset);
     return (
         <Card
@@ -591,7 +594,7 @@ function AssetCard({ asset, onOpen, onEdit, onCopy, onDownload, onDelete }: { as
 
 function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | null; onClose: () => void; onCopy: (asset: Asset) => void; onDownload: (asset: Asset) => void }) {
     const { t } = useAppTranslation();
-    const cover = asset ? asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : "") : "";
+    const cover = asset ? asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : isStructuredAsset(asset) ? asset.data.images[0]?.dataUrl || "" : "") : "";
     return (
         <Drawer title={t("资产详情")} open={Boolean(asset)} size="large" onClose={onClose}>
             {asset ? (
@@ -620,6 +623,27 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
                         </Typography.Text>
                         {asset.kind === "text" ? (
                             <Typography.Paragraph className="mt-2 whitespace-pre-wrap">{asset.data.content}</Typography.Paragraph>
+                        ) : isStructuredAsset(asset) ? (
+                            <div className="mt-2 space-y-4">
+                                {asset.data.description ? <Typography.Paragraph className="!mb-0 whitespace-pre-wrap">{asset.data.description}</Typography.Paragraph> : null}
+                                {Object.entries(asset.data.fields).filter(([, value]) => Boolean(value)).length ? (
+                                    <div className="grid gap-2 sm:grid-cols-2">
+                                        {Object.entries(asset.data.fields).filter(([, value]) => Boolean(value)).map(([label, value]) => (
+                                            <div key={label} className="rounded-md bg-stone-50 px-3 py-2 text-xs dark:bg-stone-900">
+                                                <div className="mb-1 text-stone-500 dark:text-stone-400">{label}</div>
+                                                <div className="whitespace-pre-wrap">{value}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : null}
+                                {asset.data.images.length ? (
+                                    <Image.PreviewGroup>
+                                        <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
+                                            {asset.data.images.map((image) => <Image key={image.id} src={image.dataUrl} alt={image.title} className="aspect-square overflow-hidden rounded-md object-cover" />)}
+                                        </div>
+                                    </Image.PreviewGroup>
+                                ) : null}
+                            </div>
                         ) : asset.kind === "video" ? (
                             <video src={asset.data.url} controls className="mt-2 aspect-video w-full rounded-lg bg-black" />
                         ) : asset.kind === "audio" ? (
@@ -662,13 +686,14 @@ function AssetDrawer({ asset, onClose, onCopy, onDownload }: { asset: Asset | nu
 
 function assetSummary(asset: Asset) {
     if (asset.kind === "text") return asset.data.content;
+    if (isStructuredAsset(asset)) return `${asset.data.images.length} 张素材${asset.data.description ? ` · ${asset.data.description}` : ""}`;
     if (asset.kind === "audio") return `${formatDuration(asset.data.durationMs || 0)} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
     if (asset.kind === "file") return `${assetFileCategoryLabel(asset.data.category)} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
     return `${asset.data.width}x${asset.data.height} · ${formatBytes(asset.data.bytes)} · ${asset.data.mimeType}`;
 }
 
 function assetSearchText(asset: Asset) {
-    return [asset.title, asset.source || "", asset.note || "", authorLibraryNote(asset) || "", (asset.tags || []).join(" "), asset.kind === "text" ? asset.data.content : asset.kind === "file" ? `${asset.data.fileName} ${asset.data.extension} ${asset.data.category} ${asset.data.mimeType}` : asset.data.mimeType].join(" ").toLowerCase();
+    return [asset.title, asset.source || "", asset.note || "", authorLibraryNote(asset) || "", (asset.tags || []).join(" "), asset.kind === "text" ? asset.data.content : asset.kind === "file" ? `${asset.data.fileName} ${asset.data.extension} ${asset.data.category} ${asset.data.mimeType}` : isStructuredAsset(asset) ? `${asset.data.description} ${Object.values(asset.data.fields).join(" ")} ${asset.data.images.map((image) => image.title).join(" ")}` : asset.data.mimeType].join(" ").toLowerCase();
 }
 
 function isAuthorLibraryAsset(asset: Asset) {
@@ -688,5 +713,7 @@ function assetKindLabel(kind: AssetKind) {
     if (kind === "video") return "视频";
     if (kind === "audio") return "音频";
     if (kind === "file") return "文件";
+    if (kind === "character") return "人物";
+    if (kind === "scene") return "场景";
     return "文本";
 }

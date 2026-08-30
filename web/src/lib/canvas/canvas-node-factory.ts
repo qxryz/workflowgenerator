@@ -3,6 +3,7 @@ import { nodeSizeFromRatio } from "@/lib/canvas/canvas-node-size";
 import type { AiConfig } from "@/stores/use-config-store";
 import type { UploadedImage } from "@/services/image-storage";
 import type { UploadedFile } from "@/services/file-storage";
+import type { StructuredAssetImage, StructuredAssetKind } from "@/stores/use-asset-store";
 import type { ReferenceImage } from "@/types/image";
 import { CanvasNodeType, type CanvasImageGenerationType, type CanvasNodeData, type CanvasNodeMetadata, type CanvasNodeTypeId, type Position } from "@/types/canvas";
 
@@ -22,6 +23,61 @@ export function createCanvasNode(type: CanvasNodeTypeId, position: Position, met
         height: spec.height,
         metadata: { ...spec.metadata, ...metadata },
     };
+}
+
+export function createStructuredAssetGroup(
+    asset: { assetKind: StructuredAssetKind; title: string; description: string; fields: Record<string, string>; images: StructuredAssetImage[] },
+    center: Position,
+) {
+    const columns = asset.images.length > 1 ? 2 : 1;
+    const tileWidth = 240;
+    const tileHeight = 176;
+    const gap = 24;
+    const padding = 32;
+    const details = [asset.description, ...Object.entries(asset.fields).filter(([, value]) => Boolean(value)).map(([label, value]) => `${label}：${value}`)].filter(Boolean).join("\n\n");
+    const rows = Math.max(1, Math.ceil(asset.images.length / columns));
+    const groupWidth = Math.max(440, columns * tileWidth + (columns - 1) * gap + padding * 2);
+    const detailHeight = details ? 144 : 0;
+    const groupHeight = 64 + detailHeight + rows * tileHeight + Math.max(0, rows - 1) * gap + padding * 2;
+    const group = {
+        ...createCanvasNode(CanvasNodeType.Group, center),
+        title: `${asset.assetKind === "character" ? "人物" : "场景"} · ${asset.title}`,
+        width: groupWidth,
+        height: groupHeight,
+        position: { x: center.x - groupWidth / 2, y: center.y - groupHeight / 2 },
+    };
+    const contentTop = group.position.y + 48;
+    const detailNode = details
+        ? {
+              ...createCanvasNode(CanvasNodeType.Text, { x: group.position.x + groupWidth / 2, y: contentTop + detailHeight / 2 }, { content: details, status: "success", fontSize: 13, groupId: group.id }),
+              title: `${asset.title} · 资料`,
+              width: groupWidth - padding * 2,
+              height: detailHeight - 12,
+              position: { x: group.position.x + padding, y: contentTop },
+          }
+        : null;
+    const imageTop = contentTop + detailHeight + (details ? 16 : 0);
+    const imageNodes = asset.images.map((image, index) => {
+        const column = index % columns;
+        const row = Math.floor(index / columns);
+        const node = createCanvasNode(
+            CanvasNodeType.Image,
+            { x: group.position.x + padding + column * (tileWidth + gap) + tileWidth / 2, y: imageTop + row * (tileHeight + gap) + tileHeight / 2 },
+            {
+                content: image.dataUrl,
+                storageKey: image.storageKey,
+                status: "success",
+                naturalWidth: image.width,
+                naturalHeight: image.height,
+                bytes: image.bytes,
+                mimeType: image.mimeType,
+                groupId: group.id,
+                prompt: image.prompt,
+            },
+        );
+        return { ...node, title: image.title || `${asset.title} · 素材 ${index + 1}`, width: tileWidth, height: tileHeight, position: { x: group.position.x + padding + column * (tileWidth + gap), y: imageTop + row * (tileHeight + gap) } };
+    });
+    return [group, ...(detailNode ? [detailNode] : []), ...imageNodes];
 }
 
 export function imageMetadata(image: UploadedImage): CanvasNodeMetadata {

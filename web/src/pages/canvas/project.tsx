@@ -91,7 +91,7 @@ import {
 } from "@/lib/canvas/canvas-generation-attempts";
 import { observeWorkflowExecution, useWorkflowRunStore } from "@/stores/canvas/use-workflow-run-store";
 import { exportCanvasProjects } from "@/lib/canvas/canvas-export";
-import { applyNodeConfigPatch, audioMetadata, buildAudioGenerationMetadata, buildImageGenerationMetadata, createCanvasNode, imageMetadata, videoMetadata } from "@/lib/canvas/canvas-node-factory";
+import { applyNodeConfigPatch, audioMetadata, buildAudioGenerationMetadata, buildImageGenerationMetadata, createCanvasNode, createStructuredAssetGroup, imageMetadata, videoMetadata } from "@/lib/canvas/canvas-node-factory";
 import { findContainingGroupId, findGroupDropTarget, getConnectionTargetAnchor, isHiddenBatchChild, normalizeConnection, snapNodesIntoGroup } from "@/lib/canvas/canvas-node-geometry";
 import {
     audioExtension,
@@ -4099,7 +4099,13 @@ function InfiniteCanvasPage() {
 
     const handleAssetInsert = useCallback(
         (payload: InsertAssetPayload) => {
-            if (payload.kind === "text") {
+            if (payload.kind === "structured") {
+                const center = screenToCanvas((containerRef.current?.getBoundingClientRect().left || 0) + size.width / 2, (containerRef.current?.getBoundingClientRect().top || 0) + size.height / 2);
+                const structuredNodes = createStructuredAssetGroup(payload, center);
+                setNodes((prev) => [...prev, ...structuredNodes]);
+                setSelectedNodeIds(new Set([structuredNodes[0].id]));
+                setSelectedConnectionId(null);
+            } else if (payload.kind === "text") {
                 insertAssistantText(payload.content, payload.title);
             } else if (payload.kind === "video") {
                 const spec = NODE_DEFAULT_SIZE[CanvasNodeType.Video];

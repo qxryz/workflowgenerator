@@ -5,7 +5,7 @@ import { createZip, readZip } from "@/lib/zip";
 import { getAssetFileBlob, setAssetFileBlob } from "@/services/asset-file-storage";
 import { getMediaBlob, setMediaBlob } from "@/services/file-storage";
 import { getImageBlob, setImageBlob } from "@/services/image-storage";
-import type { Asset } from "@/stores/use-asset-store";
+import { isStructuredAsset, type Asset } from "@/stores/use-asset-store";
 
 type AssetExportFile = {
     app: "infinite-canvas";
@@ -25,14 +25,30 @@ type AssetExportItem = {
 export async function exportAssets(assets: Asset[]) {
     const files: AssetExportItem[] = [];
     const zipFiles: { name: string; data: BlobPart }[] = [];
+    const exportedKeys = new Set<string>();
 
     await Promise.all(
         assets.map(async (asset) => {
+            if (isStructuredAsset(asset)) {
+                await Promise.all(
+                    asset.data.images.map(async (image) => {
+                        if (!image.storageKey || exportedKeys.has(image.storageKey)) return;
+                        const blob = await getImageBlob(image.storageKey);
+                        if (!blob) return;
+                        exportedKeys.add(image.storageKey);
+                        const path = `files/${safeFileName(image.storageKey)}.${fileExtension(blob.type, "image")}`;
+                        files.push({ storageKey: image.storageKey, path, mimeType: blob.type || image.mimeType, bytes: blob.size });
+                        zipFiles.push({ name: path, data: blob });
+                    }),
+                );
+                return;
+            }
             if (asset.kind !== "image" && asset.kind !== "video" && asset.kind !== "audio" && asset.kind !== "file") return;
             const storageKey = asset.data.storageKey;
-            if (!storageKey) return;
+            if (!storageKey || exportedKeys.has(storageKey)) return;
             const blob = asset.kind === "image" ? await getImageBlob(storageKey) : asset.kind === "file" ? await getAssetFileBlob(storageKey) : await getMediaBlob(storageKey);
             if (!blob) return;
+            exportedKeys.add(storageKey);
             const path = `files/${safeFileName(storageKey)}.${asset.kind === "file" ? originalFileExtension(asset.data.fileName) || "bin" : fileExtension(blob.type, asset.kind)}`;
             files.push({ storageKey, path, mimeType: blob.type || asset.data.mimeType, bytes: blob.size });
             zipFiles.push({ name: path, data: blob });
@@ -74,5 +90,5 @@ function fileExtension(mimeType: string, kind: Asset["kind"]) {
     if (mimeType.includes("mpeg")) return "mp3";
     if (mimeType.includes("wav")) return "wav";
     if (mimeType.includes("ogg")) return "ogg";
-    return kind === "image" ? "png" : "bin";
+    return kind === "image" || kind === "character" || kind === "scene" ? "png" : "bin";
 }

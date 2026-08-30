@@ -10,13 +10,50 @@ import { cleanupUnusedImages, resolveImageUrl, uploadImage } from "@/services/im
 import { cleanupUnusedMedia, resolveMediaUrl } from "@/services/file-storage";
 import { markMediaReferencesChanged } from "@/services/media-retention-policy";
 
-export type AssetKind = "text" | "image" | "video" | "audio" | "file";
+export type AssetKind = "text" | "image" | "video" | "audio" | "file" | "character" | "scene";
 export type TextAsset = AssetBase<"text"> & { data: { content: string } };
 export type ImageAsset = AssetBase<"image"> & { data: { dataUrl: string; storageKey?: string; width: number; height: number; bytes: number; mimeType: string } };
 export type VideoAsset = AssetBase<"video"> & { data: { url: string; storageKey?: string; width: number; height: number; bytes: number; mimeType: string } };
 export type AudioAsset = AssetBase<"audio"> & { data: { url: string; storageKey?: string; durationMs?: number; bytes: number; mimeType: string } };
 export type FileAsset = AssetBase<"file"> & { data: { storageKey: string; fileName: string; bytes: number; mimeType: string; extension: string; category: AssetFileCategory } };
-export type Asset = TextAsset | ImageAsset | VideoAsset | AudioAsset | FileAsset;
+export type StructuredAssetKind = "character" | "scene";
+export type StructuredAssetImage = {
+    id: string;
+    title: string;
+    prompt?: string;
+    partId?: string;
+    versionId?: string;
+    createdAt?: string;
+    isCurrent?: boolean;
+    dataUrl: string;
+    storageKey?: string;
+    width: number;
+    height: number;
+    bytes: number;
+    mimeType: string;
+};
+export type StructuredAssetPart = {
+    id: string;
+    groupId: string;
+    title: string;
+    description: string;
+    expectedOutput: string;
+    prompt: string;
+};
+export type StructuredAsset = AssetBase<StructuredAssetKind> & {
+    data: {
+        description: string;
+        fields: Record<string, string>;
+        images: StructuredAssetImage[];
+        parts?: StructuredAssetPart[];
+        activePartId?: string;
+    };
+};
+export type Asset = TextAsset | ImageAsset | VideoAsset | AudioAsset | FileAsset | StructuredAsset;
+
+export function isStructuredAsset(asset: Asset): asset is StructuredAsset {
+    return asset.kind === "character" || asset.kind === "scene";
+}
 
 type AssetBase<T extends AssetKind> = {
     id: string;
@@ -60,6 +97,13 @@ const assetStorage: PersistStorage<AssetStore> = {
             parsed.state.assets.map(async (asset) => {
                 if (asset.kind === "video" && asset.data.storageKey) return { ...asset, data: { ...asset.data, url: await resolveMediaUrl(asset.data.storageKey, asset.data.url) } } as VideoAsset;
                 if (asset.kind === "audio" && asset.data.storageKey) return { ...asset, data: { ...asset.data, url: await resolveMediaUrl(asset.data.storageKey, asset.data.url) } } as AudioAsset;
+                if (isStructuredAsset(asset)) {
+                    const images = await Promise.all(
+                        asset.data.images.map(async (image) => (image.storageKey ? { ...image, dataUrl: await resolveImageUrl(image.storageKey, image.dataUrl) } : image)),
+                    );
+                    const coverUrl = images[0]?.dataUrl || asset.coverUrl;
+                    return { ...asset, coverUrl, data: { ...asset.data, images } } as StructuredAsset;
+                }
                 if (asset.kind !== "image") return asset;
                 if (asset.data.storageKey) {
                     const dataUrl = await resolveImageUrl(asset.data.storageKey, asset.data.dataUrl);

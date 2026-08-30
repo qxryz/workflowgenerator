@@ -50,6 +50,8 @@ export const router = createBrowserRouter([
             { path: "/workbench", element: <WorkbenchPage /> },
             { path: "/workbench/image", element: <WorkbenchPage /> },
             { path: "/workbench/video", element: <WorkbenchPage /> },
+            { path: "/workbench/character", element: <WorkbenchPage /> },
+            { path: "/workbench/scene", element: <WorkbenchPage /> },
             { path: "/workbench/audio", element: <WorkbenchPage /> },
             { path: "/workbench/sd25", element: <WorkbenchPage /> },
             { path: "/director", element: <DirectorPage /> },

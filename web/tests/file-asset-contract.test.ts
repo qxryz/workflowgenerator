@@ -10,7 +10,7 @@ test("generic files are first-class assets and canvas resources", () => {
     const builtins = source("../src/components/canvas/nodes/builtin-nodes.tsx");
     const terminal = source("../src/services/terminal.ts");
 
-    assert.match(assetStore, /AssetKind = "text" \| "image" \| "video" \| "audio" \| "file"/u);
+    assert.match(assetStore, /AssetKind = "text" \| "image" \| "video" \| "audio" \| "file" \| "character" \| "scene"/u);
     assert.match(nodeTypes, /File = "file"/u);
     assert.match(builtins, /kind: "file", storageKey:/u);
     assert.match(terminal, /"text" \| "image" \| "video" \| "audio" \| "file"/u);

@@ -3,14 +3,15 @@ import { Empty, Input, Modal, Pagination, Tag } from "antd";
 import { File as FileIcon, Search } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { useAssetStore, type Asset, type AssetKind } from "@/stores/use-asset-store";
+import { isStructuredAsset, useAssetStore, type Asset, type AssetKind, type StructuredAssetImage, type StructuredAssetKind } from "@/stores/use-asset-store";
 
 export type InsertAssetPayload =
     | { kind: "text"; content: string; title: string }
     | { kind: "image"; dataUrl: string; title: string; storageKey?: string; width?: number; height?: number; bytes?: number; mimeType?: string }
     | { kind: "video"; url: string; title: string; storageKey?: string; width?: number; height?: number; bytes?: number; mimeType?: string }
     | { kind: "audio"; url: string; title: string; storageKey?: string; durationMs?: number; bytes: number; mimeType: string }
-    | { kind: "file"; title: string; storageKey: string; fileName: string; bytes: number; mimeType: string; extension: string; category: import("@/lib/asset-file").AssetFileCategory };
+    | { kind: "file"; title: string; storageKey: string; fileName: string; bytes: number; mimeType: string; extension: string; category: import("@/lib/asset-file").AssetFileCategory }
+    | { kind: "structured"; assetKind: StructuredAssetKind; title: string; description: string; fields: Record<string, string>; images: StructuredAssetImage[] };
 
 type Props = {
     open: boolean;
@@ -37,6 +38,8 @@ const kindOptions: Array<{ label: string; value: "all" | AssetKind }> = [
     { label: "视频", value: "video" },
     { label: "音频", value: "audio" },
     { label: "文件", value: "file" },
+    { label: "人物", value: "character" },
+    { label: "场景", value: "scene" },
 ];
 
 function PickerCard({ title, kind, cover, onClick }: { title: string; kind: string; cover: string; onClick: () => void }) {
@@ -57,7 +60,7 @@ function PickerCard({ title, kind, cover, onClick }: { title: string; kind: stri
             <div className="p-2.5">
                 <div className="flex items-center justify-between gap-2">
                     <span className="line-clamp-1 text-xs font-medium text-stone-800 dark:text-stone-200">{title}</span>
-                    <Tag className="m-0 shrink-0 text-[10px]">{kind === "image" ? "图片" : kind === "video" ? "视频" : kind === "audio" ? "音频" : kind === "file" ? "文件" : "文本"}</Tag>
+                    <Tag className="m-0 shrink-0 text-[10px]">{assetKindLabel(kind)}</Tag>
                 </div>
             </div>
             <div className="pointer-events-none absolute inset-0 flex items-center justify-center bg-stone-950/0 text-sm font-medium text-white opacity-0 transition group-hover:bg-stone-950/55 group-hover:opacity-100">插入</div>
@@ -70,7 +73,7 @@ function MyAssetsTab({ acceptedKinds, onInsert }: { acceptedKinds?: readonly Ass
     const [keyword, setKeyword] = useState("");
     const [kindFilter, setKindFilter] = useState("all");
     const [page, setPage] = useState(1);
-    const acceptedKindSet = useMemo(() => new Set<AssetKind>(acceptedKinds || ["text", "image", "video", "audio", "file"]), [acceptedKinds]);
+    const acceptedKindSet = useMemo(() => new Set<AssetKind>(acceptedKinds || ["text", "image", "video", "audio", "file", "character", "scene"]), [acceptedKinds]);
     const visibleKindOptions = useMemo(() => kindOptions.filter((option) => option.value === "all" || acceptedKindSet.has(option.value)), [acceptedKindSet]);
 
     const filtered = useMemo(() => {
@@ -102,6 +105,8 @@ function MyAssetsTab({ acceptedKinds, onInsert }: { acceptedKinds?: readonly Ass
             onInsert({ kind: "audio", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title, durationMs: asset.data.durationMs, bytes: asset.data.bytes, mimeType: asset.data.mimeType });
         } else if (asset.kind === "file") {
             onInsert({ kind: "file", title: asset.title, storageKey: asset.data.storageKey, fileName: asset.data.fileName, bytes: asset.data.bytes, mimeType: asset.data.mimeType, extension: asset.data.extension, category: asset.data.category });
+        } else if (isStructuredAsset(asset)) {
+            onInsert({ kind: "structured", assetKind: asset.kind, title: asset.title, description: asset.data.description, fields: asset.data.fields, images: asset.data.images });
         } else {
             onInsert(
                 asset.kind === "video"
@@ -146,7 +151,7 @@ function MyAssetsTab({ acceptedKinds, onInsert }: { acceptedKinds?: readonly Ass
             {visible.length ? (
                 <div className="grid grid-cols-4 gap-3">
                     {visible.map((asset) => (
-                        <PickerCard key={asset.id} title={asset.title} kind={asset.kind} cover={asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : "")} onClick={() => handleInsert(asset)} />
+                        <PickerCard key={asset.id} title={asset.title} kind={asset.kind} cover={asset.coverUrl || (asset.kind === "image" ? asset.data.dataUrl : isStructuredAsset(asset) ? asset.data.images[0]?.dataUrl || "" : "")} onClick={() => handleInsert(asset)} />
                     ))}
                 </div>
             ) : (
@@ -160,4 +165,14 @@ function MyAssetsTab({ acceptedKinds, onInsert }: { acceptedKinds?: readonly Ass
             )}
         </div>
     );
+}
+
+function assetKindLabel(kind: string) {
+    if (kind === "image") return "图片";
+    if (kind === "video") return "视频";
+    if (kind === "audio") return "音频";
+    if (kind === "file") return "文件";
+    if (kind === "character") return "人物";
+    if (kind === "scene") return "场景";
+    return "文本";
 }

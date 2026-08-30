@@ -1,11 +1,11 @@
-import { Clapperboard, History, Image, Music2, SlidersHorizontal, Video } from "lucide-react";
+import { Clapperboard, History, Image, MapPinned, Music2, SlidersHorizontal, UserRound, Video } from "lucide-react";
 import { NavLink } from "react-router-dom";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { cn } from "@/lib/utils";
 
 type MediaWorkbenchHeaderProps = {
-    kind: "image" | "video" | "audio" | "sd25";
+    kind: "image" | "video" | "audio" | "sd25" | "character" | "scene";
     title: string;
     onOpenHistory?: () => void;
     onOpenSettings?: () => void;
@@ -14,6 +14,8 @@ type MediaWorkbenchHeaderProps = {
 const workbenches = [
     { kind: "image" as const, label: "图片", path: "/workbench/image", icon: Image },
     { kind: "video" as const, label: "视频", path: "/workbench/video", icon: Video },
+    { kind: "character" as const, label: "人物", path: "/workbench/character", icon: UserRound },
+    { kind: "scene" as const, label: "场景", path: "/workbench/scene", icon: MapPinned },
     { kind: "audio" as const, label: "音频", path: "/workbench/audio", icon: Music2 },
     { kind: "sd25" as const, label: "SD2.5", path: "/workbench/sd25", icon: Clapperboard },
 ];

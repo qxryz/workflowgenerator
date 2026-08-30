@@ -1,7 +1,7 @@
 import { memo, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from "react";
 import { App, Empty, Input, Popconfirm, Select, Spin, Tag } from "antd";
 import { useQuery } from "@tanstack/react-query";
-import { BookOpen, Check, ChevronRight, Download, Eye, File, FileText, Image as ImageIcon, ListChecks, Music2, Plus, Search, Settings2, Square, Terminal, Trash2, Type, Video } from "lucide-react";
+import { BookOpen, Check, ChevronRight, Download, Eye, File, FileText, Image as ImageIcon, ListChecks, MapPinned, Music2, Plus, Search, Settings2, Square, Terminal, Trash2, Type, UserRound, Video } from "lucide-react";
 import { motion } from "motion/react";
 
 import { canvasThemes, type CanvasTheme } from "@/lib/canvas-theme";
@@ -12,7 +12,7 @@ import { PromptDetailDialog } from "@/pages/prompts/components/prompt-detail-dia
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { fetchSourcePrompts, type Prompt } from "@/services/api/prompts";
 import { stageAssetImport } from "@/services/asset-import";
-import { useAssetStore, type Asset, type AssetKind } from "@/stores/use-asset-store";
+import { isStructuredAsset, useAssetStore, type Asset, type AssetKind } from "@/stores/use-asset-store";
 import { usePromptSourceStore } from "@/stores/use-prompt-source-store";
 import { CANVAS_SIDE_PANEL_MAX_WIDTH, CANVAS_SIDE_PANEL_MIN_WIDTH, CANVAS_SIDE_PANEL_MOTION_MS, useCanvasSidePanelStore } from "@/stores/use-canvas-side-panel-store";
 import { useThemeStore } from "@/stores/use-theme-store";
@@ -305,6 +305,8 @@ const ASSET_GROUPS: { kind: AssetKind; label: string; icon: typeof Square }[] = 
     { kind: "image", label: "图片", icon: ImageIcon },
     { kind: "video", label: "视频", icon: Video },
     { kind: "audio", label: "音频", icon: Music2 },
+    { kind: "character", label: "人物", icon: UserRound },
+    { kind: "scene", label: "场景", icon: MapPinned },
     { kind: "text", label: "文本", icon: FileText },
     { kind: "file", label: "文件", icon: File },
 ];
@@ -314,6 +316,7 @@ function buildInsertPayload(asset: Asset): InsertAssetPayload {
     if (asset.kind === "video") return { kind: "video", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title, width: asset.data.width, height: asset.data.height };
     if (asset.kind === "audio") return { kind: "audio", url: asset.data.url, storageKey: asset.data.storageKey, title: asset.title, durationMs: asset.data.durationMs, bytes: asset.data.bytes, mimeType: asset.data.mimeType };
     if (asset.kind === "file") return { kind: "file", title: asset.title, storageKey: asset.data.storageKey, fileName: asset.data.fileName, bytes: asset.data.bytes, mimeType: asset.data.mimeType, extension: asset.data.extension, category: asset.data.category };
+    if (isStructuredAsset(asset)) return { kind: "structured", assetKind: asset.kind, title: asset.title, description: asset.data.description, fields: asset.data.fields, images: asset.data.images };
     return { kind: "image", dataUrl: asset.data.dataUrl, storageKey: asset.data.storageKey, title: asset.title };
 }
 
@@ -479,6 +482,10 @@ function AssetCover({ asset }: { asset: Asset }) {
                 <span className="line-clamp-2 break-all text-[11px] opacity-70">{asset.data.fileName}</span>
             </div>
         );
+    if (isStructuredAsset(asset)) {
+        const image = asset.coverUrl || asset.data.images[0]?.dataUrl;
+        return image ? <img src={image} alt="" className="size-full object-cover transition duration-300 group-hover:scale-[1.04]" /> : <div className="flex size-full items-center justify-center text-xs opacity-60">{asset.kind === "character" ? "人物" : "场景"}</div>;
+    }
     return <img src={asset.coverUrl || asset.data.dataUrl} alt="" className="size-full object-cover transition duration-300 group-hover:scale-[1.04]" />;
 }
 

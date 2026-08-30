@@ -37,9 +37,18 @@ import { deleteStoredImages, discardUploadedImage, getImageBlob, publishUploaded
 import { createDesktopJsonStore, exportDesktopMedia, isDesktopApp } from "@/services/desktop-storage";
 import { markMediaReferencesChanged } from "@/services/media-retention-policy";
 import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
-import { useAssetStore } from "@/stores/use-asset-store";
+import { useAssetStore, type StructuredAsset, type StructuredAssetImage, type StructuredAssetKind } from "@/stores/use-asset-store";
 import { useWorkbenchAgentStore } from "@/stores/use-workbench-agent-store";
 import type { ReferenceImage } from "@/types/image";
+import {
+    createStructuredAssetDraft,
+    normalizeStructuredAssetDraft,
+    structuredAssetToDraft,
+    structuredPrompt,
+    StructuredAssetBoard,
+    StructuredAssetLibraryPanel,
+    type StructuredAssetDraft,
+} from "./structured-asset-workbench";
 
 type GeneratedImage = {
     id: string;
@@ -111,7 +120,31 @@ const logStore = createDesktopJsonStore({
     legacy: { name: "infinite-canvas", storeName: "image_generation_logs" },
 });
 
-export default function ImagePage() {
+const structuredDraftStore = createDesktopJsonStore({
+    namespace: "structured-image-workbench-drafts-v1",
+    legacy: { name: "infinite-canvas", storeName: "structured_image_workbench_drafts" },
+});
+
+function structuredAssetPayload(kind: StructuredAssetKind, draft: StructuredAssetDraft): Omit<StructuredAsset, "id" | "createdAt" | "updatedAt"> {
+    return {
+        kind,
+        title: draft.title.trim(),
+        coverUrl: (draft.images.find((image) => image.isCurrent) || draft.images[0])?.dataUrl || "",
+        tags: draft.tags,
+        source: kind === "character" ? "人物工作台" : "场景工作台",
+        note: "",
+        data: {
+            description: draft.description.trim(),
+            fields: draft.fields,
+            images: draft.images,
+            parts: draft.parts,
+            activePartId: draft.activePartId,
+        },
+        metadata: { source: "structured-image-workbench", structuredAssetKind: kind },
+    };
+}
+
+export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKind }) {
     const { message } = App.useApp();
     const { t } = useAppTranslation();
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -122,6 +155,8 @@ export default function ImagePage() {
     const isAiConfigReady = useConfigStore((state) => state.isAiConfigReady);
     const openConfigDialog = useConfigStore((state) => state.openConfigDialog);
     const addAssetPersisted = useAssetStore((state) => state.addAssetPersisted);
+    const upsertAssetPersisted = useAssetStore((state) => state.upsertAssetPersisted);
+    const cleanupImages = useAssetStore((state) => state.cleanupImages);
     const [prompt, setPrompt] = useState("");
     const [references, setReferences] = useState<ReferenceImage[]>([]);
     const [results, setResults] = useState<GenerationResult[]>([]);
@@ -138,6 +173,8 @@ export default function ImagePage() {
     const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
     const [isReferenceDragActive, setIsReferenceDragActive] = useState(false);
     const [autoRunIntentId, setAutoRunIntentId] = useState<string>();
+    const [structuredDraft, setStructuredDraft] = useState<StructuredAssetDraft>(() => (assetKind ? createStructuredAssetDraft(assetKind) : createStructuredAssetDraft("character")));
+    const [structuredDraftReady, setStructuredDraftReady] = useState(!assetKind);
     const imageCommand = useWorkbenchAgentStore((state) => state.imageCommand);
     const clearImageCommand = useWorkbenchAgentStore((state) => state.clearImageCommand);
     const updateAgentTask = useWorkbenchAgentStore((state) => state.updateTask);
@@ -148,7 +185,9 @@ export default function ImagePage() {
     const logReadVersionRef = useRef(0);
     const mountedRef = useRef(false);
     const runtimeMediaReferencesRef = useRef<unknown>(undefined);
-    runtimeMediaReferencesRef.current = { references, results, logs, previewLog };
+    const structuredDraftRef = useRef(structuredDraft);
+    structuredDraftRef.current = structuredDraft;
+    runtimeMediaReferencesRef.current = { references, results, logs, previewLog, structuredDraft };
 
     const model = effectiveConfig.imageModel || effectiveConfig.model;
     const canGenerate = Boolean(prompt.trim());
@@ -159,7 +198,33 @@ export default function ImagePage() {
     const generationCount = Math.max(1, Math.min(imageExperience === "minimax-image" ? 9 : 10, Number(config.count) || 1));
 
     useEffect(() => registerRuntimeMediaReferenceProvider(() => runtimeMediaReferencesRef.current), []);
-    useEffect(() => markMediaReferencesChanged(), [logs, previewLog, references, results]);
+    useEffect(() => markMediaReferencesChanged(), [logs, previewLog, references, results, structuredDraft]);
+
+    useEffect(() => {
+        if (!assetKind) return;
+        let disposed = false;
+        setStructuredDraftReady(false);
+        void structuredDraftStore
+            .getItem<StructuredAssetDraft>(assetKind)
+            .then(async (saved) => {
+                if (disposed) return;
+                const normalized = normalizeStructuredAssetDraft(assetKind, saved || undefined);
+                const images = await Promise.all(normalized.images.map(async (image) => image.storageKey ? { ...image, dataUrl: await resolveImageUrl(image.storageKey, image.dataUrl) } : image));
+                if (disposed) return;
+                const hydratedDraft = { ...normalized, images };
+                structuredDraftRef.current = hydratedDraft;
+                setStructuredDraft(hydratedDraft);
+            })
+            .catch(() => {
+                if (!disposed) setStructuredDraft(createStructuredAssetDraft(assetKind));
+            })
+            .finally(() => {
+                if (!disposed) setStructuredDraftReady(true);
+            });
+        return () => {
+            disposed = true;
+        };
+    }, [assetKind]);
 
     useEffect(() => {
         if (!running || !startedAt) return;
@@ -468,6 +533,13 @@ export default function ImagePage() {
             }
             uploadedImages.forEach(publishUploadedImage);
             uploadsSettled = true;
+            if (assetKind && logImages.length) {
+                try {
+                    await attachGeneratedImagesToStructuredPart(logImages, completedLog.id, text);
+                } catch (assetError) {
+                    message.error(assetError instanceof Error ? `图片已生成，但保存到资产部件失败：${assetError.message}` : "图片已生成，但保存到资产部件失败");
+                }
+            }
             setResults((value) =>
                 value.map((item) => {
                     if (!batch.slotIds.includes(item.id)) return item;
@@ -558,6 +630,141 @@ export default function ImagePage() {
         message.success("已加入参考图");
     };
 
+    const updateStructuredDraft = async (update: (current: StructuredAssetDraft) => StructuredAssetDraft) => {
+        if (!assetKind) return structuredDraftRef.current;
+        const next = update(structuredDraftRef.current);
+        await structuredDraftStore.setItem(assetKind, next);
+        setStructuredDraft(next);
+        structuredDraftRef.current = next;
+        return next;
+    };
+
+    const syncStructuredAsset = async (draft: StructuredAssetDraft) => {
+        if (!assetKind || !draft.assetId || !draft.title.trim() || !draft.images.length) return;
+        await upsertAssetPersisted(draft.assetId, structuredAssetPayload(assetKind, draft));
+    };
+
+    const selectStructuredAsset = async (asset: StructuredAsset) => {
+        if (!assetKind || asset.kind !== assetKind) return;
+        const next = structuredAssetToDraft(assetKind, asset);
+        await structuredDraftStore.setItem(assetKind, next);
+        structuredDraftRef.current = next;
+        setStructuredDraft(next);
+        setPrompt(structuredPrompt(next));
+        setReferences([]);
+        setResults([]);
+        setPreviewLog(null);
+    };
+
+    const selectStructuredPart = async (partId: string) => {
+        const next = await updateStructuredDraft((draft) => {
+            const part = draft.parts.find((item) => item.id === partId);
+            return part ? { ...draft, activeGroupId: part.groupId, activePartId: part.id } : draft;
+        });
+        setPrompt(structuredPrompt(next, partId));
+    };
+
+    const updateStructuredPartPrompt = async (partId: string, value: string) => {
+        const next = await updateStructuredDraft((draft) => ({
+            ...draft,
+            parts: draft.parts.map((part) => part.id === partId ? { ...part, prompt: value } : part),
+        }));
+        setPrompt(structuredPrompt(next, partId));
+    };
+
+    const attachGeneratedImagesToStructuredPart = async (images: GeneratedImage[], versionId: string, generatedPrompt: string) => {
+        if (!assetKind || !images.length) return;
+        const partId = structuredDraftRef.current.activePartId;
+        const partTitle = structuredDraftRef.current.parts.find((part) => part.id === partId)?.title || (assetKind === "character" ? "人物素材" : "场景素材");
+        const createdAt = new Date().toISOString();
+        const attached: StructuredAssetImage[] = images.map((image, index) => ({
+            id: nanoid(),
+            title: `${structuredDraftRef.current.title || (assetKind === "character" ? "人物" : "场景")} · ${partTitle} ${index + 1}`,
+            prompt: generatedPrompt,
+            partId,
+            versionId,
+            createdAt,
+            isCurrent: true,
+            dataUrl: image.dataUrl,
+            storageKey: image.storageKey,
+            width: image.width,
+            height: image.height,
+            bytes: image.bytes,
+            mimeType: image.mimeType || "image/png",
+        }));
+        const next = await updateStructuredDraft((draft) => ({
+            ...draft,
+            images: [
+                ...draft.images.map((image) => image.partId === partId ? { ...image, isCurrent: false } : image),
+                ...attached,
+            ],
+        }));
+        await syncStructuredAsset(next);
+    };
+
+    const saveReferenceToStructuredPart = async (reference: ReferenceImage) => {
+        if (!assetKind) return;
+        let uploaded: UploadedImage | undefined;
+        try {
+            const partId = structuredDraftRef.current.activePartId;
+            const partTitle = structuredDraftRef.current.parts.find((part) => part.id === partId)?.title || "素材";
+            const meta = await readImageMeta(reference.dataUrl);
+            const existingBlob = reference.storageKey ? await getImageBlob(reference.storageKey) : null;
+            if (!reference.storageKey) uploaded = await uploadImage(reference.dataUrl);
+            const nextImage: StructuredAssetImage = {
+                id: nanoid(),
+                title: `${structuredDraftRef.current.title || (assetKind === "character" ? "人物" : "场景")} · ${partTitle}`,
+                prompt: structuredPrompt(structuredDraftRef.current),
+                partId,
+                versionId: nanoid(),
+                createdAt: new Date().toISOString(),
+                isCurrent: true,
+                dataUrl: uploaded?.url || reference.dataUrl,
+                storageKey: uploaded?.storageKey || reference.storageKey,
+                width: uploaded?.width || meta.width,
+                height: uploaded?.height || meta.height,
+                bytes: uploaded?.bytes || existingBlob?.size || getDataUrlByteSize(reference.dataUrl),
+                mimeType: uploaded?.mimeType || reference.type || existingBlob?.type || "image/png",
+            };
+            const next = await updateStructuredDraft((draft) => ({
+                ...draft,
+                images: [...draft.images.map((image) => image.partId === partId ? { ...image, isCurrent: false } : image), nextImage],
+            }));
+            await syncStructuredAsset(next);
+            if (uploaded) publishUploadedImage(uploaded);
+            message.success(`已保存到${partTitle}`);
+        } catch (error) {
+            if (uploaded) await discardUploadedImage(uploaded).catch(() => undefined);
+            message.error(error instanceof Error ? `保存参考图失败：${error.message}` : "保存参考图失败");
+        }
+    };
+
+    const saveStructuredAsset = async () => {
+        if (!assetKind) return;
+        const draft = structuredDraftRef.current;
+        if (!draft.title.trim()) {
+            message.warning(assetKind === "character" ? "先给人物起个名字" : "先给场景起个名字");
+            return;
+        }
+        try {
+            const assetId = await upsertAssetPersisted(draft.assetId, structuredAssetPayload(assetKind, draft));
+            await updateStructuredDraft((current) => ({ ...current, assetId }));
+            message.success(assetKind === "character" ? "人物已存入我的资产" : "场景已存入我的资产");
+        } catch (error) {
+            message.error(error instanceof Error ? `保存资产失败：${error.message}` : "保存资产失败，请重试");
+        }
+    };
+
+    const resetStructuredAsset = async () => {
+        if (!assetKind) return;
+        await updateStructuredDraft(() => createStructuredAssetDraft(assetKind));
+        setPrompt("");
+        setReferences([]);
+        setResults([]);
+        setPreviewLog(null);
+        cleanupImages({ structuredDraft: createStructuredAssetDraft(assetKind) });
+    };
+
     const saveResultToAssets = async (image: GeneratedImage, index: number) => {
         let stored: UploadedImage | undefined;
         let createdStorage = false;
@@ -646,6 +853,12 @@ export default function ImagePage() {
             const stored = await uploadImage(payload.dataUrl);
             publishUploadedImage(stored);
             setReferences((value) => [...value, { id: nanoid(), name: payload.title, type: stored.mimeType, dataUrl: stored.url, storageKey: stored.storageKey }].slice(0, maxReferenceImages));
+        } else if (payload.kind === "structured") {
+            setPrompt([payload.title, payload.description, ...Object.entries(payload.fields).filter(([, value]) => Boolean(value)).map(([label, value]) => `${label}：${value}`)].filter(Boolean).join("\n"));
+            setReferences((value) => [
+                ...value,
+                ...payload.images.slice(0, Math.max(0, maxReferenceImages - value.length)).map((image) => ({ id: nanoid(), name: image.title, type: image.mimeType, dataUrl: image.dataUrl, storageKey: image.storageKey })),
+            ]);
         } else {
             message.warning("生图工作台只能使用文本或图片资产");
         }
@@ -818,27 +1031,74 @@ export default function ImagePage() {
         }
     };
 
+    const visibleStructuredDraft = assetKind && structuredDraft.kind !== assetKind ? createStructuredAssetDraft(assetKind) : structuredDraft;
+    const visibleStructuredDraftReady = Boolean(assetKind && structuredDraftReady && structuredDraft.kind === assetKind);
+
     return (
         <div className="wg-media-workbench">
-            <MediaWorkbenchHeader kind="image" title="图片创作" onOpenHistory={() => setLogsOpen(true)} onOpenSettings={() => setSettingsOpen(true)} />
+            <MediaWorkbenchHeader
+                kind={assetKind || "image"}
+                title={assetKind === "character" ? `${t("人物工作台")}${visibleStructuredDraft.title ? ` / ${visibleStructuredDraft.title}` : ""}` : assetKind === "scene" ? `${t("场景工作台")}${visibleStructuredDraft.title ? ` / ${visibleStructuredDraft.title}` : ""}` : "图片创作"}
+                onOpenHistory={() => setLogsOpen(true)}
+                onOpenSettings={() => setSettingsOpen(true)}
+            />
 
             <main className="wg-media-workbench-grid">
                 <aside className="wg-media-workbench-pane wg-media-workbench-history">
-                    <div className="thin-scrollbar h-full min-h-0 overflow-y-auto p-4">
-                        <LogPanel
-                            logs={logs}
-                            selectedLogIds={selectedLogIds}
-                            activeLogId={previewLog?.id}
-                            onSelectedLogIdsChange={setSelectedLogIds}
-                            onCreateSession={createSession}
-                            onDeleteSelected={() => setDeleteConfirmOpen(true)}
-                            onPreviewLog={(log) => void previewGenerationLog(log)}
-                        />
-                    </div>
+                    {assetKind ? (
+                        <StructuredAssetLibraryPanel kind={assetKind} activeAssetId={visibleStructuredDraft.assetId} onSelect={(asset) => void selectStructuredAsset(asset)} onCreate={() => void resetStructuredAsset()} />
+                    ) : (
+                        <div className="thin-scrollbar h-full min-h-0 overflow-y-auto p-4">
+                            <LogPanel
+                                logs={logs}
+                                selectedLogIds={selectedLogIds}
+                                activeLogId={previewLog?.id}
+                                onSelectedLogIdsChange={setSelectedLogIds}
+                                onCreateSession={createSession}
+                                onDeleteSelected={() => setDeleteConfirmOpen(true)}
+                                onPreviewLog={(log) => void previewGenerationLog(log)}
+                            />
+                        </div>
+                    )}
                 </aside>
 
                 <section className="wg-media-workbench-pane wg-media-workbench-creation">
-                    <div className="thin-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">
+                    {assetKind ? (
+                        <StructuredAssetBoard
+                            kind={assetKind}
+                            draft={visibleStructuredDraft}
+                            ready={visibleStructuredDraftReady}
+                            references={references}
+                            running={running}
+                            onDraftChange={(update) => void updateStructuredDraft(update)}
+                            onSelectPart={(partId) => void selectStructuredPart(partId)}
+                            onPartPromptChange={(partId, value) => void updateStructuredPartPrompt(partId, value)}
+                            onAddReference={() => fileInputRef.current?.click()}
+                            onRemoveReference={(id) => setReferences((value) => value.filter((reference) => reference.id !== id))}
+                            onSaveReference={(reference) => void saveReferenceToStructuredPart(reference)}
+                            onGenerate={() => void generate()}
+                            onSave={() => void saveStructuredAsset()}
+                            onSetCurrentImage={(imageId) => {
+                                void (async () => {
+                                    const activePartId = structuredDraftRef.current.activePartId;
+                                    const next = await updateStructuredDraft((draft) => ({
+                                        ...draft,
+                                        images: draft.images.map((image) => image.partId === activePartId ? { ...image, isCurrent: image.id === imageId } : image),
+                                    }));
+                                    await syncStructuredAsset(next);
+                                })();
+                            }}
+                            onRemoveImage={(imageId) => {
+                                void (async () => {
+                                    const next = await updateStructuredDraft((draft) => ({ ...draft, images: draft.images.filter((image) => image.id !== imageId) }));
+                                    await syncStructuredAsset(next);
+                                    cleanupImages();
+                                })();
+                            }}
+                        />
+                    ) : (
+                        <>
+                            <div className="thin-scrollbar flex min-h-0 flex-1 flex-col overflow-y-auto">
                         <div className="wg-media-workbench-result-stage">
                             <div className="wg-media-section-heading">
                                 <div>
@@ -932,12 +1192,14 @@ export default function ImagePage() {
                                 ) : null}
                             </div>
                         </div>
-                    </div>
-                    <div className="wg-media-mobile-cta">
-                        <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                            {t("生成图片 · {count} 张", { count: generationCount })}
-                        </Button>
-                    </div>
+                            </div>
+                            <div className="wg-media-mobile-cta">
+                                <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
+                                    {t("生成图片 · {count} 张", { count: generationCount })}
+                                </Button>
+                            </div>
+                        </>
+                    )}
                 </section>
 
                 <aside className="wg-media-workbench-pane wg-media-workbench-inspector">
@@ -1025,6 +1287,7 @@ function ImageResultStage({
     onEdit,
     onDownload,
     onSaveAsset,
+    saveAssetLabel,
     onRetry,
     onRegenerate,
     onDelete,
@@ -1035,6 +1298,7 @@ function ImageResultStage({
     onEdit: (image: GeneratedImage, index: number) => void;
     onDownload: (image: GeneratedImage, index: number) => void;
     onSaveAsset: (image: GeneratedImage, index: number) => void;
+    saveAssetLabel?: string;
     onRetry: (slotId: string) => void;
     onRegenerate: (logId?: string) => void;
     onDelete: (logId: string | undefined, imageId: string) => void;
@@ -1073,7 +1337,7 @@ function ImageResultStage({
         <div className="wg-media-result-viewer">
             <div className="wg-media-result-active">
                 {active.status === "success" && active.image ? (
-                    <ResultImageCard image={active.image} index={activeIndex} onEdit={onEdit} onDownload={onDownload} onSaveAsset={onSaveAsset} onRegenerate={() => onRegenerate(active.logId)} onDelete={() => onDelete(active.logId, active.image!.id)} regenerateDisabled={running} />
+                    <ResultImageCard image={active.image} index={activeIndex} onEdit={onEdit} onDownload={onDownload} onSaveAsset={onSaveAsset} saveAssetLabel={saveAssetLabel} onRegenerate={() => onRegenerate(active.logId)} onDelete={() => onDelete(active.logId, active.image!.id)} regenerateDisabled={running} />
                 ) : active.status === "failed" ? (
                     <FailedImageCard error={active.error || t("生成失败")} retryDisabled={running} onRetry={() => onRetry(active.id)} onDelete={() => onDeleteFailure(active.logId, active.id)} />
                 ) : (
@@ -1099,6 +1363,7 @@ function ResultImageCard({
     onEdit,
     onDownload,
     onSaveAsset,
+    saveAssetLabel,
     onRegenerate,
     onDelete,
     regenerateDisabled,
@@ -1108,6 +1373,7 @@ function ResultImageCard({
     onEdit: (image: GeneratedImage, index: number) => void;
     onDownload: (image: GeneratedImage, index: number) => void;
     onSaveAsset: (image: GeneratedImage, index: number) => void;
+    saveAssetLabel?: string;
     onRegenerate: () => void;
     onDelete: () => void;
     regenerateDisabled: boolean;
@@ -1135,9 +1401,9 @@ function ResultImageCard({
                             {t("重新生成")}
                         </Button>
                     </Tooltip>
-                    <Tooltip title={t("添加到资产")}>
+                    <Tooltip title={t(saveAssetLabel || "添加到资产")}>
                         <Button className={RESULT_ACTION_BUTTON_CLASS} size="small" icon={<FolderPlus className="size-3.5" />} onClick={() => void onSaveAsset(image, index)}>
-                            {t("保存到我的资产")}
+                            {t(saveAssetLabel || "保存到我的资产")}
                         </Button>
                     </Tooltip>
                     <Tooltip title={t("加入参考图")}>
