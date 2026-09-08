@@ -141,6 +141,9 @@ export function providerLabel(protocol: ProviderProtocol) {
 export function inferModelProvider(modelName: string): ProviderProtocol | undefined {
     const name = modelName.trim().toLowerCase();
     if (!name) return undefined;
+    // 聚合渠道的「厂商/模型」命名（如 OpenRouter 的 google/gemini-2.5-flash-image）不做归属推断，
+    // 否则中转渠道保存模型时会被误过滤。
+    if (name.includes("/")) return undefined;
     const presetOwner = providerDefinitions.find((provider) => provider.presets.some((preset) => preset.name.toLowerCase() === name));
     if (presetOwner) return presetOwner.id;
     if (/grok/u.test(name)) return "xai";
@@ -158,7 +161,22 @@ export function modelBelongsToProvider(modelName: string, provider: ProviderProt
     return !inferredProvider || inferredProvider === provider;
 }
 
-export type ModelExperienceKind = "generic-image" | "openai-image" | "gemini-image" | "grok-image" | "agnes-image" | "seedream-image" | "minimax-image" | "generic-video" | "grok-video" | "agnes-video" | "seedance-video" | "minimax-video" | "minimax-hailuo-video" | "qwen-audio" | "minimax-audio";
+export type ModelExperienceKind =
+    | "generic-image"
+    | "openai-image"
+    | "gemini-image"
+    | "grok-image"
+    | "agnes-image"
+    | "seedream-image"
+    | "minimax-image"
+    | "generic-video"
+    | "grok-video"
+    | "agnes-video"
+    | "seedance-video"
+    | "minimax-video"
+    | "minimax-hailuo-video"
+    | "qwen-audio"
+    | "minimax-audio";
 
 export function modelExperienceKind(protocol: ProviderProtocol, modelName: string, capability: ProviderModelCapability): ModelExperienceKind {
     const name = modelName.toLowerCase();

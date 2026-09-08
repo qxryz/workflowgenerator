@@ -189,13 +189,21 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
     structuredDraftRef.current = structuredDraft;
     runtimeMediaReferencesRef.current = { references, results, logs, previewLog, structuredDraft };
 
+    const visibleStructuredDraft = assetKind && structuredDraft.kind !== assetKind ? createStructuredAssetDraft(assetKind) : structuredDraft;
+    const visibleStructuredDraftReady = Boolean(assetKind && structuredDraftReady && structuredDraft.kind === assetKind);
+    const structuredGenerationTarget = assetKind ? visibleStructuredDraft.parts.find((part) => part.id === visibleStructuredDraft.activePartId) : undefined;
     const model = effectiveConfig.imageModel || effectiveConfig.model;
-    const canGenerate = Boolean(prompt.trim());
+    const canGenerate = assetKind
+        ? Boolean(visibleStructuredDraftReady && visibleStructuredDraft.title.trim() && structuredGenerationTarget?.prompt.trim())
+        : Boolean(prompt.trim());
     const selectedImageConfig = { ...effectiveConfig, model, imageModel: model };
     const selectedImageRequestConfig = resolveModelRequestConfig(selectedImageConfig, model);
     const imageExperience = modelExperienceKind(selectedImageRequestConfig.apiFormat, modelOptionName(model), "image");
     const maxReferenceImages = imageExperience === "minimax-image" ? 1 : imageExperience === "grok-image" ? 3 : 10;
     const generationCount = Math.max(1, Math.min(imageExperience === "minimax-image" ? 9 : 10, Number(config.count) || 1));
+    const generationActionLabel = assetKind && structuredGenerationTarget
+        ? t("生成并存入“{name}” · {count} 张", { name: structuredGenerationTarget.title, count: generationCount })
+        : t("生成图片 · {count} 张", { count: generationCount });
 
     useEffect(() => registerRuntimeMediaReferenceProvider(() => runtimeMediaReferencesRef.current), []);
     useEffect(() => markMediaReferencesChanged(), [logs, previewLog, references, results, structuredDraft]);
@@ -214,6 +222,7 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
                 const hydratedDraft = { ...normalized, images };
                 structuredDraftRef.current = hydratedDraft;
                 setStructuredDraft(hydratedDraft);
+                setPrompt(structuredPrompt(hydratedDraft));
             })
             .catch(() => {
                 if (!disposed) setStructuredDraft(createStructuredAssetDraft(assetKind));
@@ -438,11 +447,22 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    const resolveGenerationPrompt = () => assetKind
+        ? structuredPrompt(structuredDraftRef.current, structuredDraftRef.current.activePartId).trim()
+        : prompt.trim();
+
+    const missingGenerationPromptMessage = () => assetKind
+        ? (structuredDraftRef.current.title.trim()
+            ? "请先填写当前部件的描述"
+            : assetKind === "character" ? "先给人物起个名字" : "先给场景起个名字")
+        : "请输入生图提示词";
+
     const generate = async (agentTaskId?: string, preserveResults = false, appendToLogId?: string) => {
-        const text = prompt.trim();
+        const text = resolveGenerationPrompt();
         if (!text) {
-            message.error("请输入生图提示词");
-            if (agentTaskId) updateAgentTask(agentTaskId, { status: "failed", error: "请输入生图提示词" });
+            const error = missingGenerationPromptMessage();
+            message.error(error);
+            if (agentTaskId) updateAgentTask(agentTaskId, { status: "failed", error });
             return;
         }
         if (!isAiConfigReady(effectiveConfig, model)) {
@@ -921,9 +941,9 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
     };
 
     const buildRequestSnapshot = () => {
-        const text = prompt.trim();
+        const text = resolveGenerationPrompt();
         if (!text) {
-            message.error("请输入生图提示词");
+            message.error(missingGenerationPromptMessage());
             return null;
         }
         if (!isAiConfigReady(effectiveConfig, model)) {
@@ -1031,9 +1051,6 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
         }
     };
 
-    const visibleStructuredDraft = assetKind && structuredDraft.kind !== assetKind ? createStructuredAssetDraft(assetKind) : structuredDraft;
-    const visibleStructuredDraftReady = Boolean(assetKind && structuredDraftReady && structuredDraft.kind === assetKind);
-
     return (
         <div className="wg-media-workbench">
             <MediaWorkbenchHeader
@@ -1069,14 +1086,12 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
                             draft={visibleStructuredDraft}
                             ready={visibleStructuredDraftReady}
                             references={references}
-                            running={running}
                             onDraftChange={(update) => void updateStructuredDraft(update)}
                             onSelectPart={(partId) => void selectStructuredPart(partId)}
                             onPartPromptChange={(partId, value) => void updateStructuredPartPrompt(partId, value)}
                             onAddReference={() => fileInputRef.current?.click()}
                             onRemoveReference={(id) => setReferences((value) => value.filter((reference) => reference.id !== id))}
                             onSaveReference={(reference) => void saveReferenceToStructuredPart(reference)}
-                            onGenerate={() => void generate()}
                             onSave={() => void saveStructuredAsset()}
                             onSetCurrentImage={(imageId) => {
                                 void (async () => {
@@ -1195,7 +1210,7 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
                             </div>
                             <div className="wg-media-mobile-cta">
                                 <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                                    {t("生成图片 · {count} 张", { count: generationCount })}
+                                    {generationActionLabel}
                                 </Button>
                             </div>
                         </>
@@ -1216,7 +1231,7 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
                     </div>
                     <div className="wg-media-generate-footer">
                         <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                            {t("生成图片 · {count} 张", { count: generationCount })}
+                            {generationActionLabel}
                         </Button>
                     </div>
                 </aside>
@@ -1250,7 +1265,7 @@ export default function ImagePage({ assetKind }: { assetKind?: StructuredAssetKi
                 </div>
                 <div className="fixed inset-x-0 bottom-0 border-t border-stone-200 bg-white/95 p-4 backdrop-blur dark:border-stone-800 dark:bg-stone-950/95">
                     <Button type="primary" size="large" block icon={<Sparkles className="size-4" />} loading={running} disabled={!canGenerate || running} onClick={() => void generate()}>
-                        {t("生成图片 · {count} 张", { count: generationCount })}
+                        {generationActionLabel}
                     </Button>
                 </div>
             </Drawer>

@@ -4,7 +4,7 @@ import { buildApiUrl, resolveModelRequestConfig, resolveModelScript, type AiConf
 import { normalizePluginImages, runModelPlugin } from "./model-plugin";
 import { nanoid } from "nanoid";
 import { dataUrlToFile } from "@/lib/image-utils";
-import { isMiniMaxAdapter } from "@/lib/model-adapters";
+import { isMiniMaxAdapter, isOpenRouterAdapter } from "@/lib/model-adapters";
 import { buildImageReferencePromptText } from "@/lib/image-reference-prompt";
 import { imageToDataUrl } from "@/services/image-storage";
 import { fetchDesktopModelList, isDesktopApp, postDesktopModelJson, type NativeModelListPayload } from "@/services/desktop-storage";
@@ -266,7 +266,9 @@ function supportsGeminiImageSize(model: string) {
 
 function resolveImageDataUrl(item: Record<string, unknown>) {
     if (typeof item.b64_json === "string" && item.b64_json) {
-        return `data:image/png;base64,${item.b64_json}`;
+        const declared = typeof item.media_type === "string" ? item.media_type : typeof item.mimeType === "string" ? item.mimeType : "";
+        const mediaType = declared.startsWith("image/") ? declared : "image/png";
+        return `data:${mediaType};base64,${item.b64_json}`;
     }
     if (typeof item.url === "string" && item.url) {
         return item.url;
@@ -778,6 +780,14 @@ export async function requestGeneration(config: AiConfig, prompt: string, option
             throw new Error(readAxiosError(error, "Grok 图片生成失败"));
         }
     }
+    if (isOpenRouterRequest(requestConfig)) {
+        try {
+            const response = await postImageJson(requestConfig, aiApiUrl(requestConfig, "/images"), { model: requestConfig.model, prompt: withImagePromptPrefix(requestConfig, prompt), ...openRouterImageParameters(config, n) }, options);
+            return parseImagePayload(response);
+        } catch (error) {
+            throw new Error(readAxiosError(error, "OpenRouter 图片生成失败"));
+        }
+    }
     const quality = normalizeQuality(config.quality);
     const requestSize = requestConfig.apiFormat === "ark" ? resolveArkRequestSize(quality, config.size) : resolveRequestSize(quality, config.size);
     const background = normalizeBackground(config.background);
@@ -868,6 +878,27 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
         }
     }
 
+    if (isOpenRouterRequest(requestConfig)) {
+        if (mask) throw new Error("OpenRouter 图片编辑暂不支持蒙版");
+        const refs = await Promise.all(references.map((image) => imageToDataUrl(image)));
+        try {
+            const response = await postImageJson(
+                requestConfig,
+                aiApiUrl(requestConfig, "/images"),
+                {
+                    model: requestConfig.model,
+                    prompt: withImagePromptPrefix(requestConfig, requestPrompt),
+                    input_references: refs.map((url) => ({ type: "image_url", image_url: { url } })),
+                    ...openRouterImageParameters(config, n),
+                },
+                options,
+            );
+            return parseImagePayload(response);
+        } catch (error) {
+            throw new Error(readAxiosError(error, "OpenRouter 图片编辑失败"));
+        }
+    }
+
     if (requestConfig.apiFormat === "ark" || requestConfig.apiFormat === "agnes") {
         if (mask) throw new Error("蒙版编辑暂不支持该模型，请使用其他渠道");
         const quality = normalizeQuality(config.quality);
@@ -927,6 +958,28 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
 }
 
 const XAI_IMAGE_RATIOS = ["1:1", "16:9", "9:16", "4:3", "3:4", "3:2", "2:3", "2:1", "1:2", "19.5:9", "9:19.5", "20:9", "9:20"];
+
+function isOpenRouterRequest(config: AiConfig) {
+    const extra = config as AiConfig & { vendor?: string; adapter?: string };
+    return extra.vendor === "openrouter" || isOpenRouterAdapter(extra.adapter);
+}
+
+/** OpenRouter 专用 Image API（POST /images）：清晰度按 512/1K/2K/4K 档位，画幅用宽高比或显式像素。 */
+function openRouterImageParameters(config: AiConfig, n: number) {
+    const quality = normalizeQuality(config.quality);
+    const resolution = quality ? GEMINI_IMAGE_SIZE_BY_QUALITY[quality] : undefined;
+    const size = (config.size || "").trim();
+    const ratio = /^\d+:\d+$/.test(size) ? size : undefined;
+    const pixels = /^\d+x\d+$/.test(size) ? size : undefined;
+    const background = normalizeBackground(config.background);
+    return {
+        n,
+        ...(resolution ? { resolution } : {}),
+        ...(ratio ? { aspect_ratio: ratio } : {}),
+        ...(pixels ? { size: pixels } : {}),
+        ...(background ? { background } : {}),
+    };
+}
 
 function xaiAspectRatio(value: string) {
     if (!value || value === "auto") return "auto";

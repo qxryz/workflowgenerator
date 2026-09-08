@@ -15,7 +15,7 @@ const canvasNodeSource = readFileSync(new URL("../src/components/canvas/canvas-n
 test("MiniMax H3 uses the exact native V2 create and query routes", () => {
     assert.equal(buildMiniMaxEndpoint("https://api.minimaxi.com/anthropic", "video-h3"), "https://api.minimaxi.com/v2/video_generation");
     assert.equal(buildMiniMaxEndpoint("https://api.minimaxi.com/v1", "video-query", "h3-task"), "https://api.minimaxi.com/v2/query/video_generation/h3-task");
-    assert.match(videoServiceSource, /provider: "openai" \| "seedance" \| "minimax"/u);
+    assert.match(videoServiceSource, /provider: "openai" \| "openrouter" \| "seedance" \| "minimax"/u);
     assert.match(videoServiceSource, /config\.apiFormat === "ark" \|\| isMiniMaxAdapter/u);
     assert.match(videoServiceSource, /postVideoJson<MiniMaxH3TaskResponse>[\s\S]*?buildMiniMaxEndpoint\(config\.baseUrl, "video-h3"\)/u);
     assert.match(videoServiceSource, /getVideoJson<MiniMaxH3TaskResponse>[\s\S]*?buildMiniMaxEndpoint\(config\.baseUrl, "video-query", task\.id\)/u);

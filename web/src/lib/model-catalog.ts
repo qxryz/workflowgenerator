@@ -8,7 +8,7 @@ import type { ModelParamSchema } from "./model-param-schema";
  * 每条模型记录声明：厂商、能力、使用哪个适配器、可选的参数 schema 键。
  * 新模型 90% 场景只需在这里加一条数据。
  */
-export type VendorId = "openai" | "anthropic" | "google" | "qwen" | "minimax-token-plan" | "minimax-api" | "xai" | "agnes" | "ark" | "custom";
+export type VendorId = "openai" | "openrouter" | "anthropic" | "google" | "qwen" | "minimax-token-plan" | "minimax-api" | "xai" | "agnes" | "ark" | "custom";
 
 export type ModelVendorDefinition = {
     id: VendorId;
@@ -44,6 +44,15 @@ export const modelVendors: readonly ModelVendorDefinition[] = [
         description: "适合 OpenAI 官方接口和兼容渠道",
         accent: "#111827",
         adapters: { text: "openai-compatible", image: "openai-compatible", video: "openai-compatible", audio: "openai-compatible" },
+    },
+    {
+        id: "openrouter",
+        label: "OpenRouter",
+        shortLabel: "OpenRouter",
+        defaultBaseUrl: "https://openrouter.ai/api/v1",
+        description: "一个 Key 使用 GPT、Claude、Gemini 等热门模型",
+        accent: "#7c3aed",
+        adapters: { text: "openrouter", image: "openrouter", video: "openrouter", audio: "openrouter" },
     },
     {
         id: "anthropic",
@@ -232,9 +241,7 @@ export function legacyVendorForApiFormat(apiFormat: string): VendorId {
 
 export function catalogModelsForVendor(vendorId: VendorId) {
     if (vendorId === "minimax-token-plan") {
-        return modelCatalog
-            .filter((model) => model.vendor === "minimax-api")
-            .map((model) => ({ ...model, vendor: "minimax-token-plan" as const, adapter: "minimax-token-plan-native" as const }));
+        return modelCatalog.filter((model) => model.vendor === "minimax-api").map((model) => ({ ...model, vendor: "minimax-token-plan" as const, adapter: "minimax-token-plan-native" as const }));
     }
     return modelCatalog.filter((model) => model.vendor === vendorId);
 }

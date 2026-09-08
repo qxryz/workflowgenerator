@@ -2,7 +2,7 @@ import axios from "axios";
 import { nanoid } from "nanoid";
 
 import { dataUrlToFile } from "@/lib/image-utils";
-import { isMiniMaxAdapter } from "@/lib/model-adapters";
+import { isMiniMaxAdapter, isOpenRouterAdapter } from "@/lib/model-adapters";
 import { getMediaBlob, uploadMediaFile, type UploadedFile } from "@/services/file-storage";
 import { imageToDataUrl } from "@/services/image-storage";
 import { boolConfig, buildSeedancePromptText, isSeedanceVideoConfig, normalizeSeedanceDuration, normalizeSeedanceRatio, normalizeSeedanceResolution, seedanceVideoReferenceError, SEEDANCE_REFERENCE_LIMITS } from "@/lib/seedance-video";
@@ -72,7 +72,7 @@ type ApiEnvelope<T> = T | { code?: number | string; data?: T | null; msg?: strin
 type RequestOptions = { signal?: AbortSignal };
 
 export type VideoGenerationResult = { blob?: Blob; url?: string; mimeType?: string; lastFrameUrl?: string };
-export type VideoGenerationTask = { id: string; provider: "openai" | "seedance" | "minimax" | "xai" | "agnes" | "plugin"; model: string };
+export type VideoGenerationTask = { id: string; provider: "openai" | "openrouter" | "seedance" | "minimax" | "xai" | "agnes" | "plugin"; model: string };
 export type VideoGenerationTaskState = { status: "pending" } | { status: "completed"; result: VideoGenerationResult } | { status: "failed"; error: string };
 
 /** Results for scripted (plugin) video models, which run their own create+poll in one shot at task creation. */
@@ -117,7 +117,19 @@ export async function requestVideoGeneration(config: AiConfig, prompt: string, r
         if (state.status === "failed") throw new Error(state.error);
         if (attempt === maxAttempts - 1) {
             const label =
-                task.provider === "seedance" ? "Seedance" : task.provider === "minimax" ? (isMiniMaxHailuoModel(modelOptionName(task.model)) ? "MiniMax Hailuo" : "MiniMax H3") : task.provider === "xai" ? "Grok" : task.provider === "agnes" ? "Agnes" : "";
+                task.provider === "seedance"
+                    ? "Seedance"
+                    : task.provider === "minimax"
+                      ? isMiniMaxHailuoModel(modelOptionName(task.model))
+                          ? "MiniMax Hailuo"
+                          : "MiniMax H3"
+                      : task.provider === "xai"
+                        ? "Grok"
+                        : task.provider === "agnes"
+                          ? "Agnes"
+                          : task.provider === "openrouter"
+                            ? "OpenRouter"
+                            : "";
             const recoverable = task.provider === "minimax" ? `（任务 ID：${task.id}）` : "";
             throw new Error(`${label ? `${label} ` : ""}视频生成仍在处理${recoverable}，可稍后继续查询`);
         }
@@ -146,6 +158,7 @@ export async function createVideoGenerationTask(config: AiConfig, prompt: string
     }
     if (requestConfig.apiFormat === "xai") return createXaiVideoTask(requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
     if (requestConfig.apiFormat === "agnes") return createAgnesVideoTask(requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
+    if (isOpenRouterVideoRequest(requestConfig)) return createOpenRouterVideoTask(requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
     if (isSeedanceVideoConfig(requestConfig)) {
         return createSeedanceTask(requestConfig, selectedModel, prompt, references, videoReferences, audioReferences, options);
     }
@@ -166,6 +179,7 @@ export async function pollVideoGenerationTask(config: AiConfig, task: VideoGener
     if (task.provider === "seedance") return pollSeedanceTask(requestConfig, task, options);
     if (task.provider === "xai") return pollXaiVideoTask(requestConfig, task, options);
     if (task.provider === "agnes") return pollAgnesVideoTask(requestConfig, task, options);
+    if (task.provider === "openrouter") return pollOpenRouterVideoTask(requestConfig, task, options);
     return pollOpenAIVideoTask(requestConfig, task, options);
 }
 
@@ -842,4 +856,66 @@ function blobToDataUrl(blob: Blob) {
         reader.onerror = () => reject(new Error("读取本地资产失败"));
         reader.readAsDataURL(blob);
     });
+}
+
+function isOpenRouterVideoRequest(config: AiConfig) {
+    const extra = config as AiConfig & { vendor?: string; adapter?: string };
+    return extra.vendor === "openrouter" || isOpenRouterAdapter(extra.adapter);
+}
+
+/** OpenRouter 视频清晰度：接口接受 480p/720p/768p/1080p/1K/2K/4K。 */
+function openRouterVideoResolution(value: string) {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "low") return "480p";
+    if (normalized === "high") return "1080p";
+    if (/^(?:480|720|768|1080)p$/.test(normalized)) return normalized;
+    if (/^[124]k$/.test(normalized)) return normalized.toUpperCase();
+    return "720p";
+}
+
+async function createOpenRouterVideoTask(config: AiConfig, model: string, prompt: string, references: ReferenceImage[], videoReferences: ReferenceVideo[], audioReferences: ReferenceAudio[], options?: RequestOptions): Promise<VideoGenerationTask> {
+    if (videoReferences.length || audioReferences.length) throw new Error("OpenRouter 视频暂不支持参考视频或参考音频");
+    if (references.length > 2) throw new Error("OpenRouter 视频最多使用首帧和尾帧两张参考图");
+    const size = (config.size || "").trim();
+    const body: Record<string, unknown> = {
+        model: modelOptionName(model),
+        prompt,
+        duration: Number(normalizeVideoSeconds(config.videoSeconds)),
+        resolution: openRouterVideoResolution(config.vquality),
+        generate_audio: boolConfig(config.videoGenerateAudio, true),
+    };
+    if (/^\d+:\d+$/.test(size)) body.aspect_ratio = size;
+    else if (/^\d+x\d+$/.test(size)) body.size = size;
+    if (references.length) {
+        body.frame_images = await Promise.all(
+            references.map(async (image, index) => ({
+                type: "image_url",
+                image_url: { url: await imageToDataUrl(image) },
+                frame_type: index === 0 ? "first_frame" : "last_frame",
+            })),
+        );
+    }
+    try {
+        const created = (await axios.post<{ id?: string; status?: string; error?: { message?: string } }>(aiApiUrl(config, "/videos"), body, { headers: aiHeaders(config, "application/json"), signal: options?.signal })).data;
+        if (created.error?.message) throw new Error(created.error.message);
+        if (!created.id) throw new Error("OpenRouter 视频接口没有返回任务 ID");
+        return { id: created.id, provider: "openrouter", model };
+    } catch (error) {
+        throw new Error(readAxiosError(error, "OpenRouter 视频任务创建失败"));
+    }
+}
+
+async function pollOpenRouterVideoTask(config: AiConfig, task: VideoGenerationTask, options?: RequestOptions): Promise<VideoGenerationTaskState> {
+    try {
+        const state = (await axios.get<{ status?: string; error?: unknown; unsigned_urls?: string[] }>(aiApiUrl(config, `/videos/${encodeURIComponent(task.id)}`), { headers: aiHeaders(config), signal: options?.signal })).data;
+        if (state.status === "failed") return { status: "failed", error: readApiErrorMessage(state.error) || "OpenRouter 视频生成失败" };
+        if (state.status === "completed") {
+            const content = await axios.get<Blob>(aiApiUrl(config, `/videos/${encodeURIComponent(task.id)}/content`), { headers: aiHeaders(config), responseType: "blob", signal: options?.signal });
+            await assertVideoBlob(content.data);
+            return { status: "completed", result: { blob: content.data, mimeType: content.data.type || "video/mp4" } };
+        }
+        return { status: "pending" };
+    } catch (error) {
+        throw new Error(readAxiosError(error, "OpenRouter 视频任务查询失败"));
+    }
 }

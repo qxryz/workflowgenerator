@@ -589,7 +589,7 @@ function findSavedScript(channels: { vendor?: string; models: ChannelModel[] }[]
 }
 
 function usesDirectNativeAdapter(adapter: AdapterId) {
-    return isMiniMaxAdapter(adapter) || adapter === "ark-media" || adapter === "dashscope-audio" || adapter === "xai" || adapter === "agnes";
+    return isMiniMaxAdapter(adapter) || adapter === "ark-media" || adapter === "dashscope-audio" || adapter === "xai" || adapter === "agnes" || adapter === "openrouter";
 }
 
 function scriptExamplesFor(selected: DocumentModel, savedScript: string): ScriptExample[] {
@@ -728,7 +728,7 @@ function imageCompatibilityNote(vendorId: VendorId, modelName: string, capabilit
 function ArchitectureFlow() {
     const steps = [
         { title: "新增渠道", detail: "配置 → 渠道 → 新增渠道" },
-        { title: "选择厂商", detail: "OpenAI / Anthropic / Gemini / 千问 / MiniMax Token Plan / MiniMax API / xAI / Agnes / 火山方舟 / 自定义" },
+        { title: "选择厂商", detail: "OpenAI / OpenRouter / Anthropic / Gemini / 千问 / MiniMax Token Plan / MiniMax API / xAI / Agnes / 火山方舟 / 自定义" },
         { title: "自动带出", detail: "接口地址 · 特征适配器 · 能力开关" },
         { title: "添加推荐模型", detail: "从模型目录按厂商与能力过滤" },
         { title: "保存并使用", detail: "工作台与工作流按模型能力调用" },
@@ -738,7 +738,7 @@ function ArchitectureFlow() {
             title: "协议适配器",
             tag: "传输层",
             color: "#117c8e",
-            items: ["openai-compatible", "openai-response", "anthropic", "gemini", "dashscope-audio", "minimax-token-plan-native", "minimax-api-native", "ark-media", "xai", "agnes", "custom"],
+            items: ["openai-compatible", "openai-response", "openrouter", "anthropic", "gemini", "dashscope-audio", "minimax-token-plan-native", "minimax-api-native", "ark-media", "xai", "agnes", "custom"],
             detail: "负责请求格式、鉴权、默认地址和能力表；必要时也固定凭据与计费边界",
         },
         {

@@ -7,18 +7,7 @@ import type { ModelCapability } from "@/stores/use-config-store";
  * 不可混用时，可以拆成多个适配器并复用同一套底层序列化函数。
  * 厂商和模型仍放在 model-catalog.ts。
  */
-export type AdapterId =
-    | "openai-compatible"
-    | "openai-response"
-    | "anthropic"
-    | "gemini"
-    | "dashscope-audio"
-    | "minimax-token-plan-native"
-    | "minimax-api-native"
-    | "ark-media"
-    | "xai"
-    | "agnes"
-    | "custom";
+export type AdapterId = "openai-compatible" | "openai-response" | "openrouter" | "anthropic" | "gemini" | "dashscope-audio" | "minimax-token-plan-native" | "minimax-api-native" | "ark-media" | "xai" | "agnes" | "custom";
 export type AdapterCapabilitySupport = "native" | "script" | "unsupported";
 export type AdapterCapabilities = Record<ModelCapability, AdapterCapabilitySupport>;
 
@@ -57,6 +46,16 @@ export const modelAdapters: readonly ModelAdapterDefinition[] = [
         shortLabel: "Responses",
         description: "OpenAI 新一代 Responses 接口",
         defaultBaseUrl: "https://api.openai.com",
+        auth: "bearer",
+        capabilities: { text: NATIVE, image: NATIVE, video: NATIVE, audio: NATIVE },
+        legacyProtocols: [],
+    },
+    {
+        id: "openrouter",
+        label: "OpenRouter",
+        shortLabel: "OpenRouter",
+        description: "OpenRouter 聚合接口：文本走 Chat Completions，图片、视频与语音走专用生成端点",
+        defaultBaseUrl: "https://openrouter.ai/api/v1",
         auth: "bearer",
         capabilities: { text: NATIVE, image: NATIVE, video: NATIVE, audio: NATIVE },
         legacyProtocols: [],
@@ -178,6 +177,10 @@ export function legacyApiFormatForAdapter(adapterId: string): string {
 
 export function isMiniMaxAdapter(adapterId: string | undefined): adapterId is "minimax-token-plan-native" | "minimax-api-native" {
     return adapterId === "minimax-token-plan-native" || adapterId === "minimax-api-native";
+}
+
+export function isOpenRouterAdapter(adapterId: string | undefined): adapterId is "openrouter" {
+    return adapterId === "openrouter";
 }
 
 export function miniMaxBillingModeForAdapter(adapterId: string | undefined): "token-plan" | "payg" | undefined {

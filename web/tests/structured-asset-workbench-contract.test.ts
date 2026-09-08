@@ -35,7 +35,16 @@ test("人物和场景采用代码编写的原生面板，并复用图片工作�
     assert.match(imagePage, /requestEdit/u);
     assert.match(imagePage, /<GenerationSettings/u);
     assert.match(imagePage, /await attachGeneratedImagesToStructuredPart\(logImages, completedLog\.id, text\)/u);
-    assert.match(structuredWorkbench, /生成成功后会自动保存到当前部件，并保留旧版本/u);
+    assert.match(imagePage, /const structuredGenerationTarget/u);
+    assert.match(imagePage, /const generationActionLabel/u);
+    assert.match(imagePage, /生成并存入“\{name\}” · \{count\} 张/u);
+    assert.match(imagePage, /structuredPrompt\(structuredDraftRef\.current, structuredDraftRef\.current\.activePartId\)/u);
+    assert.match(structuredWorkbench, /在右侧设置模型与参数后生成，结果会自动存入当前部件并保留旧版本/u);
+    assert.match(structuredWorkbench, /STRUCTURED_PART_EXAMPLE_PROMPTS/u);
+    assert.match(structuredWorkbench, /prompt: STRUCTURED_PART_EXAMPLE_PROMPTS\[kind\]\[part\.id\]/u);
+    assert.match(structuredWorkbench, /填入示例/u);
+    assert.match(structuredWorkbench, /恢复示例/u);
+    assert.doesNotMatch(structuredWorkbench, /onGenerate:/u);
     assert.match(structuredWorkbench, /STRUCTURED_WORKFLOW_DEFINITIONS/u);
 });
 
