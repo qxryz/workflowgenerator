@@ -256,28 +256,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:e4f7108117ff1f6e",
-    "sourceId": "youmind-nano-banana-pro",
-    "title": "个人资料 / 头像 - 黄金时刻剪影肖像",
-    "prompt": "超写实电影感特写，右侧面侧影肖像，拍摄对象为 {argument name=\"subject\" default=\"年轻南亚男性\"}，场景位于户外，时间为 {argument name=\"time of day\" default=\"温暖的黄金时刻日落\"}。请使用我上传的面部参考图作为严格的身份匹配参考，100% 还原我的真实面容、面部比例、胡须、八字胡、皮肤纹理和发型，禁止美颜、禁止美白、禁止重塑脸型。仅复制总统参考图中的姿势和构图。画面包含上胸部及肩部以上，身体完全侧向右方，头部保持平直，下巴微抬，双眼轻闭，嘴唇放松，表情平和。{argument name=\"clothing\" default=\"纯色超大款哑光黑色圆领 T 恤\"}。背景为极简的开阔日落天空，呈现自然的桃橙色与暖琥珀色渐变，地平线微弱模糊。强烈的日落逆光营造出深沉的剪影效果；面部必须保持暗色，不可过亮或进行正面补光。纤细的暖金色轮廓光勾勒出头发、额头、鼻子、嘴唇、胡须、下颌线和肩部轮廓。85mm 单反镜头，f/1.8 光圈，浅景深，低调曝光，深邃阴影，细腻胶片颗粒感，电影级调色，超写实 12k 分辨率，自然摄影风格，3:4 竖构图肖像。",
-    "description": "南亚男性的电影感日落肖像，严格保持身份特征。",
-    "coverUrl": "https://cms-assets.youmind.com/media/1789022272185_r06bom_HR0uNB9bcAA0JS-.jpg",
-    "referenceImageUrls": [
-      "https://cms-assets.youmind.com/media/1789022272185_r06bom_HR0uNB9bcAA0JS-.jpg"
-    ],
-    "tags": [
-      "nano-banana-pro",
-      "个人资料 / 头像",
-      "Muhammad Jamil"
-    ],
-    "author": "Muhammad Jamil",
-    "sourceUrl": "https://x.com/JamilAI55/status/2097883811053031584",
-    "createdAt": "2026-09-10",
-    "imageMode": "",
-    "imageModel": "nano-banana-pro"
-  },
-  {
-    "id": "youmind-nano-banana-pro:07c2e1492587065b",
+    "id": "youmind-nano-banana-pro:90822e4acc811c7e",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 专业情侣夜间人像",
     "prompt": "仅使用上传的图片作为面部参考，并 100% 保留面部特征、发型、胡须、肤色以及自然的皮肤纹理。一张中景照片，展示了一对年轻的 {argument name=\"subject\" default=\"南亚情侣\"} 在夜晚并肩倚靠在银色金属栏杆上。左侧的男子留着修剪整齐的胡须，深色头发，身材精瘦，身穿 {argument name=\"clothing\" default=\"深栗色衬衫\"} 并佩戴手表，右手托着下巴。身旁的年轻女子身材苗条，面部轮廓柔和，留着长长的深色头发，身穿 {argument name=\"outfit\" default=\"米色花卉图案传统长袍\"}，同样用双手托着下巴。两人都面带温柔的微笑，直视镜头。他们位于画面中心，背景是模糊的翠绿植被，并点缀着粉色、蓝色和黄色的霓虹灯光，呈现出焦外成像效果。光线柔和而温暖，突显了他们的面部，营造出浪漫且迷人的氛围。构图平衡，利用栏杆作为前景元素增加了画面深度。整体风格为专业人像摄影，特点是主体对焦清晰，背景虚化效果细腻。",
@@ -298,7 +277,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:3629efdec2958ca7",
+    "id": "youmind-nano-banana-pro:186d285ffb821e99",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 街头服饰时尚大片人像身份保留",
     "prompt": "创作一张电影感、超写实的街头服饰时尚大片人像，保留我准确的面部身份、特征、肤色、发型和自然比例。为我搭配 {argument name=\"outfit\" default=\"高级现代街头服饰，采用超大廓形叠穿，搭配精致配饰\"}，并以自信放松的姿态置身于 {argument name=\"urban setting\" default=\"具有混凝土建筑、质感墙面和低调城市细节的都市场景\"} 中。使用 {argument name=\"lighting\" default=\"戏剧性的自然光、柔和阴影、浅景深、真实的皮肤纹理、高级中性色调、细腻的胶片颗粒\"}，采用高级时尚杂志构图、专业摄影手法和电影级调色。让画面呈现出真实、毫不费力的酷感、极简、美学和杂志大片感，如同由全画幅相机搭配 85mm 镜头拍摄的奢华街头服饰广告。我已在此附上我的照片。",
@@ -321,7 +300,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:00395d1f3e6c2cc3",
+    "id": "youmind-nano-banana-pro:512310aecbf743b7",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 复古好莱坞经典美学肖像",
     "prompt": "超写实的高定时尚美学肖像，展现了一位优雅女性迷人的复古造型。她戴着一顶超大宽檐 {argument name=\"hat color\" default=\"白色\"} 帽子，在脸上投下柔和的阴影。引人注目的 {argument name=\"eye color\" default=\"浅绿色\"} 双眸，轮廓完美的深色眉毛，戏剧性的上扬眼线，柔和的玫瑰色腮红，无瑕透亮的肌肤，以及大胆鲜艳的 {argument name=\"lipstick color\" default=\"红色\"} 唇膏。佩戴大号细金圈耳环与珍珠耳钉。她戴着长款红色缎面手套，双手优雅地托住下巴和脸庞。身穿奢华的白色人造皮草大衣，内搭白色高领服饰。柔和的中性米色背景，梦幻般的漫射影棚灯光，平滑的电影感阴影，精致的编辑时尚摄影，奢华的老好莱坞美学，高细节，清晰的五官，真实的皮肤纹理，优雅的构图，浅景深，4K，高清，竖向肖像，9:16。",
@@ -342,7 +321,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:f0bf11e5d5bf5ae3",
+    "id": "youmind-nano-banana-pro:660dfb1d4def88e5",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 户外直闪蕾丝裙人像",
     "prompt": "使用我的照片，你能否创作一位留着深色长发、扎着半马尾并留有修饰脸型发丝的女性，她侧身坐在现代质感的扶手椅上。她身体微微前倾，看向镜头左侧，带着微妙的闭口微笑。她穿着 {argument name=\"dress style\" default=\"一件黑色无袖迷你裙，配有细肩带、修身的束身衣式上衣，带有精致的蕾丝刺绣，以及层叠的荷叶边蕾丝裙摆\"}。她的配饰包括 {argument name=\"accessories\" default=\"一条精致的金链项链、小圆环耳环、双腕细手镯以及简约的戒指\"}。\n\n光影与构图\n拍摄风格：户外夜间直闪中远景人像。\n光影：相机直闪，在主体上投射出大胆的高对比度光线，同时在身后的植被中营造出深邃的阴影。\n色调：以深绿色和浓郁的黑色为主，闪光灯突显出温暖的肤色。\n\n场景与背景\n前景/座椅：一把带有纹理织物饰面的现代奶油色或米白色软包扶手椅。\n背景：{argument name=\"background\" default=\"一面茂密的常春藤绿叶墙，覆盖在她身后的白色栅栏或墙壁上\"}。请勿改变面部特征",
@@ -363,7 +342,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:c441a0009f1501d2",
+    "id": "youmind-nano-banana-pro:1f13244909b836ac",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 身着露肩毛衣的优雅肖像",
     "prompt": "一位留着长卷发的女性优雅地坐在柔和的米色背景前。她身穿一件宽松的露肩米色毛衣，为画面增添了舒适的氛围。她的肤色温暖，妆容自然精致，突显了五官的轮廓。她单膝弯曲坐着，双臂随意地放在腿上，展现出一种放松而亲切的姿态。柔和温暖的灯光营造出一种亲密感。",
@@ -384,7 +363,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:c955d4d9ca223f5e",
+    "id": "youmind-nano-banana-pro:a6bc7c18bfa40070",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 年轻女性夜间街头肖像",
     "prompt": "创作一张年轻女性在夜间户外以昏暗街道为背景的肖像照。\n\n主体：她留着一头波浪长发，发色为浅棕色或金色，发丝垂于一侧肩头。她拥有浅色眼眸，妆容精致，眉形清晰，涂着红调口红。她身穿一件露肩的奶油色罗纹针织毛衣，正倚靠在车旁。",
@@ -405,7 +384,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:70eed547b39164e7",
+    "id": "youmind-nano-banana-pro:3701def2e015f68f",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 马尔代夫度假村丝绸长裙人像",
     "prompt": "超写实豪华度假村人像，描绘了一位年轻女性在黄金时刻站在俯瞰马尔代夫海洋的无边泳池旁，采用 4:5 竖构图。她身着精致飘逸的 {argument name=\"dress style\" default=\"祖母绿丝绸长裙，细肩带，优雅的褶皱设计，柔和的收腰剪裁，裙摆修长飘逸\"}。丝绸面料捕捉着夕阳的光影，呈现出逼真的高光和细腻的褶皱。她佩戴着极简的金色首饰，脚穿精致的凉鞋。",
@@ -426,7 +405,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:31c162d700a3589c",
+    "id": "youmind-nano-banana-pro:1d1930866d156b3a",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 明暗对照法黄金时刻电影感人像",
     "prompt": "一张展现自然美感的年轻女性电影感特写人像，她有着榛色的眼睛和微张的双唇。波浪状的暖棕色头发随意束起，几缕凌乱的发丝轻柔地修饰着脸庞。她身穿一件修身的黑色罗纹针织半高领上衣。黄金时刻的阳光透过窗户倾泻而入，在她的脸部和颈部投射出鲜明且富有戏剧性的斜向条纹阴影。高对比度的明暗对照照明，温暖的金色调与深邃的阴影交织，清晰可见的皮肤纹理和淡淡的雀斑。使用 85mm f/1.4 镜头拍摄，浅景深效果，背景柔和静谧，呈现出充满情绪的编辑摄影风格。",
@@ -447,7 +426,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:5df0437bf800ae71",
+    "id": "youmind-nano-banana-pro:4e0d21b68aaadb66",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 可爱的悬浮光泽太空虎斑猫",
     "prompt": "一只可爱的虎斑猫漂浮在黑色太空背景的中心，身体轮廓散发着温暖的琥珀色光晕。硕大而有光泽的黑色眼睛、微微上扬的小嘴和柔软的粉色圆脸颊营造出一种卡哇伊的表情；半透明的边缘和细腻的内部渐变，呈现出类似发光凝胶或抛光树脂的质感，并在表面下方呈现出柔和的散射效果。数十个微小的金色颗粒在不同深度环绕着主体，包括锐利的四角星芒和柔和的失焦火花，勾勒出空间深度感。明亮的正面主光在顶部和下边缘形成了平滑的高光，集中的光芒向周围的黑暗中辐射开来。* 风格：迪士尼风格，精致 CGI * 关键元素：维纳斯个性、光泽感双眼、粉色脸颊、闪烁颗粒、深色太空背景 * 灯光：温暖的金色正面光，径向背光，约 3000 K * 镜头：中心特写，标准镜头，平视角度",
@@ -468,7 +447,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:6eb65f719f87561c",
+    "id": "youmind-nano-banana-pro:c20748b0b873e03c",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 黄金时刻 DSLR 自拍人像",
     "prompt": "一张超写实的 DSLR 风格自拍人像，女孩具有相似的面部特征和身体比例，肤色一致，站在室内黄金时刻的阳光下，相机置于略高于视线水平的位置，前景可见自然伸展的手臂，居中构图，柔和自信的微笑，直视镜头，精致的女性面部结构，椭圆形脸型，光滑且散发光泽的皮肤，可见自然的纹理和毛孔，淡淡的红晕，自然的亮泽嘴唇，表情生动",
@@ -489,7 +468,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:aa86b7ba2516d25b",
+    "id": "youmind-nano-banana-pro:780a438f8109d00e",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 表现主义写实混合风格肖像",
     "prompt": "请使用附带的对象，尽可能还原其外观。创作一幅精致的混合风格肖像，将表现主义的绘画写实感与精致的电影感数字插画融为一体。\n\n保留原图的面部结构、表情、姿势、发型、服装、比例以及整体构图。运用清晰且自信的笔触、细腻的干笔纹理、精致的草图线条、柔和的罩染效果、自然的颜料变化以及手工绘制的瑕疵感——避免过于平滑或喷枪质感。\n\n使用温暖的桃色、珊瑚色、赤陶色、琥珀色和柔粉色作为肤色基调，并辅以淡紫色、李子色、炭灰色、浓咖啡色和板岩色的丰富阴影。在额头、鼻梁、颧骨和嘴唇处添加逼真的明亮高光。\n\n使双眼极具表现力和电影感，刻画出细腻的虹膜、逼真的倒影、精致的睫毛以及受控的眼神光。保持面部解剖结构的真实、优雅与成熟感。\n\n头发和服装应呈现出流畅的绘画笔触、自然的褶皱、局部的锐利细节以及松散的表现主义边缘。运用富有戏剧性的定向电影光效、微妙的轮廓光、大气阴影以及柔和的背景融合效果。\n\n整体风格：融合了传统手绘质感、印象派写实主义、优雅线条、电影级质感与精致角色插画的高端当代概念艺术。\n\n极简的大气背景，采用高级暖中性色调，重点聚焦于面部与眼神。\n\n长宽比：9:16 竖屏。",
@@ -512,7 +491,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:de5d66c26933fec4",
+    "id": "youmind-nano-banana-pro:226ae5db4a37eaee",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 奢华时尚大片风格 SUV 拍摄",
     "prompt": "编辑我上传的照片，营造出类似于高端时尚大片的奢华生活方式感。将我放置在一条铺设好的道路上，随意倚靠在一辆类似于路虎揽胜运动版 (Range Rover Sport) 的黑色豪华 SUV 旁，背景是微微虚化以增加景深的柔和绿树；将我的服装调整为一件剪裁合身的黑色衬衫（领口微开）、修身黑色西裤和干净的白色低帮运动鞋，并加上一副现代感黑色墨镜，确保服装剪裁利落，凸显运动与自信的形象；调整我的姿势，使我倚靠在 SUV 前侧，一条腿微交叉，双臂自然摆放，展现出从容自信，目光略微看向侧面而非直视镜头；应用自然的黄金时刻光影，在面部和车身上投下柔和阴影并增加细腻高光，适当提升清晰度和对比度以呈现高级大片质感，同时避免过度锐化并保持真实的皮肤纹理；采用电影感、略带暖色的调色风格，呈现深邃的黑色、丰富的对比度、受控的高光，并在 SUV 车漆上添加微妙的环境反射以增强真实感；确保整体氛围传达出财富、成功、沉稳和现代男性气质，看起来像是为 Instagram 专业拍摄的作品，并在不改变核心面部特征的前提下，保持 100% 的面部特征还原度。",
@@ -533,7 +512,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:4067fff2c4c548f9",
+    "id": "youmind-nano-banana-pro:30e9897006672135",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 韩式时尚美妆人像",
     "prompt": "请使用参考照片中的人脸，并保留其确切的身份、面部结构、脸型、眼睛、鼻子、嘴唇、下颌线、肤色、比例以及自然表情。请勿进行美颜、瘦脸、重塑或改变面部特征。保持真实的皮肤纹理、可见的毛孔、细微的绒毛以及真实的细节。\n\n创作一张超写实的特写美妆人像，采用电影感 {argument name=\"color grade\" default=\"青橙色调\"} 的韩式时尚风格。紧凑的肩部以上构图，柔和的四分之三侧面角度，头部微微倾斜，眼神平静且具有吸引力，嘴唇微张，表情沉静而自信。\n\n使用深青色摄影棚背景，搭配电影感灯光：一侧为冷青色光，另一侧在颧骨、鼻子、嘴唇、锁骨和湿发上形成温暖的琥珀橙色高光。营造出光泽感高光、柔和阴影、微妙的光晕以及梦幻般的奢华美妆大片氛围。\n\n穿着 {argument name=\"clothing\" default=\"深巧克力棕色或黑色缎面细肩带上衣\"}，佩戴小巧的金耳环、精致的戒指和细金项链。长发呈深色、光泽感且带有湿发感，向后梳理，几缕柔软湿润的发丝修饰脸部，但不会遮挡眼睛。\n\n妆容：清透的韩式水光妆，呈现透亮真实的玻璃肌，羽毛状眉毛，香槟桃色闪光眼影，柔和的棕色眼线，卷翘睫毛，微妙的卧蚕高光，珊瑚桃色腮红，以及光泽感的珊瑚玫瑰色渐变唇妆。\n\n一只手轻轻放在头发或脸侧附近，且不遮挡面部特征。展示优雅的长杏仁形指甲，配以 {argument name=\"nail style\" default=\"半透明水蓝色果冻甲油、金色金属波浪细节、微小水晶、珍珠水滴\"}，以及水润光泽的质感。\n\n超写实 DSLR 美妆摄影，85mm 镜头，浅景深，清晰的面部细节，柔和的背景虚化，电影感青橙色调，细微的 35mm 胶片颗粒，柔和的柔光效果，高清韩式时尚风格。\n\n长宽比：1:1 正方形头像或 3:4。\n\n负面提示词：改变身份、不同的人脸、美颜后的脸、塑料感或过度磨皮的皮肤、扭曲的特征、糟糕的解剖结构、多余的手指、畸形的手、头发遮眼、刺眼的霓虹灯光、低质量、卡通、动漫、文字、标志、水印。",
@@ -554,7 +533,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:cd767b9b13c41d86",
+    "id": "youmind-nano-banana-pro:d1b6c5eecc14d553",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 印度女性窗边肖像",
     "prompt": "一位 {argument name=\"subject\" default=\"美丽的年轻印度女性\"}，化着柔和的自然妆容，头发盘成凌乱的发髻，几缕发丝垂在脸颊旁，身穿一件 {argument name=\"outfit\" default=\"淡紫色无袖长裙，肩部系有蝴蝶结，胸前饰有珍珠点缀\"}，心形领口，坐在椅子上，双臂轻轻交叉环抱，面带柔和微笑看向镜头，佩戴珍珠项链及小吊坠，左手腕戴银色金属手表，右手腕戴精致珍珠手链，{argument name=\"setting\" default=\"窗边的室内场景\"}",
@@ -575,7 +554,7 @@
     "imageModel": "nano-banana-pro"
   },
   {
-    "id": "youmind-nano-banana-pro:d280a2c9560a847d",
+    "id": "youmind-nano-banana-pro:3ad821ae9543f35f",
     "sourceId": "youmind-nano-banana-pro",
     "title": "个人资料 / 头像 - 电影感强烈侧视肖像",
     "prompt": "为上传的男性创建一张黑暗、强烈且具有电影感的肖像特写。他留着凌乱且有造型感的头发，发丝散落，正转头越过肩膀凝视镜头，眼神深邃、严肃且充满忧郁。身体侧向，左臂抬起横过脸部至耳侧，肘部向上向前延伸，遮住部分面部，仅露出一只眼睛，形成强烈的层次感姿势。他穿着一件 {argument name=\"shirt color\" default=\"深蓝绿色\"} 的丝绸衬衫，袖子卷起，领口敞开，隐约可见干净的胸膛。DSLR 画质，侧面拍摄视角。保持面部基本去色并呈现自然肤色，同时衬衫保持浓郁的 {argument name=\"shirt color\" default=\"深蓝绿色\"}，营造出选择性色彩的电影质感。戏剧性的低调侧光，深邃的黑色阴影，细腻的胶片颗粒感，高对比度，富有情绪的 {argument name=\"background\" default=\"黑色背景\"}，前景较低，轻微暗角，真实的皮肤纹理，浅景深，时尚杂志摄影风格，85mm 镜头，超写实，氛围感，4:5 肖像比例。保持面部与上传照片一致。",
@@ -592,6 +571,27 @@
     "author": "Muhammad Jamil",
     "sourceUrl": "https://x.com/JamilAI55/status/2096410503090520259",
     "createdAt": "2026-09-06",
+    "imageMode": "",
+    "imageModel": "nano-banana-pro"
+  },
+  {
+    "id": "youmind-nano-banana-pro:79769e237846fd8c",
+    "sourceId": "youmind-nano-banana-pro",
+    "title": "个人资料 / 头像 - 趣味卧室生活摄影",
+    "prompt": "专业摄影风格，为我们的 {argument name=\"subject\" default=\"model\"} 在 {argument name=\"setting\" default=\"her bedroom\"} 中放松休息提供一个新的角度和姿势。一个俏皮的姿势，比着剪刀手并吐着舌头，歪着头，显得十分搞怪。",
+    "description": "一个用于捕捉卧室场景中俏皮、搞怪瞬间的提示词，侧重于模特姿势与表情，以呈现专业摄影质感。",
+    "coverUrl": "https://cms-assets.youmind.com/media/1788676670911_s88p6t_HRWk1OIa8AAnQYc.jpg",
+    "referenceImageUrls": [
+      "https://cms-assets.youmind.com/media/1788676670911_s88p6t_HRWk1OIa8AAnQYc.jpg"
+    ],
+    "tags": [
+      "nano-banana-pro",
+      "个人资料 / 头像",
+      "dreamy digital arts"
+    ],
+    "author": "dreamy digital arts",
+    "sourceUrl": "https://x.com/dreamydigiarts/status/2096259560700805135",
+    "createdAt": "2026-09-05",
     "imageMode": "",
     "imageModel": "nano-banana-pro"
   },
