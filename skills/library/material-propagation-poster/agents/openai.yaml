@@ -1,0 +1,6 @@
+interface:
+  display_name: "材质蔓延动态海报"
+  short_description: "从主体与主体与材质参考生成动态海报工作流"
+  default_prompt: "使用 $material-propagation-poster，把我上传的主体图和纹理参考转成可执行的材质蔓延动态海报方案。"
+policy:
+  allow_implicit_invocation: true

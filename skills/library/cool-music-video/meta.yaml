@@ -1,0 +1,32 @@
+display-name-zh: 潮流音乐短片
+version: 1.0.3
+tag-en: "Sound & Music / Full Production"
+tag-cn: "音频音乐 / 成片制作"
+complete-tags-en:
+  - "Sound & Music / Full Production"
+complete-tags-cn:
+  - "音频音乐 / 成片制作"
+summary-en: "Create a 15-second retro collage, rap, or fashion performance music video as one continuous film"
+summary-cn: "制作十五秒以内的复古潮流拼贴、说唱或时尚表演型音乐短片，单条连续成片"
+desc-en: "For creators who want a single music-driven short within 15 seconds in 16:9. Takes a song, performer references, or a style direction as input, then confirms scope, selects character and music sources, designs eight to ten shots in one continuous space, plans dynamic typography and music structure, compiles a complete long-form video prompt, and dispatches one full render. Best for retro trend collages, rap performances, and fashion showcase videos where music rhythm drives every cut."
+desc-cn: "面向需要音乐节奏主导短片的创作者，把歌曲、表演者参考或风格方向转化为一条十五秒以内、横屏画幅的音乐短片成片。流程覆盖范围确认、人物与音乐来源选择、八到十个镜头与连续空间设计、动态文字编排、音乐结构规划、完整长篇幅视频提示词编译与单条成片派发。适用于复古潮流拼贴、说唱表演与时尚走秀型音乐视频，以音乐节奏驱动每一次剪切，保持人物、空间与视觉风格在整条影片中的连续统一。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 把歌曲、表演者和潮流视觉方向编排成一条十五秒内连续、节奏驱动的音乐短片。
+    best-for:
+      - 潮流音乐
+      - 说唱表演
+      - 节奏剪辑
+    how-to-use: 提供歌曲、表演者参考和视觉偏好，先确认片长、画幅、人物来源与表演路线。
+    outputs: 音乐结构分析、镜头设计、动态文字、长提示词与连续音乐短片。
+  en-US:
+    summary: Arrange a song, performer, and trend-led visual direction into one continuous, rhythm-driven music short under fifteen seconds.
+    best-for:
+      - Trend Music
+      - Rap Performance
+      - Rhythmic Editing
+    how-to-use: Provide the song, performer reference, and visual preference, then confirm duration, framing, character source, and performance route.
+    outputs: Music structure analysis, shot design, kinetic type, a long prompt, and the finished music short.

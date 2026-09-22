@@ -1,0 +1,36 @@
+display-name-zh: 品牌流线 MG 动效
+version: 1.0.3
+tag-en: "Commercial Ad / Creative Generation"
+tag-cn: "商业广告 / 创作生成"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+summary-en: "Generate a MiniMax-H3 brand stream MG video from one logo and theme, with IP-led motion and final logo fidelity."
+summary-cn: "基于Logo与主题生成IP领航的品牌流线MG动效视频，适合新品发布预热与社媒传播。"
+desc-en: "Creates a premium brand-stream MG video from one logo reference and a brand name, theme, or short concept. It extracts concise selling points, designs an IP, 3D icon, or energy-node lead, builds dual-neon stream motion, writes a 15-second production prompt, asks for confirmation, and generates the final video. MiniMax-H3 is the default; a user-selected other model requires capability checking first."
+desc-cn: "面向品牌设计、产品发布和社媒投放场景，用户提供一张 Logo 参考图及品牌名、主题词或简短概念，Skill 会提炼英文或数字卖点，设计 IP、3D 图标或能量节点领航主角，组织双色霓虹流线动效，写入 15 秒制作提示词并在确认后生成视频。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败后按原因重试并切换可用模型。适合 Logo 动效、发布预热视频和品牌社媒短片，强调标志清晰与品牌一致。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/7afd893c-12a6-4a63-82da-b9b908b391b4.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/7afd893c-12a6-4a63-82da-b9b908b391b4.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/brand-stream-mg-01-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 从Logo与品牌主题提炼IP化视觉线索，生成流线、节点和品牌字形驱动的MG动效短片。
+    best-for:
+      - Logo动效
+      - 品牌MG
+      - 新品预热
+    how-to-use: 提供Logo、品牌名和主题词，先确认IP主角、卖点文字和流线运动方向。
+    outputs: 品牌视觉简报、IP与流线设定、动效提示词及品牌短片。
+  en-US:
+    summary: Turn a logo and brand theme into an IP-led motion graphic built from flowing lines, nodes, and branded wordforms.
+    best-for:
+      - Logo Motion
+      - Brand MG
+      - Launch Teasers
+    how-to-use: Provide the logo, brand name, and theme, then confirm the IP lead, selling-point text, and flow direction.
+    outputs: A visual brief, IP and flow direction, motion prompts, and a brand short.

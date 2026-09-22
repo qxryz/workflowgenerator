@@ -1,0 +1,37 @@
+display-name-zh: 邮票照片动效
+version: 1.0.3
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+summary-en: "Restyles a photo, builds a split postage-stamp composite, and animates the scene with a fixed camera while preserving the frame and style boundary."
+summary-cn: "把照片重绘并合成邮票双风格画面，再以固定镜头生成保持边界的动画。"
+desc-en: "For creators who want a daily photo turned into a mixed-media postage-stamp animation. The workflow first restyles the source as a naive flat illustration, then composites a centered stamp frame whose interior uses the illustration and exterior keeps the original photo, aligning shared buildings, horizons, or routes. After approval, it animates the scene with a fixed camera while the stamp and style split remain stable. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once on failure, then replaced by another available model. Best for collage-like scenes, not complex acting, multi-shot stories, or pure retouching."
+desc-cn: "面向想把日常照片变成有趣分享素材的创作者。流程先将原图重绘为韩式稚拙扁平插画，再以原图为底叠加居中邮票边框，使框内呈插画、框外保留照片，并让共同建筑、地平线或路径在内外准确对齐。静态合成确认后，使用固定镜头让场景自然运动，同时保持邮票框位置和内外画风边界稳定。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。不适合复杂角色表演、多镜头剧情或纯修图。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/b8345690-5e42-43b6-8fcb-2f71c1a27ef6.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/b8345690-5e42-43b6-8fcb-2f71c1a27ef6.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/stamp-photo-motion-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/stamp-photo-motion-02-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 将照片重绘为插画并与原图合成邮票边框内外双风格画面，再以固定镜头制作自然动效。
+    best-for:
+      - 邮票合成
+      - 照片重绘
+      - 固定镜头
+    how-to-use: 提供源照片，先确认插画风格、邮票构图以及内外画面需要对齐的建筑或路径。
+    outputs: 插画重绘图、邮票复合画面、边界对齐方案与固定镜头动画。
+  en-US:
+    summary: Restyle a photo, combine it with the original in a dual-style postage-stamp composition, and animate it with a locked camera.
+    best-for:
+      - Stamp Composites
+      - Photo Restyling
+      - Locked Camera
+    how-to-use: Provide the source photo, then confirm the illustration style, stamp composition, and structures that must align inside and outside the frame.
+    outputs: A restyled illustration, stamp composite, boundary-alignment plan, and locked-camera animation.

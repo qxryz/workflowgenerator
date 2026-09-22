@@ -1,0 +1,57 @@
+[
+  {
+    "type": "narration",
+    "voice": "narrator",
+    "text": "Morning sunlight filtered through the curtains as Alice rubbed her eyes."
+  },
+  {
+    "type": "narration",
+    "voice": "narrator",
+    "text": "She stretched and said,"
+  },
+  {
+    "type": "dialogue",
+    "voice": "Alice",
+    "character": "Alice",
+    "text": "What a beautiful day."
+  },
+  {
+    "type": "narration",
+    "voice": "narrator",
+    "text": "She walked to the window and pushed it open. People were already moving about on the street below."
+  },
+  {
+    "type": "narration",
+    "voice": "narrator",
+    "text": "Bob called from the kitchen,"
+  },
+  {
+    "type": "dialogue",
+    "voice": "Bob",
+    "character": "Bob",
+    "text": "Good morning! Have you had breakfast?"
+  },
+  {
+    "type": "dialogue",
+    "voice": "Alice",
+    "character": "Alice",
+    "text": "Not yet!"
+  },
+  {
+    "type": "narration",
+    "voice": "narrator",
+    "text": "Alice replied with a smile."
+  },
+  {
+    "type": "dialogue",
+    "voice": "Alice",
+    "character": "Alice",
+    "text": "I'll make some coffee."
+  },
+  {
+    "type": "dialogue",
+    "voice": "Bob",
+    "character": "Bob",
+    "text": "Sounds great. I'll get the toast ready."
+  }
+]

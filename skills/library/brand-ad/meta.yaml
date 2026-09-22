@@ -1,0 +1,32 @@
+display-name-zh: 品牌广告
+version: 1.1.5
+tag-en: "Commercial Ad / Full Production"
+tag-cn: "商业广告 / 成片制作"
+complete-tags-en:
+  - "Commercial Ad / Full Production"
+complete-tags-cn:
+  - "商业广告 / 成片制作"
+summary-en: "Produce official brand commercials and TVCs of user-defined duration, from strategy through final cut"
+summary-cn: "从策略、脚本和分镜到终剪，制作用户自定义时长的官方品牌广告与 TVC 成片"
+desc-en: "For brands and product teams producing official commercials, product films, narrative TVCs, brand films, or campaign series at a user-defined duration. The workflow verifies facts and rights, resolves strategy and visual direction, develops copy, scripts, storyboards, typography, continuity anchors, and sound, then produces independent or continuity-linked shots and assembles the approved final cut on canvas, including native narration, sound effects, and confirmed music when needed. Simple ads stay compact, while complex productions add review milestones for scripts, storyboards, reusable anchors, and editorial decisions. Unverified claims, identity assets, legal text, and packaging are never treated as approved facts."
+desc-cn: "面向需要制作官方品牌广告、产品片、剧情 TVC、品牌大片或系列 Campaign 的品牌与产品团队，支持用户自定义时长。流程核验品牌事实、素材来源与授权，完成策略和视觉方向、文案、脚本、时间码分镜、艺术字体、连续性锚点与声音设计，再生产独立或连续镜头，并在画布组装已确认终剪。简单广告保持短链路，复杂项目增加脚本、分镜、可复用锚点和剪辑决策的评审里程碑；未经核验的宣传主张、身份资产、法律文字与包装信息不得视为事实。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 把经核验的品牌事实、产品卖点与视觉资产制作成可发布的品牌广告或 TVC。
+    best-for:
+      - 品牌广告
+      - 产品卖点
+      - 剧情 TVC 与系列 Campaign
+    how-to-use: 提供品牌事实、产品资产、授权信息、投放目标和时长，再确认创意路线与评审节点。
+    outputs: TVC 简报、脚本、时间码分镜、连续性锚点、声音设计与最终广告片。
+  en-US:
+    summary: Turn verified brand facts, product benefits, and visual assets into a publishable brand commercial or TVC.
+    best-for:
+      - Brand Advertising
+      - Product Benefits
+      - Narrative TVCs and Campaign Series
+    how-to-use: Provide brand facts, product assets, permissions, placement goals, and duration, then confirm the creative route and review milestones.
+    outputs: A TVC brief, script, timecoded storyboard, continuity anchors, sound design, and final commercial.

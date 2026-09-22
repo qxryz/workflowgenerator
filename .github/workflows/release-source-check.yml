@@ -1,0 +1,26 @@
+name: Check Release Source
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+      - name: Check release source tree
+        shell: bash
+        run: |
+          set -euo pipefail
+          test ! -e AGENTS.md
+          test ! -e HANDOVER.md
+          test ! -e CHANGELOG.md
+          test ! -e docs
+          test ! -e development-notes
+          if git ls-files | grep -E '(^|/)(target|dist|build|node_modules)/|(^|/)\.env\.local$|(^|/)updater\.key$'; then
+            echo "Private or generated files are tracked" >&2
+            exit 1
+          fi
+          node -e 'const p=require("./web/package.json"); const t=require("./web/src-tauri/tauri.conf.json"); if(p.version!==t.version) process.exit(1)'

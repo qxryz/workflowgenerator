@@ -1,0 +1,36 @@
+display-name-zh: 半解说真人短剧
+version: 1.0.1
+tag-en: "Short Drama"
+tag-cn: "短剧漫剧"
+complete-tags-en:
+  - "Short Drama / Creative Generation"
+complete-tags-cn:
+  - "短剧漫剧 / 创作生成"
+summary-en: "Turns stories or scripts into narrated live-action short-drama episodes with character dialogue, continuity-controlled shots, user-confirmed video resolution, and optional subtitles."
+summary-cn: "将故事或剧本制作成由旁白推进、角色对白补充的真人短剧单集，并确认视频分辨率后完成连续性制作。"
+desc-en: "For creators producing narrated live-action short dramas where voiceover drives the story and character dialogue carries the conflict. Provide a premise or script with optional character, scene, and audio references. The workflow locks visual direction, builds continuity assets, plans timed narration and dialogue shots, generates keyframes and videos, and aligns a standalone narration track to the assembled timeline. MiniMax-H3 is the default video model; if the user explicitly selects another model, check its capabilities first, retry a failed shot once for the diagnosed cause, then switch to another available model. It delivers a short-drama video, narration track, and optional subtitles, not animation, pure commentary, or ordinary editing."
+desc-cn: "面向制作半解说真人短剧的创作者，适用于由旁白推进剧情、角色对白补充冲突的内容。用户提供故事或剧本，也可补充角色、场景和音频参考。流程先锁定视觉方向，建立连续性资产，规划带时间码的旁白与对白镜头，生成关键帧和视频，并将独立旁白对齐到最终时间轴。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换可用模型。交付短剧视频、旁白音轨和可选字幕，不用于动画、纯解说或普通剪辑。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/b5efbc58-d361-49b1-9381-2b20863831a4.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/b5efbc58-d361-49b1-9381-2b20863831a4.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/half-narrated-live-action-short-drama-01-20260908-1788867276244.mp4"
+structured-info:
+  zh-CN:
+    summary: 将短剧故事制作成旁白推进、角色对白补充且人物场景连续的真人短剧单集。
+    best-for:
+      - 真人短剧
+      - 旁白叙事
+      - 连续镜头
+    how-to-use: 提供剧本或故事、角色设定和视觉参考，先确认单集规格、旁白比例与分辨率。
+    outputs: 真人角色与场景设定、双通道脚本、镜头表、视频片段与短剧成片。
+  en-US:
+    summary: Turn a short-drama story into a continuous live-action episode driven by narration and supported by character dialogue.
+    best-for:
+      - Live-action Drama
+      - Narrated Storytelling
+      - Continuous Shots
+    how-to-use: Provide the script or story, character direction, and visual references, then confirm episode specs, narration balance, and resolution.
+    outputs: Live-action character and scene direction, a two-channel script, shot list, video segments, and finished episode.

@@ -1,0 +1,36 @@
+display-name-zh: 材质蔓延动态海报
+version: 1.0.3
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+summary-en: "Turns a subject visual into an approved material-journey poster with protected layout, controlled motion, and social variants."
+summary-cn: "从主体视觉确认关键画面，制作保护版式的材质蔓延动态海报并输出社媒变体。"
+desc-en: "For designers and creators who want a subject image, poster, or product visual to become a controlled material-propagation package. The workflow identifies the visual anchor and protected regions, defines the material origin, route, timing, stopping rule, and loop, confirms a still key art, and then creates a restrained motion poster with social-format variants. It preserves identity, geometry, typography, lighting, and layout. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once on failure, then replaced by another available model. Not for ordinary static posters, subtitle editing, generic image-to-video, or standard cutting."
+desc-cn: "面向设计师与动态海报创作者，把主体图、海报或产品视觉转成可控的材质蔓延制作包。流程先识别视觉锚点与保护区域，明确材质起点、传播路径、时间节奏、停止规则和循环方式，确认静态关键画面后，再生成克制的动态海报与社媒比例变体。整个过程保留主体身份、几何结构、文字、光影和版式。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。不用于普通静态海报、纯字幕、通用图生视频或常规剪辑。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3052949b-b42f-42bb-8d39-0380855b300b.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3052949b-b42f-42bb-8d39-0380855b300b.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/material-propagation-poster-01-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 将主体视觉中的材质蔓延路径、保护区域和循环节奏设计成可控的动态海报及社媒变体。
+    best-for:
+      - 材质蔓延
+      - 动态海报
+      - 版式保护
+    how-to-use: 提供主体图或海报和材质参考，先确认视觉锚点、传播起点、停止规则与循环方式。
+    outputs: 关键画面、蔓延路径、动态海报提示词、社媒比例变体与交付说明。
+  en-US:
+    summary: Design a controllable motion poster from a subject visual by specifying material spread, protected areas, timing, and looping variants.
+    best-for:
+      - Material Spread
+      - Motion Posters
+      - Layout Protection
+    how-to-use: Provide the subject visual or poster and texture reference, then confirm anchors, start point, stop rule, and loop behavior.
+    outputs: Keyframes, spread path, motion-poster prompts, social-ratio variants, and delivery notes.

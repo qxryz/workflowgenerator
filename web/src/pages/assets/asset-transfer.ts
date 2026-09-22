@@ -1,0 +1,113 @@
+import { saveAs } from "file-saver";
+
+import { fileExtension as originalFileExtension } from "@/lib/asset-file";
+import { createZip, readZip } from "@/lib/zip";
+import { getAssetFileBlob, setAssetFileBlob } from "@/services/asset-file-storage";
+import { getMediaBlob, setMediaBlob } from "@/services/file-storage";
+import { getImageBlob, setImageBlob } from "@/services/image-storage";
+import { isStructuredAsset, type Asset } from "@/stores/use-asset-store";
+
+type AssetExportFile = {
+    app: "infinite-canvas";
+    version: 1;
+    exportedAt: string;
+    assets: Asset[];
+    files: AssetExportItem[];
+};
+
+type AssetExportItem = {
+    storageKey: string;
+    path: string;
+    mimeType: string;
+    bytes: number;
+};
+
+export async function exportAssets(assets: Asset[]) {
+    const files: AssetExportItem[] = [];
+    const zipFiles: { name: string; data: BlobPart }[] = [];
+    const exportedKeys = new Set<string>();
+
+    await Promise.all(
+        assets.map(async (asset) => {
+            if (isStructuredAsset(asset)) {
+                await Promise.all(
+                    asset.data.images.map(async (image) => {
+                        if (!image.storageKey || exportedKeys.has(image.storageKey)) return;
+                        exportedKeys.add(image.storageKey);
+                        const blob = await getImageBlob(image.storageKey);
+                        if (!blob) return;
+                        const path = `files/${safeFileName(image.storageKey)}.${fileExtension(blob.type, "image")}`;
+                        files.push({ storageKey: image.storageKey, path, mimeType: blob.type || image.mimeType, bytes: blob.size });
+                        zipFiles.push({ name: path, data: blob });
+                    }),
+                );
+                await Promise.all(
+                    (asset.data.audios || []).map(async (audio) => {
+                        if (!audio.storageKey || exportedKeys.has(audio.storageKey)) return;
+                        exportedKeys.add(audio.storageKey);
+                        const blob = await getMediaBlob(audio.storageKey);
+                        if (!blob) throw new Error(`音频文件不可用：${audio.title}`);
+                        const path = `files/${safeFileName(audio.storageKey)}.${fileExtension(blob.type, "audio")}`;
+                        files.push({ storageKey: audio.storageKey, path, mimeType: blob.type || audio.mimeType, bytes: blob.size });
+                        zipFiles.push({ name: path, data: blob });
+                    }),
+                );
+                return;
+            }
+            if (asset.kind !== "image" && asset.kind !== "video" && asset.kind !== "audio" && asset.kind !== "file") return;
+            const storageKey = asset.data.storageKey;
+            if (!storageKey || exportedKeys.has(storageKey)) return;
+            exportedKeys.add(storageKey);
+            const blob = asset.kind === "image" ? await getImageBlob(storageKey) : asset.kind === "file" ? await getAssetFileBlob(storageKey) : await getMediaBlob(storageKey);
+            if (!blob) return;
+            const path = `files/${safeFileName(storageKey)}.${asset.kind === "file" ? originalFileExtension(asset.data.fileName) || "bin" : fileExtension(blob.type, asset.kind)}`;
+            files.push({ storageKey, path, mimeType: blob.type || asset.data.mimeType, bytes: blob.size });
+            zipFiles.push({ name: path, data: blob });
+        }),
+    );
+
+    const data: AssetExportFile = { app: "infinite-canvas", version: 1, exportedAt: new Date().toISOString(), assets, files };
+    const zip = await createZip([{ name: "assets.json", data: JSON.stringify(data, null, 2) }, ...zipFiles]);
+    saveAs(zip, "我的资产.zip");
+}
+
+export async function readAssetPackage(file: File) {
+    const zip = await readZip(file);
+    const assetFile = zip.get("assets.json");
+    if (!assetFile) throw new Error("missing assets.json");
+    const data = JSON.parse(await assetFile.text()) as AssetExportFile;
+    for (const asset of data.assets) {
+        if (!isStructuredAsset(asset)) continue;
+        for (const audio of asset.data.audios || []) {
+            if (!audio.storageKey) continue;
+            const item = data.files.find((file) => file.storageKey === audio.storageKey);
+            if (!item || !zip.has(item.path)) throw new Error(`音频文件缺失：${audio.title}`);
+        }
+    }
+    await Promise.all(
+        data.files.map(async (item) => {
+            const blob = zip.get(item.path);
+            if (!blob) return;
+            const typedBlob = blob.type ? blob : blob.slice(0, blob.size, item.mimeType);
+            await (item.storageKey.startsWith("image:") ? setImageBlob(item.storageKey, typedBlob) : item.storageKey.startsWith("file:") ? setAssetFileBlob(item.storageKey, typedBlob) : setMediaBlob(item.storageKey, typedBlob));
+        }),
+    );
+    return data.assets;
+}
+
+function safeFileName(value: string) {
+    return value.replace(/[\\/:*?"<>|]/g, "_");
+}
+
+function fileExtension(mimeType: string, kind: Asset["kind"]) {
+    if (mimeType.includes("png")) return "png";
+    if (mimeType.includes("jpeg")) return "jpg";
+    if (mimeType.includes("webp")) return "webp";
+    if (mimeType.includes("gif")) return "gif";
+    if (mimeType.includes("mp4")) return "mp4";
+    if (mimeType.includes("webm")) return "webm";
+    if (mimeType.includes("mpeg")) return "mp3";
+    if (mimeType.includes("wav")) return "wav";
+    if (mimeType.includes("ogg")) return "ogg";
+    return kind === "image" || kind === "character" || kind === "scene" ? "png" : "bin";
+}

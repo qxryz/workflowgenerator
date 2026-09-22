@@ -1,0 +1,38 @@
+display-name-zh: 小物产品手绘海报动画
+version: 1.0.5
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Full Production"
+  - "E-Commerce / Full Production"
+complete-tags-cn:
+  - "商业广告 / 成片制作"
+  - "电商 / 成片制作"
+summary-en: "Transforms a small product photo into a hand-drawn POP poster and a seven-second making-of animation through confirmed title, stickers, and footer copy."
+summary-cn: "把小物产品图制作成手绘POP海报与7秒制作动画，分步确认标题、贴纸和底部文案。"
+desc-en: "For creators presenting drinks, cosmetics, phones, earbuds, snacks, stationery, toys, and other hand-holdable products. The Skill confirms the product title, sticker strategy, and optional footer copy in separate checkpoints, loads bundled poster references, creates a vertical POP poster combining realistic product photography with marker doodles and illustrated hands, then animates the making process. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once when it fails, and then replaced by another available model. Not for large products, talking-head commerce, UI demos, luxury cinematic campaigns, or long narrative ads."
+desc-cn: "面向需要把饮品、美妆、手机、耳机、零食、文具、潮玩等小物快速包装成年轻视觉的创作者。Skill 按检查点确认产品标题、贴纸策略和可选底部小字，调用内置海报提示词生成真实产品摄影融合马克笔涂鸦、插画双手与彩色贴纸的竖版 POP 海报，再把制作过程延展为 7 秒固定镜头动画。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。适合小物展示，不适合大型产品、真人带货、UI 演示、高奢电影广告或长剧情。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/6f9c6da8-628e-424c-8367-480041835658.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/6f9c6da8-628e-424c-8367-480041835658.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/handdrawn-product-poster-motion-01-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 将小物产品图包装成真实摄影融合马克笔涂鸦的竖版POP海报，并延展为固定镜头制作动画。
+    best-for:
+      - 手绘POP
+      - 小物广告
+      - 制作动画
+    how-to-use: 提供小物产品图和品牌或文案要求，先确认标题、贴纸策略、底部文字与画幅。
+    outputs: 产品海报、贴纸与文字排版、固定镜头提示词及制作动画。
+  en-US:
+    summary: Turn a small product image into a vertical hand-drawn POP poster blending product photography with marker doodles, then animate its making.
+    best-for:
+      - Hand-drawn POP
+      - Small Product Ads
+      - Making-of Motion
+    how-to-use: Provide the small-product image and brand or copy needs, then confirm title, sticker strategy, bottom text, and framing.
+    outputs: A product poster, sticker and type layout, fixed-camera prompt, and making-of animation.

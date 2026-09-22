@@ -1,0 +1,32 @@
+display-name-zh: 界面动效演示
+version: 1.0.2
+tag-en: "Creative & Experimental / Full Production"
+tag-cn: "创意实验 / 成片制作"
+complete-tags-en:
+  - "Creative & Experimental / Full Production"
+complete-tags-cn:
+  - "创意实验 / 成片制作"
+summary-en: "Turn real brand visuals into UI motion graphics, app interface animations, and SaaS product demo videos"
+summary-cn: "基于真实品牌视觉制作界面动效、应用界面动画与产品演示视频的端到端入口"
+desc-en: "For product and brand teams that need UI motion graphics, app interface animations, SaaS hero animations, or interface demos built from real brand visuals. Takes app screenshots, web pages, dashboards, or written brand descriptions as input, then runs brand visual analysis, builds a brand profile, selects inspiration and motion style, plans a timecoded storyboard, compiles continuous-transition prompts, generates video, checks brand consistency, and delivers the final MP4. Sequences over 15 seconds use true last-frame continuation with a single full BGM pass."
+desc-cn: "面向产品与品牌团队，基于真实品牌视觉制作界面动效、应用界面动画、产品首屏动效或界面演示视频。输入应用截图、网页、数据面板或明确的品牌文字描述后，流程依次完成品牌视觉分析、品牌档案建立、灵感与动效风格选择、带时间码的分镜规划、连续转场提示词编译、视频生成、品牌一致性质检与最终成片交付。十五秒以内生成单条；超过十五秒时使用真实尾帧连续生成并顺序拼接，最后统一生成一次完整背景音乐。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 从真实品牌视觉提炼界面语言，制作应用界面动效、产品演示镜头与可合成的品牌化宣传视频。
+    best-for:
+      - 界面动效
+      - 品牌系统
+      - 产品演示
+    how-to-use: 提供产品页面、品牌资产和动效目标，先锁定品牌视觉DNA、功能重点与叙事规格。
+    outputs: 品牌分析、界面与镜头方案、故事板、动效片段、声音设计与宣传片。
+  en-US:
+    summary: Extract a real brand language to create UI motion, product-demo shots, and a brand-led promo video ready for assembly.
+    best-for:
+      - UI Motion
+      - Brand Systems
+      - Product Demos
+    how-to-use: Provide product screens, brand assets, and a motion goal, then lock the visual DNA, feature focus, and narrative spec.
+    outputs: Brand analysis, interface and shot direction, storyboard, motion clips, sound design, and promo video.

@@ -1,0 +1,34 @@
+display-name-zh: 纸拼贴讲解动画
+version: 0.3.11
+tag-en: "Education"
+tag-cn: "教育"
+complete-tags-en:
+  - "Education / Creative Generation"
+  - "Animation / Creative Generation"
+  - "Creative & Experimental / Creative Generation"
+complete-tags-cn:
+  - "教育 / 创作生成"
+  - "动画 / 创作生成"
+  - "创意实验 / 创作生成"
+summary-en: "Turn scripts, story beats, and abstract ideas into approval-ready paper-collage explainer animations with tactile sound design."
+summary-cn: "将文案、故事节点或抽象概念转成可确认的纸拼贴讲解动画，并保留触感音效。"
+desc-en: "For creators, educators, and social-video editors who need a tactile visual language for narration lines, knowledge points, opinions, or abstract topics. Users provide short copy, story beats, or a core concept, with optional aspect ratio, duration, palette, and audio needs. The Skill extracts the meaning, proposes visual metaphors, prepares an approval-ready production plan, generates and confirms halftone collage still frames, then creates stop-motion clips with paper slides, pops, taps, presses, and rustles. It delivers cohesive editorial paper-collage animation assets or an assembled explainer video, and it is not intended for realistic presenter ads, precisely editable layer files, complex typography systems, or prompt-only handoff."
+desc-cn: "面向内容创作者、教育讲解者和社交视频编辑，用触感纸拼贴语言表现口播句、知识点、观点或抽象主题。用户提供短文案、故事节点或核心概念，也可补充画幅、时长、色调和音频需求。Skill 会提炼含义与视觉隐喻，先生成可确认的制作方案，再产出并确认半调纸拼贴静帧，随后制作包含纸片滑入、弹入、轻敲、压平和摩擦声的停格动画片段。最终交付统一的纸拼贴动画素材或完整讲解视频，不面向真人广告、精确可编辑图层、复杂文字系统或仅提示词交付。"
+structured-info:
+  zh-CN:
+    summary: 将文案或抽象概念转化为带触感音效的纸拼贴讲解动画，并输出成片。
+    best-for: [科普讲解, 观点表达, 社交短片]
+    how-to-use: 提供文案或主题，选择画幅、时长、色调及音频需求。
+    outputs: 视觉隐喻、纸拼贴静帧、定格动画及拼贴音效。
+  en-US:
+    summary: Turn copy or abstract ideas into a tactile paper-collage explainer animation with designed sound effects.
+    best-for: [Explainers, Opinion Content, Social Shorts]
+    how-to-use: Provide copy or a topic, then choose framing, duration, palette, and audio needs.
+    outputs: Visual metaphors, paper-collage stills, stop-motion animation, and collage sound effects.
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620880431282617-1786620880423.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620880431282617-1786620880423.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/paper-collage-explainer-generator-01-20260908-1788854461283.mp4"

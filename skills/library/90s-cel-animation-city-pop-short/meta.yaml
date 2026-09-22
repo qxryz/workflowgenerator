@@ -1,0 +1,36 @@
+display-name-zh: 复古都市赛璐璐短片
+version: 1.0.1
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+summary-en: "Turns stories and visual references into connected 1990s cel-animation City Pop shorts with locked style, continuity assets, segment storyboards, music, sound design, and final editing."
+summary-cn: "将剧情与视觉参考转化为统一风格、连续资产、分段分镜、音乐拟音和剪辑完整的复古都市赛璐璐动画短片。"
+desc-en: "For creators making 30–90 second horizontal urban animation shorts inspired by Japanese 1990s flat graphic cel animation and City Pop. Users provide a story, character or scene images, reference videos, and optional audio. The workflow analyzes source roles, locks a Style Master and timeline, builds reusable characters, props, and environments, prepares one 2×2 storyboard per narrative segment, generates approved video segments, then adds music, urban sound, transitions, and a unified edit. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once for the diagnosed failure, then replaced by another available model. Best for travel impressions, city memories, landmarks, transit, and urban montages; not still images, simple i2v, subtitle-only work, full music videos, game PVs, or projects over 90 seconds."
+desc-cn: "面向制作30–90秒、16:9横屏复古都市动画的创作者，把剧情、人物或场景图片、参考视频和可选音频转化为日本90年代平面图形化赛璐璐 City Pop短片。流程先分析素材作用并锁定 Style Master 与时间轴，再建立人物、道具和场景资产，为每个剧情段制作并确认一张2×2分镜，随后逐段生成视频，加入音乐、城市拟音、转场并统一剪辑。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换可用模型。适合旅行印象、都市记忆、地标与交通蒙太奇，不用于静图、简单图生视频、完整长 MV、游戏 PV 或超过90秒项目。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/099c7370-3287-42d3-b463-d443e2442fea.gif"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/099c7370-3287-42d3-b463-d443e2442fea.gif"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/90s-cel-animation-city-pop-short-02-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 将剧情与视觉参考转化为角色场景连续、分段清晰并带City Pop声画设计的复古都市赛璐璐动画短片。
+    best-for:
+      - 复古都市
+      - 赛璐璐动画
+      - 城市短片
+    how-to-use: 提供故事、人物场景参考与可选音频，确认时长、画幅、主导城市风格和时间轴。
+    outputs: 风格母版、角色场景资产、分段分镜、音效配乐及动画成片。
+  en-US:
+    summary: Turn stories and visual references into a continuous retro urban cel-animation short with segmented storytelling and City Pop sound design.
+    best-for:
+      - Retro Cities
+      - Cel Animation
+      - Urban Shorts
+    how-to-use: Provide the story, character and scene references, and optional audio, then confirm duration, framing, dominant city style, and timeline.
+    outputs: A style master, character and scene assets, segment storyboards, sound design, music, and the finished animation.

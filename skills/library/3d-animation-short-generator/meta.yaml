@@ -1,0 +1,41 @@
+display-name-zh: 3D动画短片
+version: 1.1.18
+tag-en: Animation
+tag-cn: 动画
+complete-tags-en:
+  - Animation / Planning
+  - Animation / Creative Generation
+  - Animation / Post-production
+complete-tags-cn:
+  - 动画 / 计划制定
+  - 动画 / 创作生成
+  - 动画 / 后期处理
+summary-en: Create a unified 3D animated short from a story idea, covering characters, scenes, shots, storyboards, video clips, and final assembly.
+summary-cn: 根据故事创意完成角色场景设定、镜头规划、分镜生成与视频合成，输出风格统一的3D动画短片。
+desc-en: Turns a short story idea into a stylized 3D animated short. It builds the brief, outline, character and environment cards, continuity-safe shot table, text storyboard, single-shot clips, music, assembly, and final quality review. MiniMax-H3 is the default video model; another model is used only after the user explicitly selects it and its capabilities are checked. Best for coherent cartoon shorts, not single images or unrelated clips.
+desc-cn: 面向希望把故事创意制作成完整风格化3D动画短片的创作者。用户提供故事前提、时长、画幅、基调和音频模式后，Skill 依次完成项目简报、故事大纲、角色卡、场景卡、连续性镜头表、文本分镜、单镜头视频、配乐、成片合成与质量复查。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力再执行，失败会按原因重试并切换可用模型。适合动画短片，不适合单图或无关联镜头，强调角色统一与镜头衔接。
+structured-info:
+  zh-CN:
+    summary: 将故事创意转化为风格统一、角色连贯的完整3D动画短片，并输出成片。
+    best-for:
+      - 风格化3D
+      - 故事短片
+      - 角色动画
+    how-to-use: 提供剧本或故事创意，选择时长、画幅和美术风格后开始制作。
+    outputs: 角色场景设定、镜头表、分镜及完整3D动画视频。
+  en-US:
+    summary: Turn a story idea into a unified, character-consistent 3D animated short and deliver the finished film.
+    best-for:
+      - Stylized 3D
+      - Story Shorts
+      - Character Animation
+    how-to-use: Provide a script or story idea, then choose duration, framing, and visual style to begin.
+    outputs: Character and scene designs, shot list, storyboard, and finished 3D animation video.
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/96493a75-aa47-4163-9bf0-14ba3e0ee3fe.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/96493a75-aa47-4163-9bf0-14ba3e0ee3fe.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/3d-animation-short-generator-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/3d-animation-short-generator-02-20260908-1788854461283.mp4"
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured

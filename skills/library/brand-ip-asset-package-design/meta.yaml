@@ -1,0 +1,36 @@
+display-name-zh: 品牌IP资产包设计
+version: 1.0.3
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+summary-en: "Builds a reusable IP asset system from a sketch or brief through staged character, expression, outfit, poster, and merch modules."
+summary-cn: "从IP草稿或简报分步扩展角色、表情、服装、海报与文创周边，形成完整可复用资产包。"
+desc-en: "For users who want one IP character expanded into a reusable asset system rather than a single image. The workflow locks identity from a sketch, reference, or text brief, then proceeds through 3D character, expression pack, outfit variants, themed posters, and merchandise modules. Each module is a checkpoint: show the result, collect changes, and ask for confirmation before continuing. Image and motion outputs use MiniMax-H3 as the default video path; an explicitly selected alternative is capability-checked, retried once on failure, then replaced by another available model. Best for IP development, toy design, and child-friendly merchandise, not long-form video or one-click batching."
+desc-cn: "适用于想把一个 IP 角色扩展成可复用物料系统的用户，而不是只生成一张图。用户可提供草稿图、参考图或文字设想，流程先锁定角色身份，再依次制作 3D 形象、表情包、不同服装主体、主题场景海报和文创周边。每个模块都是独立检查点：展示结果、收集修改并确认后才进入下一步。涉及视频时默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。适合 IP 角色开发、潮玩和儿童向文创，不适合长视频或无需确认的一键批量。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/0d32c72b-1c15-4fbd-b8f6-2191d6d47f46.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/0d32c72b-1c15-4fbd-b8f6-2191d6d47f46.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/brand-ip-asset-package-design-01-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 将IP草稿或简报分步扩展为角色、表情、服装、海报和周边组成的可复用品牌资产包。
+    best-for:
+      - IP资产包
+      - 角色扩展
+      - 文创周边
+    how-to-use: 提供IP草稿、参考图或文字设想，先确认角色身份、资产范围和模块顺序。
+    outputs: IP基础形象、表情包、服装与场景海报、周边设计及资产包清单。
+  en-US:
+    summary: Expand an IP sketch or brief into a reusable brand asset package spanning character, expressions, outfits, posters, and merchandise.
+    best-for:
+      - IP Asset Packs
+      - Character Extensions
+      - Merchandise Design
+    how-to-use: Provide an IP sketch, references, or written concept, then confirm identity, asset scope, and module order.
+    outputs: A core IP character, expression pack, outfits and scene posters, merchandise designs, and an asset inventory.

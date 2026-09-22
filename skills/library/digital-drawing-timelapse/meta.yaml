@@ -1,0 +1,36 @@
+display-name-zh: 数字绘画延时摄影生成器
+version: 1.0.1
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+summary-en: "Turns one finished artwork and one prompt into a continuous 15-second digital drawing-process video for illustration showcases."
+summary-cn: "根据一张成品图和提示词，生成15秒连续数字绘画过程视频，适合插画展示。"
+desc-en: "For illustrators and creators who want a finished digital artwork presented as a drawing-process timelapse. Provide exactly one finished-artwork image and one prompt. The workflow verifies both inputs, preserves the prompt without adding creative constraints, confirms duration, aspect ratio, and resolution, then generates one continuous 15-second speedpaint-style video and checks that the drawing visibly progresses from blank canvas to the finished reference. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once for the diagnosed cause, then replaced by another available model. Best for digital-art showcases, not interface tutorials, long courses, multi-asset work, or live-action photo conversion."
+desc-cn: "面向插画师和内容创作者，将一张数字绘画成品图转成15秒绘画过程延时视频。用户提供成品图和一段提示词，流程确认输入后保留原提示词，锁定画幅、时长与清晰度，直接生成连续速涂过程并复查画面连贯性。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换可用模型。适合数字绘画展示，不适合界面教程、长课程、多素材制作或真人照片转手绘。"
+author-en: "aimikoda"
+author-cn: "aimikoda"
+source: community
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/4bdf5b99-2395-4063-8e3b-070d9e38ac66.gif"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/4bdf5b99-2395-4063-8e3b-070d9e38ac66.gif"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/digital-drawing-timelapse-01-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 将一张数字绘画成品图转成连续的十五秒绘画过程延时视频，突出创作过程和画面还原。
+    best-for:
+      - 数字绘画
+      - 延时摄影
+      - 插画展示
+    how-to-use: 提供一张成品图和过程提示词，先确认画幅、时长、清晰度与是否保留原提示。
+    outputs: 绘画过程提示、连续速涂视频与画面连贯性检查。
+  en-US:
+    summary: Turn one finished digital artwork into a continuous fifteen-second drawing timelapse that showcases the making process and image fidelity.
+    best-for:
+      - Digital Drawing
+      - Timelapse
+      - Illustration Showcases
+    how-to-use: Provide one finished image and a process prompt, then confirm framing, duration, clarity, and prompt preservation.
+    outputs: Process direction, a continuous speed-painting video, and continuity checks.

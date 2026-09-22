@@ -1,0 +1,30 @@
+[package]
+name = "workflowgenerator-server"
+version = "0.1.9"
+description = "WorkflowGenerator Rust application core"
+authors = ["WorkflowGenerator contributors"]
+edition = "2021"
+license = "AGPL-3.0-or-later"
+
+[[bin]]
+name = "workflowgenerator-server"
+path = "src/main.rs"
+
+[dependencies]
+axum = { version = "0.8", features = ["macros"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs", "process", "sync", "time", "signal"] }
+tower-http = { version = "0.6", features = ["fs", "trace"] }
+http = "1"
+bytes = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+base64 = "0.22"
+rusqlite = { version = "0.32", features = ["bundled"] }
+flate2 = "1"
+reqwest = { version = "0.13", default-features = false, features = ["json", "multipart", "rustls", "stream"] }
+sha2 = "0.10"
+minisign-verify = "0.2"
+
+[dev-dependencies]
+tempfile = "3"
+tower = { version = "0.5", features = ["util"] }

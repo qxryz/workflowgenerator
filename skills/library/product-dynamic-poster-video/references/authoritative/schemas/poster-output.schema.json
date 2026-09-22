@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Wanwu poster planner output",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["style_name", "style_slug", "style_version", "style_summary", "environment_variables", "style_fidelity_anchors", "source_content_to_avoid", "visual_deconstruction", "composition", "typography", "color_palette", "image_treatment", "design_rules", "do", "avoid", "prompt_template", "negative_prompt", "examples"],
+  "properties": {
+    "style_name": {"type": "string"},
+    "style_slug": {"type": "string"},
+    "style_version": {"type": "string"},
+    "style_summary": {"type": "string"},
+    "environment_variables": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["SUBJECT", "SUBJECT_ACTION", "PRODUCT_OR_PROP", "LOCATION", "BACKGROUND_ELEMENTS", "MAIN_TEXT", "SECONDARY_TEXT", "ACCENT_SYMBOL", "WARDROBE_STYLE", "STYLE_FIDELITY_ANCHORS", "SOURCE_CONTENT_TO_AVOID", "ASPECT_RATIO", "PRODUCT_CATEGORY", "DELIVERY_FORMAT", "PRIMARY_COLOR", "SECONDARY_COLOR"],
+      "properties": {
+        "SUBJECT": {"type": "string"}, "SUBJECT_ACTION": {"type": "string"}, "PRODUCT_OR_PROP": {"type": "string"}, "LOCATION": {"type": "string"},
+        "BACKGROUND_ELEMENTS": {"type": "string"}, "MAIN_TEXT": {"type": "string"}, "SECONDARY_TEXT": {"type": "string"}, "ACCENT_SYMBOL": {"type": "string"},
+        "WARDROBE_STYLE": {"type": "string"}, "STYLE_FIDELITY_ANCHORS": {"type": "string"}, "SOURCE_CONTENT_TO_AVOID": {"type": "string"},
+        "ASPECT_RATIO": {"enum": ["9:16", "16:9"]}, "PRODUCT_CATEGORY": {"type": "string"}, "DELIVERY_FORMAT": {"type": "string"},
+        "PRIMARY_COLOR": {"type": "string"}, "SECONDARY_COLOR": {"type": "string"}
+      }
+    },
+    "style_fidelity_anchors": {"type": "array", "minItems": 10, "items": {"type": "string"}},
+    "source_content_to_avoid": {"type": "array", "minItems": 5, "items": {"type": "string"}},
+    "visual_deconstruction": {"$ref": "#/$defs/visual_deconstruction"},
+    "composition": {"$ref": "#/$defs/composition"},
+    "typography": {"$ref": "#/$defs/typography"},
+    "color_palette": {"$ref": "#/$defs/color_palette"},
+    "image_treatment": {"$ref": "#/$defs/image_treatment"},
+    "design_rules": {"type": "array", "minItems": 7, "items": {"type": "string"}},
+    "do": {"type": "array", "minItems": 5, "items": {"type": "string"}},
+    "avoid": {"type": "array", "minItems": 5, "items": {"type": "string"}},
+    "prompt_template": {"type": "string"},
+    "negative_prompt": {"type": "string"},
+    "examples": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"$ref": "#/$defs/example"}}
+  },
+  "$defs": {
+    "visual_deconstruction": {
+      "type": "object", "additionalProperties": false,
+      "required": ["composition_logic", "subject_placement", "camera_perspective", "typography_behavior", "color_behavior", "delivery_behavior"],
+      "properties": {"composition_logic": {"type": "string"}, "subject_placement": {"type": "string"}, "camera_perspective": {"type": "string"}, "typography_behavior": {"type": "string"}, "color_behavior": {"type": "string"}, "delivery_behavior": {"type": "string"}}
+    },
+    "composition": {
+      "type": "object", "additionalProperties": false, "required": ["layout", "hierarchy", "cropping", "negative_space"],
+      "properties": {"layout": {"type": "string"}, "hierarchy": {"type": "string"}, "cropping": {"type": "string"}, "negative_space": {"type": "string"}}
+    },
+    "typography": {
+      "type": "object", "additionalProperties": false, "required": ["primary", "headline", "secondary", "placement"],
+      "properties": {"primary": {"type": "string"}, "headline": {"type": "string"}, "secondary": {"type": "string"}, "placement": {"type": "string"}}
+    },
+    "color_palette": {
+      "type": "object", "additionalProperties": false, "required": ["template_1", "template_2", "template_3", "template_4", "palette_behavior"],
+      "properties": {
+        "template_1": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "string"}},
+        "template_2": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "string"}},
+        "template_3": {"type": "array", "minItems": 4, "maxItems": 4, "items": {"type": "string"}},
+        "template_4": {"type": "array", "minItems": 5, "maxItems": 5, "items": {"type": "string"}},
+        "palette_behavior": {"type": "string"}
+      }
+    },
+    "image_treatment": {
+      "type": "object", "additionalProperties": false, "required": ["rendering_mode", "lighting", "surface", "effects"],
+      "properties": {"rendering_mode": {"type": "string"}, "lighting": {"type": "string"}, "surface": {"type": "string"}, "effects": {"type": "string"}}
+    },
+    "example": {
+      "type": "object", "additionalProperties": false, "required": ["case_name", "values"],
+      "properties": {
+        "case_name": {"type": "string"},
+        "values": {
+          "type": "object", "additionalProperties": false,
+          "required": ["PRODUCT_CATEGORY", "DELIVERY_FORMAT", "PRIMARY_COLOR", "SECONDARY_COLOR", "SUBJECT", "SUBJECT_ACTION", "PRODUCT_OR_PROP", "LOCATION", "BACKGROUND_ELEMENTS", "MAIN_TEXT", "SECONDARY_TEXT", "ACCENT_SYMBOL", "WARDROBE_STYLE"],
+          "properties": {
+            "PRODUCT_CATEGORY": {"type": "string"}, "DELIVERY_FORMAT": {"type": "string"}, "PRIMARY_COLOR": {"type": "string"}, "SECONDARY_COLOR": {"type": "string"},
+            "SUBJECT": {"type": "string"}, "SUBJECT_ACTION": {"type": "string"}, "PRODUCT_OR_PROP": {"type": "string"}, "LOCATION": {"type": "string"},
+            "BACKGROUND_ELEMENTS": {"type": "string"}, "MAIN_TEXT": {"type": "string"}, "SECONDARY_TEXT": {"type": "string"}, "ACCENT_SYMBOL": {"type": "string"}, "WARDROBE_STYLE": {"type": "string"}
+          }
+        }
+      }
+    }
+  }
+}

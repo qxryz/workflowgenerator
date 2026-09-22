@@ -1,0 +1,36 @@
+display-name-zh: 珠宝佩戴视频生成
+version: 1.0.4
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+  - "E-Commerce / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+  - "电商 / 创作生成"
+summary-en: "Adds a referenced object to a mime-acting video while preserving the original person, scene, camera, timing, and performance."
+summary-cn: "把参考物品自然加入无实物表演视频，同时保持人物、场景、镜头与动作不变。"
+desc-en: "For creators who film a person acting without a physical prop and want one to three referenced objects inserted on a chosen body area. The workflow analyzes source motion, visibility, lighting, camera movement, and object structure, creates an optional placement anchor, then generates an edit that preserves the original person, scene, timing, and performance while maintaining plausible scale, perspective, contact, shadow, occlusion, and continuity. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once on failure, then replaced by another available model. It is not for full scene redesign, product ads, or multi-shot production."
+desc-cn: "面向拍摄无实物表演素材、希望把 1–3 件参考物品自然加入指定身体部位的创作者。流程先分析源视频动作、目标部位可见性、光线、镜头运动和物品结构，必要时生成物品放置锚点，再进行保留优先的视频编辑。最终应保持原人物、服装、场景、镜头、节奏和动作不变，并让物品具备合理比例、透视、接触、阴影、遮挡和运动连续性。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。不用于完整场景重设计、产品广告或多镜头成片。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/9a9f6ff7-1ae4-457a-b1b6-968889d017d2.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/9a9f6ff7-1ae4-457a-b1b6-968889d017d2.mp4"
+author-en: "地质大学博士说AI"
+author-cn: "地质大学博士说AI"
+source: community
+structured-info:
+  zh-CN:
+    summary: 将参考物品自然加入无实物表演视频，同时保护人物、场景、镜头和动作的原有连续性。
+    best-for:
+      - 物品置入
+      - 视频编辑
+      - 产品佩戴
+    how-to-use: 提供表演源视频、物品参考图和目标身体部位，先检查可见性、动作和透视可行性。
+    outputs: 源视频分析、物品锚点、编辑简报、增强视频与连续性复核。
+  en-US:
+    summary: Naturally add a reference object to a prop-free performance video while protecting the original person, scene, camera, and action continuity.
+    best-for:
+      - Object Insertion
+      - Video Editing
+      - Wearable Products
+    how-to-use: Provide the performance video, object references, and target body location, then check visibility, action, and perspective feasibility.
+    outputs: Source analysis, object anchors, edit brief, enhanced video, and continuity review.

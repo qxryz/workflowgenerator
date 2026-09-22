@@ -1,0 +1,32 @@
+display-name-zh: 视频拆解复刻
+version: 1.0.3
+tag-en: "Creative & Experimental / Planning"
+tag-cn: "创意实验 / 计划制定"
+complete-tags-en:
+  - "Creative & Experimental / Planning"
+complete-tags-cn:
+  - "创意实验 / 计划制定"
+summary-en: "Deconstruct reference videos shot by shot and compile verifiable evidence into a reproducible video prompt"
+summary-cn: "逐镜拆解参考视频、关键帧或详细描述，编译为可复刻的最终视频提示词与编辑计划"
+desc-en: "For creators who want to recreate or reverse engineer a reference video. Takes a video file, keyframes, or a detailed written description as input, then extracts verifiable evidence on shots, camera motion, subject action, sound, and continuity, and compiles it into a reproducible final video prompt plus an editing plan. Useful for shot-by-shot analysis, structure-preserving remakes, and prompt reconstruction workflows where fidelity to the original pacing and camera language matters."
+desc-cn: "面向需要复刻或反推参考视频的创作者，把用户提供的视频、关键帧或详细文字描述拆解为可验证的镜头、运动、声音与连续性证据，并编译成可复刻的最终视频提示词与编辑计划。适用于逐镜拆解分析、保持原片结构的重制版本以及提示词反推等工作流。拆解结果覆盖镜头顺序、摄影机路径、主体动作、转场逻辑与声音事件，保证复刻版本在节奏、运镜语言与叙事结构上与原片保持一致，最终交付可直接执行的生成方案。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 以视频、关键帧或文字证据逐镜拆解镜头、动作、声音与连续性，并编译为可复刻的制作方案。
+    best-for:
+      - 视频拆解
+      - 镜头复刻
+      - 编辑计划
+    how-to-use: 提供参考视频、关键帧或详细描述，先建立证据链并确认复刻范围与交付形式。
+    outputs: 逐镜拆解报告、镜头运动与声音证据、复刻合同、生成提示词与编辑计划。
+  en-US:
+    summary: Use video, keyframe, or textual evidence to deconstruct shots, motion, sound, and continuity into a reproducible production plan.
+    best-for:
+      - Video Deconstruction
+      - Shot Recreation
+      - Edit Plans
+    how-to-use: Provide the reference video, keyframes, or detailed description, then build an evidence chain and confirm recreation scope and deliverable.
+    outputs: A shot-by-shot report, motion and sound evidence, recreation contract, generation prompts, and edit plan.

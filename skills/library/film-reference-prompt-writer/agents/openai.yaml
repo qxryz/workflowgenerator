@@ -1,0 +1,4 @@
+interface:
+  display_name: "电影质感提示词大师"
+  short_description: "从电影名称或截图提炼影像风格、运镜语言并生成可执行提示词"
+  default_prompt: "Use $film-reference-prompt-writer 从这部电影或截图的已有视觉参考中提炼可执行规则，并生成图像或视频提示词。"

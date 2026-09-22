@@ -1,0 +1,116 @@
+name: wanwu-poster-video
+display_name: 万物海报与视频
+version: "2.0.0"
+execution: linear
+
+authoritative_sources:
+  manifest: source-manifest.json
+  immutable: true
+  integrity_check: python3 scripts/verify_integrity.py
+
+intent:
+  required:
+    - id: product_image
+      type: image
+      question: 请上传一张包装、标签和产品轮廓清晰可见的产品原图。
+  optional:
+    - id: aspect_ratio
+      type: enum
+      values: ["9:16", "16:9"]
+      default: "9:16"
+    - id: delivery_format
+      type: string
+      default: social media advertisement
+    - id: campaign_copy
+      type: string
+      default: let the poster system prompt derive original copy from the product
+    - id: audience
+      type: string
+      default: infer from the photographed product
+    - id: color_direction
+      type: string
+      default: derive from visible product colors
+
+stages:
+  - id: product_intake
+    title: 产品原图与意图
+    input: [product_image, optional_intent]
+    output: [approved_product_image, concise_user_brief]
+    gate:
+      - product image is readable
+      - package silhouette, label, logo, and visible text are sufficiently clear
+
+  - id: poster_json
+    title: 生成海报 JSON
+    depends_on: [product_intake]
+    system_prompt_file: prompts/poster-system-prompt.txt
+    input: [approved_product_image, concise_user_brief]
+    output: [poster_json]
+    validation: python3 scripts/validate_poster_json.py <poster-json-file>
+    retry_policy: repair JSON syntax or schema only; never summarize or rewrite the system prompt
+
+  - id: poster_image
+    title: 生成主海报
+    depends_on: [poster_json]
+    input: [approved_product_image, poster_json]
+    output: [master_poster]
+    gate:
+      - the photographed product remains the same product
+      - packaging identity and visible label are preserved
+      - campaign text does not cover the product label
+
+  - id: relighting
+    title: 生成四种光位参考图
+    depends_on: [poster_image]
+    base_image: master_poster
+    mode: one_preset_per_generation
+    presets:
+      - id: edge_light
+        title: 轮廓勾边光
+        file: presets/edge-light.json
+      - id: side_key_light
+        title: 侧主光
+        file: presets/side-key-light.json
+      - id: overhead_key_light
+        title: 顶置主光
+        file: presets/overhead-key-light.json
+      - id: low_angle_key_light
+        title: 底部主光
+        file: presets/low-angle-key-light.json
+    output: [edge_light_image, side_key_light_image, overhead_key_light_image, low_angle_key_light_image]
+    gate:
+      - exactly four images exist
+      - each image comes from the same master poster
+      - only the named preset was supplied for each generation
+
+  - id: video_prompt
+    title: 生成 15 秒视频提示词
+    depends_on: [relighting]
+    system_prompt_file: prompts/video-system-prompt.txt
+    input: [edge_light_image, side_key_light_image, overhead_key_light_image, low_angle_key_light_image]
+    output: [video_prompt]
+    gate:
+      - all four reference images were provided together
+      - output follows the exact format required by the source system prompt
+
+  - id: video_generation
+    title: 生成 15 秒视频
+    depends_on: [video_prompt]
+    duration_seconds: 15
+    input: [edge_light_image, side_key_light_image, overhead_key_light_image, low_angle_key_light_image, video_prompt]
+    output: [final_video]
+    gate:
+      - duration is 15 seconds
+      - product identity remains consistent with the source image
+
+failure_policy:
+  preserve_completed_outputs: true
+  never_skip_failed_gate: true
+  never_substitute_authoritative_assets: true
+
+known_source_conflicts:
+  - id: poster_example_value_count
+    source_file: prompts/poster-system-prompt.txt
+    statement_a: values must contain exactly 12 fields
+    statement_b: the required structure explicitly lists 13 named fields in each values object
+    runtime_resolution: preserve the source text unchanged and validate the 13 explicitly named fields

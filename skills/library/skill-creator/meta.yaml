@@ -1,0 +1,33 @@
+display-name-zh: 技能创建
+version: 2.3.6
+tag-en: "Platform Tooling"
+tag-cn: "平台工具"
+complete-tags-en:
+  - "Platform Tooling"
+complete-tags-cn:
+  - "平台工具"
+summary-en: "Create bilingual reusable skills"
+summary-cn: "创建双语可复用Skill"
+desc-en: "For users who need to create, revise, install, or reuse a Skill. Accepts a new task intent, an existing workflow, current Skill files, or a completed conversation. It extracts the scope, inputs, outputs, and key decisions; writes semantically aligned English and Chinese runtime files plus market metadata; adds references or scripts when useful; then checks structure, trigger wording, bilingual consistency, references, and versioning. Delivers a complete Skill directory ready to save, install, or submit to the market, together with validation results. Best for preserving repeatable multi-stage workflows; not intended for read-only quality reviews or for embedding platform tool calls and request parameters in a Skill."
+desc-cn: "面向需要创建、修改、安装或复用 Skill 的用户。可输入新的任务意图、已有工作流、现有 Skill 文件或已完成的对话记录；流程会先提炼适用场景、输入输出和关键决策，再生成语义对齐的中英文运行时文件与市场元数据，按需补充 references 或 scripts，随后检查目录、触发表达、双语一致性、引用完整性和版本信息。最终交付可保存、安装或提交市场的完整 Skill 目录及校验结果。适合固化可重复的多阶段流程，不适合只做独立质量审查或把平台工具调用细节写入 Skill。"
+cover: ""
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 根据意图或已完成流程创建可复用的双语Skill，并整理运行时文件、市场元数据和验证方案。
+    best-for:
+      - Skill创建
+      - 流程固化
+      - 双语元数据
+    how-to-use: 提供想复用的流程、输入输出与约束，先确认适用范围和需要保留的关键经验。
+    outputs: 双语Skill文件、市场元数据、参考资源、触发测试与验证建议。
+  en-US:
+    summary: Create a reusable bilingual Skill from an intent or completed workflow and organize runtime files, market metadata, and validation.
+    best-for:
+      - Skill Creation
+      - Workflow Capture
+      - Bilingual Metadata
+    how-to-use: Provide the reusable workflow, inputs, outputs, and constraints, then confirm scope and key experience to preserve.
+    outputs: Bilingual Skill files, market metadata, reference resources, trigger tests, and validation guidance.

@@ -1,0 +1,36 @@
+display-name-zh: 浏览器游戏 Demo 制作
+version: 1.0.3
+tag-en: Creative & Experimental
+tag-cn: 创意实验
+complete-tags-en:
+  - Creative & Experimental / Creative Generation
+complete-tags-cn:
+  - 创意实验 / 创作生成
+summary-en: Creates a realistic browser localhost game-demo screenshot and a matching action video with the same browser frame and character continuity.
+summary-cn: 面向本地浏览器游戏演示，先产出真实截图锚点，再生成保持同框的动作视频。
+desc-en: This Skill is for users who want a realistic desktop browser capture that looks like a local localhost HTML5 game demo, followed by a matching video that preserves the same browser frame and only animates inside the game canvas. It takes a reference character image, exact browser UI text, local URL details, control labels, and action sequence notes, then produces a screenshot anchor and a continuity-safe motion version. Use it for browser-game feel tests, retro arcade UI demos, and screenshot-to-video continuity when the browser chrome must stay visible. It is not meant for poster layouts, static UI mockups, generic motion graphics, or unrelated gameplay editing.
+desc-cn: 这个 Skill 面向“真实桌面浏览器窗口 + 本地 localhost HTML5 游戏 Demo”的连续制作需求。用户提供参考角色图、浏览器界面文案、本地 URL、按键说明和动作顺序后，先生成一张保留完整浏览器外壳的截图锚点，再基于同一框架生成只在画布内变化的视频。适合浏览器游戏手感测试、复古街机 UI 演示和截图到视频的连续交付；不适合海报、静态 UI Mockup、纯动效包装或与本地网页游戏无关的剪辑任务，强调画面连续与角色一致。
+author-en: Victor M
+author-cn: Victor M
+source: community
+cover: https://cdn.hailuoai.com/hailuo-video-web/public_assets/60ce975d-7331-4650-b4ca-2b3c5c3ae4ac.mp4
+cover-en: https://cdn.hailuoai.com/hailuo-video-web/public_assets/60ce975d-7331-4650-b4ca-2b3c5c3ae4ac.mp4
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/browser-game-demo-maker-01-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 先制作保留完整浏览器外壳的游戏截图锚点，再生成只在画布内变化的连续浏览器游戏演示视频。
+    best-for:
+      - 浏览器游戏
+      - 截图锚点
+      - 游戏演示
+    how-to-use: 提供本地游戏页面、角色参考、界面文案和动作顺序，先锁定浏览器窗口与截图契约。
+    outputs: 浏览器截图锚点、界面文案、动作时间线、匹配演示视频与独立交付素材。
+  en-US:
+    summary: Create a browser-game screenshot anchor with the full browser shell, then animate only the canvas for a matching demo video.
+    best-for:
+      - Browser Games
+      - Screenshot Anchors
+      - Game Demos
+    how-to-use: Provide the local game page, character reference, interface copy, and action order, then lock the browser frame and screenshot contract.
+    outputs: A browser screenshot anchor, interface copy, action timeline, matching demo video, and separate delivery assets.

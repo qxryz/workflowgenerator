@@ -1,0 +1,32 @@
+display-name-zh: Blender 建模与创作
+version: 0.1.1
+tag-en: Creative & Experimental / Creative Generation
+tag-cn: 创意实验 / 创作生成
+complete-tags-en:
+  - Creative & Experimental / Creative Generation
+complete-tags-cn:
+  - 创意实验 / 创作生成
+summary-en: Create editable Blender work from briefs, references or existing projects, with one rendered image for static results or a finished rendered video for dynamic results returned to the canvas.
+summary-cn: 根据需求、参考或已有工程制作可编辑作品，静态回传一张渲染图，动态回传渲染完成的视频到画布。
+desc-en: For designers creating or revising Blender work from briefs, sketches, reference images or existing projects. The workflow checks application readiness, binds the intended work and protects previous content before switching files. It separates source projects from intermediate media, chooses suitable modeling methods and builds editable structures with staged visual and dimensional checks. Delivery includes the editable blend project and a default canvas preview, with one rendered image for static work or a finished playable rendered video for animation, camera moves or simulation. It verifies files and canvas display, publishes labeled key-stage previews, reuses nodes and keeps bulk frames isolated. It requires available Blender control and does not replace the user's chosen production route or recover exact hidden geometry from one image.
+desc-cn: 面向使用 Blender 创作或修改作品的设计师，接收文字需求、草图、参考图和已有工程。先检查应用就绪、绑定目标作品，切换前保护旧内容；分开存放源工程与过程媒体，选择建模方法，分阶段检查形体和尺寸。默认交付可编辑 blend 工程并回传画布预览：静态作品为一张渲染图，动画、运镜或模拟为渲染完成的可播放视频。核验文件和画布展示，自动展示带阶段标识的关键预览，复用节点，隔离批量帧。需要可用的 Blender 控制能力，不替换已选制作路线，也不从单图恢复精确隐藏几何。
+structured-info:
+  zh-CN:
+    summary: 将创作需求与参考素材转化为可编辑的Blender模型或动画，并交付经过验证的渲染预览。
+    best-for:
+      - 三维建模
+      - 场景制作
+      - 动画渲染
+    how-to-use: 提供创作简报、参考素材或blend工程，先确认目标作品与静态或动态交付类型。
+    outputs: 可编辑blend工程、静态渲染图或完整可播放渲染视频。
+  en-US:
+    summary: Turn creative briefs and references into editable Blender models or animation with verified rendered previews.
+    best-for:
+      - 3D Modeling
+      - Scene Building
+      - Animation Rendering
+    how-to-use: Provide a creative brief, references, or a blend project, then confirm the target work and static or dynamic delivery type.
+    outputs: An editable blend project, a rendered still, or a complete playable rendered video.
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official

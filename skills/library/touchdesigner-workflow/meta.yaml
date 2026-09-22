@@ -1,0 +1,34 @@
+display-name-zh: TouchDesigner 实时视觉与交互
+version: 0.1.0
+tag-en: Creative & Experimental / Creative Generation
+tag-cn: 创意实验 / 创作生成
+complete-tags-en:
+  - Creative & Experimental / Creative Generation
+  - Creative & Experimental / Post-production
+complete-tags-cn:
+  - 创意实验 / 创作生成
+  - 创意实验 / 后期处理
+summary-en: Turn briefs, references and existing projects into editable realtime visual and interactive networks, with staged previews, verified media and reusable project handoff.
+summary-cn: 将需求、参考或已有工程制作成可编辑的实时视觉与交互网络，分阶段检查效果并交付工程和所需媒体。
+desc-en: For designers creating or refining realtime visuals and interactive work in TouchDesigner, this workflow accepts briefs, image or video references, existing projects and authorized device inputs. It first establishes the target project and application readiness, then chooses operator families by data type and builds a minimal visible network. It develops control signals, effects and outputs in stages, checking node errors, visual behavior, dependencies and exported media. Delivery includes an editable project, requested previews or media and practical revision notes. Audio response is optional, not the default for every task. Device access, advanced particles, shaders and codecs depend on the actual platform, hardware and license; unrelated software workflows remain unchanged.
+desc-cn: 面向使用 TouchDesigner 制作或调整实时视觉与互动作品的设计师，接收文字需求、图像或视频参考、已有工程及已授权的设备输入。先确认目标工程和应用就绪，再按数据类型选择节点家族，建立最小可见网络；分阶段制作控制信号、效果与输出，检查节点错误、视觉表现、资源依赖和导出媒体。最终交付可编辑工程、所需预览或媒体及修改说明。音频响应只是可选输入，设备、高级粒子、着色器和编码能力取决于实际平台、硬件与许可证，不替换用户已选的其他软件流程。
+structured-info:
+  zh-CN:
+    summary: 将创作需求与参考素材转化为可编辑的TouchDesigner实时视觉网络，并交付经过验证的互动媒体。
+    best-for:
+      - 实时视觉
+      - 互动装置
+      - 节点工程
+    how-to-use: 提供创作简报、图像视频参考、设备输入或现有工程，先确认目标效果与交付形式。
+    outputs: 可编辑TOE或TOX工程、验证后的预览媒体及修改说明。
+  en-US:
+    summary: Turn creative requirements and references into editable TouchDesigner realtime visual networks with verified interactive media.
+    best-for:
+      - Realtime Visuals
+      - Interactive Installations
+      - Node Projects
+    how-to-use: Provide a brief, image or video references, device inputs, or an existing project, then confirm the target effect and delivery form.
+    outputs: An editable TOE or TOX project, verified preview media, and revision notes.
+author-en: MiniMax Hub
+author-cn: 海螺Hub
+source: official

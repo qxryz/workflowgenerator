@@ -1,0 +1,28 @@
+display-name-zh: 产品动态海报视频
+version: 1.0.0
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+summary-en: "Offer three reference-grounded style directions when needed, then turn one product photo into a chosen-ratio poster, four lighting studies, and a coherent 10–15-second product advertisement."
+summary-cn: "未指定风格时先基于参考内容提供三个方向，再按用户选择的画幅制作海报、四张光位图和10–15秒广告；未指定时长时先询问确认。"
+desc-en: "For creators and product teams building beverage or packaged-product advertising from one clear product photograph. Users choose 9:16, 3:4, 4:5, or 16:9 framing and may supply copy, audience, channel, or colors. If style is unspecified, three reference-grounded directions are proposed; missing duration is confirmed before production. The workflow checks bundled sources, validates a structured poster specification, creates a master poster and four independent lighting studies, then writes a duration-adapted five-phase brief and generates the commercial while preserving package identity. Deliverables include the poster, lighting images, video, and available intermediate text. It supports reference-faithful advertising, not package redesign, unrelated retouching, long films, or multi-clip editing."
+desc-cn: "面向用清晰产品原图建立饮品或包装产品广告的创作者与产品团队，接收产品照片和可选的渠道、文案、受众或配色要求。用户从竖屏、方近竖幅或横屏规格中选择画幅；未指定风格时先给出三个参考方向，未指定时长时先确认。流程检查随附资源，生成并校验结构化海报规格，制作主海报与四张独立光位图，再编写适配时长的五段视频方案并生成广告，全程保留包装身份。交付海报、光位图、视频与可用中间文本，适合产品广告，不处理包装重设计、无关修图、长篇影片或多段剪辑。"
+author-en: "里大猫"
+author-cn: "里大猫"
+source: community
+cover: https://cdn.hailuoai.com/prod/2026-09-17-01/video/1789580016662282016-1789580016639.mp4
+cover-en: https://cdn.hailuoai.com/prod/2026-09-17-01/video/1789580016662282016-1789580016639.mp4
+structured-info:
+  zh-CN:
+    summary: 以一张产品原图建立统一广告视觉，通过海报与独立光位参考保持包装身份并生成动态产品短片。
+    best-for: [饮品广告, 包装产品, 动态海报]
+    how-to-use: 上传清晰产品照片，选择海报画幅并确认风格方向与广告时长。
+    outputs: 产品主海报、四张独立光位参考图及动态广告视频。
+  en-US:
+    summary: Build a coherent campaign from one product photograph, using a poster and independent lighting references to preserve packaging identity in motion.
+    best-for: [Beverage Advertising, Packaged Products, Dynamic Posters]
+    how-to-use: Upload a clear product photo, choose framing, and confirm the style direction and advertisement duration.
+    outputs: Master product poster, four independent lighting reference images, and a dynamic advertisement video.

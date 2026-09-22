@@ -1,0 +1,33 @@
+display-name-zh: 后室梦核
+version: 0.2.6
+tag-en: "Visual Production / Image Generation"
+tag-cn: "视觉创作 / 图像生成"
+complete-tags-en:
+  - "Creative & Experimental / Creative Generation"
+complete-tags-cn:
+  - "创意实验 / 创作生成"
+summary-en: "Create personalized Backrooms dreamcore spaces from a reference image."
+summary-cn: "生成专属后室空间"
+desc-en: "Transforms a user-provided character, pet, object, or scene reference image into a personalized Backrooms or dreamcore space. The skill uses four atmospheric multiple-choice questions to derive spatial tendencies along five dimensions, then produces a shareable space dossier card, an image-generation brief, an optional ambient BGM direction, and can continue into photoreal Backrooms image or image-to-video generation."
+desc-cn: "根据用户上传的人物、角色、宠物、物体或场景图，通过四个沉浸式选择题提取空间倾向，生成专属后室 / 梦核空间档案、AI 配图需求与可选环境音乐方向，并可继续生成真实摄影感的后室图片或图生视频。适合“我的后室”“角色后室化”“场景后室化”等社媒向创作。"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/53e0b9a9-7d41-403d-bd4f-8aa853c60660.mp4"
+structured-info:
+  zh-CN:
+    summary: 从人物、宠物、物体或场景参考推导专属后室梦核空间，形成可继续创作的沉浸式档案。
+    best-for:
+      - 后室梦核
+      - 空间测试
+      - 沉浸创作
+    how-to-use: 提供一张主体参考图，先完成关于入口、重复、光线和保留元素的沉浸式选择。
+    outputs: 空间档案、配图方向、环境音乐建议与可选后室图像或视频。
+  en-US:
+    summary: Derive a personalized Backrooms dreamcore space from a subject reference and package it as an immersive creative dossier.
+    best-for:
+      - Backrooms Dreamcore
+      - Space Quizzes
+      - Immersive Creation
+    how-to-use: Provide one subject reference image, then answer immersive choices about entrance, repetition, light, and what remains.
+    outputs: A space dossier, image direction, ambient-music suggestion, and optional Backrooms image or video.

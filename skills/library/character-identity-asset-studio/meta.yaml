@@ -1,0 +1,28 @@
+display-name-zh: 角色身份与资产工作室
+version: 1.0.0
+tag-en: Professional Film / Intent Brainstorming
+tag-cn: 专业影视 / 意图脑爆
+complete-tags-en:
+  - Professional Film / Intent Brainstorming
+complete-tags-cn:
+  - 专业影视 / 意图脑爆
+summary-en: Turn a character brief and optional references into a distinctive identity, an approved full look, and a reusable three-panel production asset sheet.
+summary-cn: 根据角色简报与参考素材建立鲜明身份和完整造型，并交付可在后续影像制作中复用的三栏角色资产表。
+desc-en: This Skill supports creators who need one recognizable character identity across later images, videos, and scenes. Users provide a character brief and may add face, outfit, accessory, or style references. The workflow asks focused questions to confirm face direction, design fingerprint, and wardrobe choices; generates a comparable candidate set; lets the user select one primary face; standardizes the face and hairstyle anchor; adapts the approved outfit; and confirms a complete full-body look. It then produces one 16:9 three-panel sheet containing the front body treatment, completed back details, and the face-and-hairstyle reference. It is intended for fictional or virtual character development, not one-off portraits, local repainting, generic image-to-video, or full animation production.
+desc-cn: 面向需要在后续图片、视频和场景中持续保持角色辨识度的创作者，接收角色简报，以及可选的人脸、服装、配饰或风格参考。流程通过聚焦问询确认人脸方向、设计指纹与服装选择，生成可比较的候选组，由用户选定唯一主脸并标准化脸部和发型锚点；随后适配确认服装，完成全身造型复核，最终生成一张十六比九三栏资产表，呈现正面身体设计、背面补全细节和人脸发型参考。它适合原创或虚拟角色资产建设，不处理一次性人像、局部重绘、普通图生视频或完整动画生产。
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 通过候选人脸与完整造型确认建立独特角色身份，为后续影像提供可持续复用的角色资产。
+    best-for: [角色开发, 虚拟人物, 造型设定]
+    how-to-use: 提供角色简报和可选参考素材，先确认人脸方向与服装设计。
+    outputs: 角色身份设定、完整造型及正背面与人脸三栏资产表。
+  en-US:
+    summary: Develop a distinctive character through face selection and complete look approval, producing reusable identity assets for later visual production.
+    best-for: [Character Development, Virtual Characters, Costume Design]
+    how-to-use: Provide a character brief and optional references, then confirm the face and wardrobe direction.
+    outputs: Character identity, approved full look, and a three-panel front, back, and face asset sheet.
+cover: https://cdn.hailuoai.com/hailuo-video-web/public_assets/f63b818a-afb7-41c0-8415-0ad771192382.mp4
+cover-en: https://cdn.hailuoai.com/hailuo-video-web/public_assets/f63b818a-afb7-41c0-8415-0ad771192382.mp4

@@ -1,0 +1,36 @@
+display-name-zh: 产品贴字动画TVC
+version: 1.0.3
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+summary-en: "Turns brand references into product multi-view images, a 3×3 storyboard, approved video segments, and a matched final TVC through five confirmation gates."
+summary-cn: "以品牌参考图完成产品多视角、3×3分镜、分段视频与配乐成片，严格分步确认。"
+desc-en: "For brand teams and directors who need a typography-led product TVC from references and a brand name. The five-stage workflow clarifies inputs, creates product multi-view anchors, builds a 3×3 storyboard, generates approved video segments, and composites the final film with matched music and action sound. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once on failure, then replaced by another available model. It keeps product identity and text placement consistent and does not proceed when essential information is ambiguous."
+desc-cn: "面向品牌方、广告创意与导演团队，把参考图和品牌名转成以贴字动效为核心的产品 TVC。流程严格分五步：先澄清素材与规格，生成并确认产品多视角锚定图，再生成并确认 3×3 分镜，按分镜逐段生成视频并确认，最后合成片段、匹配 BGM 与动作音效。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。全程保持产品身份、文字位置和节奏一致，关键信息不清晰时先询问。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/94816a0d-fb3e-47ce-9004-ec9a07fb6514.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/94816a0d-fb3e-47ce-9004-ec9a07fb6514.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/typography-product-tvc-02-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将产品与品牌参考编排为带多视角、九宫格分镜、产品贴字和配乐的完整横版TVC。
+    best-for:
+      - 产品TVC
+      - 贴字动画
+      - 品牌排版
+    how-to-use: 提供产品图、品牌参考和卖点文字，先确认产品身份、文字内容、画幅与五步制作范围。
+    outputs: 产品多视角图、九宫格分镜、分段视频、贴字方案、配乐与TVC成片。
+  en-US:
+    summary: Turn product and brand references into a horizontal TVC with multi-view assets, a grid storyboard, kinetic type, and music.
+    best-for:
+      - Product TVCs
+      - Kinetic Type
+      - Brand Layout
+    how-to-use: Provide product images, brand references, and selling-point copy, then confirm identity, exact text, framing, and the five-stage scope.
+    outputs: Product multi-views, a grid storyboard, video segments, type direction, music, and the finished TVC.

@@ -1,0 +1,36 @@
+display-name-zh: 实景动态手绘显影
+version: 1.0.2
+tag-en: "Creative & Experimental"
+tag-cn: "创意实验"
+complete-tags-en:
+  - "Creative & Experimental / Creative Generation"
+complete-tags-cn:
+  - "创意实验 / 创作生成"
+summary-en: "Turns real photos, videos, or text scenes into sketch-motion clips where a marker reveals a moving subject as hand-drawn art."
+summary-cn: "让真实照片先自然动起来，再由笔尖把运动主体显影成手绘短片，保留实景空间与生命感。"
+desc-en: "Creates short live-action sketch-motion clips from a real photo, reference video, or text scene. Text-only input first receives a realistic preview for spatial confirmation; the approved workflow then uses natural pre-drawing motion, marker-tip reveal, living subjects, restrained hand framing, colored-pencil texture, and subtle background motion. MiniMax-H3 is the default video model, while another model requires explicit user selection and a capability check."
+desc-cn: "面向想把实景照片、参考视频或文字场景做成短视频手绘显影效果的创作者。纯文字输入会先生成真实预览，用于确认空间、主体位置和遮挡关系，再产出制作方案与详细提示词，确认后生成视频。规则强调手绘前先自然视频化、笔尖同步显影、主体转换前中后持续运动、手从边缘克制入画、彩铅或蜡笔排线质感、背景生活化微动与主体完整可见。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力再执行，失败后切换可用模型。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/51170a8f-eb5d-4285-b0fe-3922c6577959.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/51170a8f-eb5d-4285-b0fe-3922c6577959.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/live-sketch-motion-01-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 让真实照片先保留空间与生命感自然运动，再由笔触显影主体，形成实景与手绘叠合的短片。
+    best-for:
+      - 照片动效
+      - 手绘显影
+      - 实景融合
+    how-to-use: 提供实景照片和需要显影的主体，先确认运动范围、笔触层级与遮挡关系。
+    outputs: 实景运动方案、手绘层结构、显影提示词与手绘融合短片。
+  en-US:
+    summary: Animate a real photo while preserving its space and life, then reveal the moving subject through a hand-drawn layer.
+    best-for:
+      - Photo Motion
+      - Sketch Reveal
+      - Live-action Fusion
+    how-to-use: Provide the scene photo and subject to reveal, then confirm motion range, sketch layers, and occlusion relationships.
+    outputs: A live-action motion plan, sketch-layer structure, reveal prompts, and the fused short.

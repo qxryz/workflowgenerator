@@ -1,0 +1,400 @@
+[
+  {
+    "id": "trigger-cn-create",
+    "input": "把画布里选中的海报做成 8 秒 AE 动效，标题和形状要能继续修改。",
+    "trigger": true,
+    "expect": [
+      "保留选中版本与源结构",
+      "实际 AE 工程与预览",
+      "原生文字和形状可编辑"
+    ]
+  },
+  {
+    "id": "trigger-en-edit",
+    "input": "Edit the headline in this AEP, preserve its animation, and return a preview to the canvas.",
+    "trigger": true,
+    "expect": [
+      "定位已有工程和文字",
+      "保留非目标动画",
+      "回传成功后才能报告入画布"
+    ]
+  },
+  {
+    "id": "trigger-cn-rebuild",
+    "input": "参考这段视频，用 AE 原生图层重建，给我 AEP，不要生成底片。",
+    "trigger": true,
+    "expect": [
+      "视频只作分析参考",
+      "纯原生约束不被替代",
+      "视觉与编辑性分别验收"
+    ]
+  },
+  {
+    "id": "exclude-generation",
+    "input": "Generate a dreamy mountain video; I only need the MP4, no AE project.",
+    "trigger": false
+  },
+  {
+    "id": "exclude-static",
+    "input": "设计一张静态咖啡海报，不要动画。",
+    "trigger": false
+  },
+  {
+    "id": "exclude-conversion",
+    "input": "Convert this MOV to MP4 without changing the content.",
+    "trigger": false
+  },
+  {
+    "id": "asset-roundtrip",
+    "input": "选中一张透明产品图和一个独立标题，做成 6 秒 AE 产品卡片，再把预览放回画布。随后只把标题出现时间推迟半秒。",
+    "trigger": true,
+    "expect": [
+      "保留两个源对象及版本，不压平选区",
+      "确认真实文件可访问，先检查卡片代表帧",
+      "保存 AEP 与预览并记录真实画布关联",
+      "续改时回到原 AEP，定位标题并明确只移动入场还是整层",
+      "验证非目标内容与新的预览版本"
+    ]
+  },
+  {
+    "id": "missing-return-capability",
+    "input": "AE 渲染完成了，但当前环境不能上传文件到画布。",
+    "trigger": true,
+    "expect": [
+      "提供实际文件和工程关联",
+      "标记回传待完成",
+      "不虚构上传成功"
+    ]
+  },
+  {
+    "id": "unavailable-connection",
+    "input": "AE 连接无响应，旧工程可能有未保存内容，继续完成刚才的动画。",
+    "trigger": true,
+    "expect": [
+      "检查未知修改与现有工程",
+      "不丢弃内容或反复重载",
+      "仅使用实际启动恢复能力",
+      "不改成网页动画或生成视频"
+    ]
+  },
+  {
+    "id": "native-canvas-request",
+    "input": "把这个 AEP 的每个图层都转成可编辑的 Design 画布节点。",
+    "trigger": true,
+    "expect": [
+      "区分可编辑 AEP 与原生画布节点",
+      "先确认额外结构转换能力",
+      "不把预览和 AEP 附件称为图层转换完成"
+    ]
+  },
+  {
+    "id": "first-use-install-managed",
+    "input": "第一次使用，把这张海报用 AE 做成五秒动效。连接器未安装，但有宿主连接器管理能力。",
+    "trigger": true,
+    "expect": [
+      "先检查系统、应用和包",
+      "通过真实连接器管理入口安装并启用",
+      "接入当前对话后检查真实响应和工程",
+      "继续原任务不重新索要素材"
+    ]
+  },
+  {
+    "id": "first-use-install-ui",
+    "input": "没有安装管理工具，但允许 Agent 操作应用界面；After Effects 连接器未安装。",
+    "trigger": true,
+    "expect": [
+      "读取实际界面后进入连接器页面",
+      "只安装和启用 After Effects",
+      "核对安装结果而不是仅点击按钮",
+      "不使用猜测的内部接口"
+    ]
+  },
+  {
+    "id": "first-use-no-install-capability",
+    "input": "只有文件读取能力，没有本地执行、连接器管理或界面操作能力，用户需要 AE 工程。",
+    "trigger": true,
+    "expect": [
+      "明确当前能力缺口",
+      "请用户完成具体安装动作",
+      "不声称运行探测或自动安装成功",
+      "保留需求和源文件继续独立分析"
+    ]
+  },
+  {
+    "id": "auto-start-platforms",
+    "input": "连接器已注册，配套启动入口可用，AE 未运行；分别在 macOS 和 Windows 完成启动。",
+    "trigger": true,
+    "expect": [
+      "探测对应系统和实际安装路径",
+      "委托当前包的匹配启动入口",
+      "不复制桥接实现",
+      "真实连接和工程读取成功后继续制作"
+    ]
+  },
+  {
+    "id": "legacy-package-no-launch-entry",
+    "input": "连接器包已安装并启用，但没有声明兼容启动器，宿主也没有更高版本可更新。",
+    "trigger": true,
+    "expect": [
+      "不反复下载相同版本",
+      "不借用另一来源的启动器",
+      "给出该包手动加载面板方式",
+      "不能宣称自动唤醒成功"
+    ]
+  },
+  {
+    "id": "installed-but-tools-absent",
+    "input": "安装显示成功，AE 已启动，但当前对话仍看不到 AE 控制能力。",
+    "trigger": true,
+    "expect": [
+      "通过宿主支持机制刷新控制能力",
+      "不把应用窗口出现当作就绪",
+      "需要重开对话时保留任务摘要与素材路径",
+      "不重放结果未知的写入"
+    ]
+  },
+  {
+    "id": "responsive-without-preferences-step",
+    "input": "桥接启动后有真实响应，正确工程可读，用户没有手动打开偏好设置。",
+    "trigger": true,
+    "expect": [
+      "直接继续原制作任务",
+      "不要求重复开启脚本权限",
+      "不要求回复已打开"
+    ]
+  },
+  {
+    "id": "first-use-script-without-installer-tool",
+    "input": "我第一次用 AE，帮我把当前画布海报做成可编辑动画。当前对话有本地命令执行能力，没有专用连接器安装工具。",
+    "trigger": true,
+    "expect": [
+      "读取配套准备脚本帮助，先检查再安装",
+      "沿用当前对话上下文，不手动复制凭证或扫描端口",
+      "连接后验证实际 AE 响应和工程再开始制作"
+    ]
+  },
+  {
+    "id": "legacy-desktop-script-entry-missing",
+    "input": "准备脚本报告当前客户端没有安装调用入口。",
+    "trigger": true,
+    "expect": [
+      "如实说明客户端版本能力缺口",
+      "有界面操作能力时复用连接器页面",
+      "不假装纯 skill 能凭空提供宿主入口，不重复安装"
+    ]
+  },
+  {
+    "id": "legacy-package-floating-panel-adapter",
+    "input": "连接器安装成功但没有启动声明；AE 2026 已运行，当前包为 1.13.0+fix.1，桥接没有响应。",
+    "trigger": true,
+    "expect": [
+      "先检查启动辅助程序兼容分支，而不是直接要求手动开面板",
+      "加载同一包桥接并保持浮动面板",
+      "加载确认后继续当前对话的连接检查和工程读取",
+      "只有两项真实检查成功才继续制作"
+    ]
+  },
+  {
+    "id": "native-gradient-circle",
+    "input": "参考这个视频的渐变圆做 MG 复刻，交付能改半径、渐变和动画的 AEP。",
+    "trigger": true,
+    "expect": [
+      "采用原生椭圆路径与可编辑渐变，而不是圆形蒙版下的参考截图",
+      "按揭示、遮挡和材质实际需要决定蒙版与效果，不机械叠加",
+      "关闭参考层后独立成立，在副本中修改尺寸与颜色验证"
+    ]
+  },
+  {
+    "id": "portrait-static-source-moving-type",
+    "input": "让这张人物海报前后的文字左右滑入，人脸和人物本身保持原样。",
+    "trigger": true,
+    "context": "已确认使用 AE 并交付可编辑工程。",
+    "expect": [
+      "保留原人物像素，只拆出实际遮挡需要的前景",
+      "原生文字重建，必要时只补实际露出的背景区域并清理残留文字",
+      "普通背景不默认色度抠图；在动画前检查并复用同一透明层",
+      "不逐帧重新分割或重新生成人脸"
+    ]
+  },
+  {
+    "id": "readiness-language-switch",
+    "input": "AE 改为英文后，继续用 AE 复刻这条视频。连接器已安装，但桥接没有响应。",
+    "trigger": true,
+    "expect": [
+      "检查运行中 AE 的权限与语言，不沿用中文偏好文件",
+      "确认脚本权限关闭后仅处理对应授权，使用显式权限修复并回读",
+      "随后验证当前对话连接与工程，不重装连接器"
+    ]
+  },
+  {
+    "id": "readiness-concurrent-start",
+    "input": "两个 Design 对话同时开始 AE 任务，第二个遇到启动占用。",
+    "trigger": true,
+    "expect": [
+      "在时限内等待前一次启动",
+      "结束后检查现有连接，避免再次加载面板",
+      "只有过期且确认进程结束的锁可回收；无法确认归属时保留",
+      "制作前另行协调工程占用"
+    ]
+  },
+  {
+    "id": "readiness-windows-no-reply",
+    "input": "Windows 上连接器已安装，AE 已打开，但启动脚本没有确认结果。",
+    "trigger": true,
+    "expect": [
+      "不将超时推断为已确认权限关闭",
+      "通过可用界面检查正在运行的 AE 脚本设置",
+      "授权后的修复必须回读并验证连接；没有界面能力时只请求缺失动作"
+    ]
+  },
+  {
+    "id": "naming-english-ui-chinese-knowledge",
+    "input": "English Design and AE: recreate this MG reference as an editable AEP. The skill knowledge and developer notes include Chinese examples.",
+    "trigger": true,
+    "expect": [
+      "Choose English for new composition, folder, layer, shape-group and control labels",
+      "Do not copy Chinese labels from knowledge examples or developer history",
+      "Keep approved reference text and original source filenames unchanged"
+    ]
+  },
+  {
+    "id": "naming-explicit-delivery",
+    "input": "Design 是中文界面，但请把新建 AE 工程交给海外团队，工程里的名称和修改说明都用英文。",
+    "trigger": true,
+    "expect": [
+      "明确英文交付优先于显示和沟通语言",
+      "新建工程对象使用清晰英文名",
+      "不擅自翻译画面上的品牌或字幕"
+    ]
+  },
+  {
+    "id": "naming-preserve-existing",
+    "input": "In this existing AEP with Chinese layer names and Chinese poster copy, change only the title animation timing.",
+    "trigger": true,
+    "expect": [
+      "Preserve the existing naming convention and visible copy",
+      "Do not globally rename objects or break name-based expressions",
+      "Modify only the requested timing and verify the relevant motion"
+    ]
+  },
+  {
+    "id": "curves-planet-transition",
+    "input": "复刻这个星球放大并旋转到彩色图标的转场，保留可继续修改的关键帧。",
+    "trigger": true,
+    "expect": [
+      "从参考读取放大与旋转的启动、峰值、制动或持续运动及交接时机",
+      "分别设计缩放和旋转，不只给位置加缓动",
+      "协调淡出与正在进行的运动，避免强加停顿或回弹",
+      "回读时间插值和入出缓动并正常速度播放，不把首尾姿态等同精修"
+    ]
+  },
+  {
+    "id": "curves-write-failure",
+    "input": "The geometry and keyframe values were created, but applying temporal easing to the scale property failed. Finish the reference reconstruction.",
+    "trigger": true,
+    "expect": [
+      "Do not swallow the easing failure or claim polished motion",
+      "Identify the affected object/property and use a supported curve-writing capability if available",
+      "Read back the actual interpolation and verify the resulting movement before reporting completion"
+    ]
+  },
+  {
+    "id": "curves-purposeful-linear",
+    "input": "Keep this orbit at constant speed through the middle waypoints; the transition should cut while it is still moving.",
+    "trigger": true,
+    "expect": [
+      "Preserve purposeful constant-speed motion",
+      "Do not ease every intermediate key to zero",
+      "Check timing and speed through the cut rather than force a resting endpoint"
+    ]
+  },
+  {
+    "id": "curves-expression-driver",
+    "input": "The visible bounce is expression-driven; keep it adjustable, reduce its amplitude and preserve the final hold.",
+    "trigger": true,
+    "expect": [
+      "Inspect the expression/control that drives evaluated motion",
+      "Do not treat unchanged base-key graphs as proof there is no easing",
+      "Validate reduced overshoot and settling in normal-speed playback, keeping editable controls"
+    ]
+  },
+  {
+    "id": "effects-liquid-editable",
+    "input": "在 AE 里复刻两个渐变球融合再分离的动画，球的位置和颜色要能改。",
+    "trigger": true,
+    "expect": [
+      "保留原生形状和独立填充",
+      "先设计接触与分离，再建立处理 alpha 的软融合结构",
+      "检查最窄连接与分離瞬间，不把结果称为矢量路径或流体模拟"
+    ]
+  },
+  {
+    "id": "effects-portrait-heat",
+    "input": "给这个 AE 海报背景加热浪，人脸和文字保持不动、不变形。",
+    "trigger": true,
+    "expect": [
+      "人物和文字在扭曲链之外",
+      "区分扰动尺度、幅度、演化与方向偏移",
+      "在最大位移与边缘检查背景缺口和轮廓稳定"
+    ]
+  },
+  {
+    "id": "effects-displacement-source",
+    "input": "The animated noise map is visible, but Displacement Map does nothing to my AE background.",
+    "trigger": true,
+    "expect": [
+      "检查实际来源绑定和控制层采样阶段",
+      "有需要时把控制图效果预合成为可采样来源",
+      "从中性场和单轴小测试验证，不直接堆高幅度"
+    ]
+  },
+  {
+    "id": "effects-light-sweep",
+    "input": "在 AE 给可编辑 Logo 加一道窄光扫，透明背景交付，不要改变 Logo 本身。",
+    "trigger": true,
+    "expect": [
+      "保留原始 Logo 与受限定的高光",
+      "实际效果可用时检查属性，否则评估原生渐变带加遮罩",
+      "检查细笔画、高光退出、深浅背景 alpha 和裁切"
+    ]
+  },
+  {
+    "id": "effects-echo-transform",
+    "input": "My icon has animated Position keys in AE, but Echo produces no visible trail.",
+    "trigger": true,
+    "expect": [
+      "判断位移动画是否在 Echo 采样源内",
+      "需要时把动画放入预合成再在外层加 Echo",
+      "确认历史方向、采样间隔、亮度叠加及停止后的尾部"
+    ]
+  },
+  {
+    "id": "effects-noise-loop",
+    "input": "做一条 AE 原生的无缝流动噪波背景，6 秒循环，输出可编辑工程。",
+    "trigger": true,
+    "expect": [
+      "查真实循环演化能力，不默认所有噪波效果等价",
+      "同时验证偏移与其他动画参数的周期和跨缝速度",
+      "检查末尾接开头，不重复输出匹配终点帧"
+    ]
+  },
+  {
+    "id": "effects-liquify-capability",
+    "input": "在 AE 用 Liquify 做定向局部拉伸，但当前接口只能修改已有属性，不能写网格。",
+    "trigger": true,
+    "expect": [
+      "不声称只设置形变百分比就创建了网格",
+      "按目标评估路径或置换原生近似",
+      "说明具体可控范围和视觉差异"
+    ]
+  },
+  {
+    "id": "effects-generation-boundary",
+    "input": "用 H3 生成一段带液态融合和光扫的视频，只要视频，不要 AE 工程。",
+    "trigger": false,
+    "expect": [
+      "保持视频生成路线",
+      "不因效果词触发 AE 安装或原生制作"
+    ]
+  }
+]

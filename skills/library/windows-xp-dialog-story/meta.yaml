@@ -1,0 +1,44 @@
+display-name-zh: Windows XP 弹窗视觉短剧
+version: 1.0.1
+tag-en: "Professional Film"
+tag-cn: "专业影视"
+
+
+complete-tags-en:
+  - "Professional Film / Full Production"
+
+complete-tags-cn:
+  - "专业影视 / 成片制作"
+
+summary-en: "Turn retro Windows XP dialog states and character actions into readable, escalating visual shorts with a clear resolution."
+summary-cn: "将复古 Windows XP 弹窗状态与角色动作编排成可读、递进且有结算的视觉叙事短剧。"
+
+desc-en: "For creators who want to turn retro Windows XP Luna dialogs into visual narratives. Starting from a brief concept, dialog artwork, character references, or a script, the workflow builds error, warning, progress, interruption, and settlement states, then maps character actions to popup arrivals, stacking, collisions, progress changes, and system transitions on a readable timeline. It can deliver a standalone dialog image or an early-DV-style action short while preserving supplied copy, popup legibility, spatial occlusion, causal state changes, and camera rhythm. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once for the failure cause, then replaced by another available model. It is not for functional interfaces, full desktop recreations, or exact reference copying."
+
+desc-cn: "面向希望把复古 Windows XP Luna 弹窗转化为视觉叙事的创作者，可从简短创意、弹窗素材、角色参考或剧本出发，先建立报错、警告、进度、中断与结算状态，再把人物动作与弹窗出现、层叠、碰撞、进度变化和系统转场映射到清晰时间线，输出独立静态弹窗或具有早期 DV 质感的动作短片。流程强调文案准确、弹窗可读、空间遮挡、状态因果和镜头节奏。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换其他可用模型。不用于可运行界面、完整桌面复刻或照搬参考视频。"
+
+author-en: "山音"
+author-cn: "山音"
+source: community
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/47648246-ff13-4af7-bd01-edd2894294c6.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/47648246-ff13-4af7-bd01-edd2894294c6.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/windows-xp-dialog-story-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/windows-xp-dialog-story-02-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 将Windows XP复古弹窗、角色动作和系统状态编排成可读且有因果收束的视觉叙事短剧。
+    best-for:
+      - 复古弹窗
+      - 视觉叙事
+      - 系统状态
+    how-to-use: 提供创意、弹窗素材或角色参考，先确认静态图或视频路线、状态序列与文字内容。
+    outputs: 弹窗设计、状态时间线、角色动作、声音方案与视觉短剧成片。
+  en-US:
+    summary: Arrange Windows XP dialog states, character actions, and system events into a readable visual short with clear causality and resolution.
+    best-for:
+      - Retro Dialogs
+      - Visual Storytelling
+      - System States
+    how-to-use: Provide the concept, dialog assets, or character references, then confirm still or video route, state sequence, and exact text.
+    outputs: Dialog designs, state timeline, character actions, sound direction, and the finished visual short.

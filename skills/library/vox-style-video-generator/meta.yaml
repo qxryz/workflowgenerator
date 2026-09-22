@@ -1,0 +1,38 @@
+display-name-zh: Vox风格科普动画
+version: 1.0.2
+tag-en: "Education"
+tag-cn: "教育"
+complete-tags-en:
+  - "Education / Creative Generation"
+  - "Creative & Experimental / Creative Generation"
+complete-tags-cn:
+  - "教育 / 创作生成"
+  - "创意实验 / 创作生成"
+summary-en: "Turn a topic or report into an approved Vox-style collage explainer with narration, subtitles, and assembled motion."
+summary-cn: "根据主题或资料先做方案确认，再生成带旁白、字幕与拼贴动效的科普解释视频。"
+desc-en: "For creators turning a topic, article, or research report into a clear explainer video. Provide source text or reference media; the Skill confirms language, audience, duration, aspect ratio, and subtitle needs, then prepares a production plan, script, storyboard, shot details, and full voiceover for approval. After approval it creates a visual anchor, consistent paper-collage keyframes, controlled animation, narration, optional subtitles, BGM, and a reviewed final assembly. The workflow preserves approval gates before costly generation and keeps audio aligned to each visual beat. Best for science explainers, documentary shorts, and educational video essays; not for fictional long-form stories, pure character animation, or unapproved batch generation."
+desc-cn: "面向需要把知识主题、文章或研究报告转成解释型视频的创作者。用户提供主题、正文、资料或参考素材后，Skill 先确认语言、时长、画幅与受众，生成制作方案、脚本、分镜、镜头细节和旁白稿供确认，再制作主视觉、关键帧与纸艺拼贴动画，最后匹配统一口播、字幕和背景音乐并完成合成质检。适合科普、纪录短片和教育视频论文；不适合虚构长剧情、纯角色动画或未经确认的连续批量生成。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3b455fbe-7608-4804-80c7-34411049d7e2.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3b455fbe-7608-4804-80c7-34411049d7e2.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/vox-style-video-generator-01-20260908-1788867276244.mp4"
+structured-info:
+  zh-CN:
+    summary: 将主题、文章或研究资料转成先确认方案、再生成旁白字幕和拼贴动效的完整科普解释视频。
+    best-for:
+      - 科普解释
+      - 拼贴动效
+      - 旁白字幕
+    how-to-use: 提供主题、正文或资料，先确认语言、受众、时长、画幅和制作方案。
+    outputs: 制作计划、脚本、分镜、关键帧、拼贴动画、旁白字幕与解释视频成片。
+  en-US:
+    summary: Turn a topic, article, or research source into a confirmation-first explainer with narration, subtitles, and collage motion.
+    best-for:
+      - Explainer Videos
+      - Collage Motion
+      - Narration and Captions
+    how-to-use: Provide the topic, copy, or research, then confirm language, audience, duration, framing, and production plan.
+    outputs: A production plan, script, storyboard, keyframes, collage animation, narration, captions, and finished explainer.

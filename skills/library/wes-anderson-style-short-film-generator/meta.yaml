@@ -1,0 +1,36 @@
+display-name-zh: 韦斯·安德森美学短片生成器
+version: 1.0.3
+tag-en: "Professional Film"
+tag-cn: "专业影视"
+complete-tags-en:
+  - "Professional Film / Full Production"
+complete-tags-cn:
+  - "专业影视 / 成片制作"
+summary-en: "Builds an original symmetry-led narrative short from a confirmed brief, references, storyboards, video segments, sound layers, and final assembly."
+summary-cn: "将确认的故事与参考素材转成原创对称叙事短片，完成分镜、视频段、音频与合成。"
+desc-en: "For creators who want an original narrative, brand, advertising, or social short built from centered symmetry, storybook staging, measured blocking, restrained retro design, and dry whimsy. The workflow confirms the brief, analyzes references, locks production specifications, creates visual direction and storyboards, generates mapped video segments, adds narration and sound, and assembles a validated film. MiniMax-H3 is the default video model; an explicitly selected alternative is checked for capability first, retried once on failure, then replaced with another available model. It does not copy specific films, shots, characters, dialogue, or an artist's exact signature."
+desc-cn: "面向希望制作原创叙事短片、品牌片、广告或社交视频的创作者，核心是中心对称、童话式场面、精确调度、克制复古设计与干冷奇想。流程先确认故事简报和交付规格，再分析参考素材，锁定视觉方向，建立分镜与关键帧，生成有映射关系的视频段，补充旁白、音效和音乐，最后完成合成与校验。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。只做原创转译，不复制具体电影镜头、角色、对白或艺术家的精确个人签名。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/82647356-8853-4892-b355-59fd34142187.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/82647356-8853-4892-b355-59fd34142187.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/wes-anderson-style-short-film-generator-01-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将故事与参考素材转译为原创的中心构图、复古置景和克制奇想短片，并完成音画合成。
+    best-for:
+      - 对称叙事
+      - 复古置景
+      - 原创短片
+    how-to-use: 提供故事、角色或参考素材，先确认原创边界、规格、视觉方向与叙事核心。
+    outputs: 故事简报、视觉方向、角色场景资产、分镜、视频片段、声音与短片成片。
+  en-US:
+    summary: Translate a story and references into an original short with centered composition, retro design, restrained whimsy, and finished audio-visual assembly.
+    best-for:
+      - Symmetrical Stories
+      - Retro Production
+      - Original Shorts
+    how-to-use: Provide the story, characters, or references, then confirm originality boundaries, specs, visual direction, and narrative core.
+    outputs: A story brief, visual direction, character and scene assets, storyboard, video segments, sound, and finished short.

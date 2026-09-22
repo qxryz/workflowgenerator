@@ -1,0 +1,37 @@
+display-name-zh: 第一视角 FPV 穿越生成
+version: 1.0.2
+tag-en: "Professional Film"
+tag-cn: "专业影视"
+complete-tags-en:
+  - "Professional Film / Creative Generation"
+complete-tags-cn:
+  - "专业影视 / 创作生成"
+summary-en: "Turns uploaded characters and environments into first-person FPV tours by confirming duration and ratio, then choosing route geometry that fits the scene."
+summary-cn: "先确认时长和画幅，再按场景空间决定路线几何，生成连续沉浸的第一人称 FPV 一镜到底穿越视频。"
+desc-en: "This Skill is for users who need a first-person FPV one-take video to showcase an uploaded scene, while optionally using an uploaded character as a visible motion guide. The user can provide a character image, scene image, architecture/interior/landscape reference, or an optional motion reference video. The Skill then analyzes spatial depth, water surfaces, traversable gaps, obstacles, and route flow, chooses route geometry based on the scene, only adds low-water skimming when the scene truly supports it, and plans a one-take route with close passes, banking, dives, gap threading, and strong parallax. It is suitable for scene showcases, tourism/architecture/space promotion, and character-guided flight, but not for talking-head videos, static product ads, generic drone footage, or cut-heavy montage trailers."
+desc-cn: "此 Skill 面向需要用第一人称 FPV 一镜到底展示上传场景的用户，同时可让上传角色作为持续可见的飞行动线引导物。用户可以提供角色图、场景图、建筑/室内/景观参考，或额外运镜参考视频；随后分析空间深度、水面、可穿越缝隙、障碍和动线，根据场景决定路线几何，只在场景真的支持时安排贴水掠飞，再规划近距离擦过、侧倾、俯冲、穿缝和强视差的一镜到底路线。适合场景展示、文旅/建筑/空间宣传和角色引导式飞行，不适用于真人口播、静态产品广告、通用航拍素材或频繁切镜的蒙太奇预告片。"
+cover: "https://cdn.hailuoai.com/pre/2026-08-14-21/video/1786713892104144460-1786713892097.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-14-21/video/1786713892104144460-1786713892097.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/fpv-tour-video-generator-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/fpv-tour-video-generator-02-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 根据场景空间和主体参考规划沉浸式第一视角路线，生成连续自然的一镜到底FPV穿越视频。
+    best-for:
+      - FPV穿越
+      - 空间导览
+      - 一镜到底
+    how-to-use: 提供场景或主体参考与目标时长，先确认画幅、路线难度和第一视角体验。
+    outputs: 空间分析、轨迹分镜、运镜提示词、连续FPV视频与质量检查。
+  en-US:
+    summary: Plan an immersive first-person route from spatial references and produce a continuous, natural one-take FPV tour video.
+    best-for:
+      - FPV Tours
+      - Spatial Walkthroughs
+      - One-take Shots
+    how-to-use: Provide scene or subject references and target duration, then confirm framing, route difficulty, and first-person experience.
+    outputs: Spatial analysis, trajectory storyboard, camera prompts, a continuous FPV video, and quality checks.

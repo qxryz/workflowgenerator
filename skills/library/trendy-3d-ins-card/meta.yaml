@@ -1,0 +1,36 @@
+display-name-zh: 潮流3D卡片
+version: 1.0.3
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+summary-en: "Transforms a photo into a minimalist social-frame 3D figurine card and optionally extends the accepted card into an interactive animation."
+summary-cn: "把照片变成极简社交框3D手办卡，确认后可延展为固定镜头互动动画短片。"
+desc-en: "For creators who want a portrait, outfit, pet, mascot, or character image transformed into a minimalist social-frame 3D figurine card. The workflow reads identity, facial impression, accessories, outfit, and pose, creates a low-poly soft-vinyl figure with generous card margins and a clean backdrop, then waits for approval. If motion is requested, it offers interaction directions such as face poke, inside-frame dance, hand grab, swipe feedback, or a custom idea, and generates a fixed-camera animation while preserving the frame. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once on failure, then replaced by another available model."
+desc-cn: "面向想把人像、穿搭、宠物、吉祥物或角色图转成社交媒体视觉卡片的创作者。流程提取主体身份、脸型印象、配饰、服装结构和姿态，生成低模软胶 3D 手办与极简社交框静态卡片，确认后再根据戳脸、框内跳舞、拉手、滑动反馈或自定义想法设计互动方向。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。动画保持外层边框和主体身份稳定，适合短视频分享，不用于复杂多镜头剧情。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/afb24c03-a7fc-48ee-a728-ec0824e667b1.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/afb24c03-a7fc-48ee-a728-ec0824e667b1.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/trendy-3d-ins-card-01-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 将照片转成带极简社交框的3D手办卡，确认后可延展为固定镜头互动动画短片。
+    best-for:
+      - 3D手办
+      - 社交卡片
+      - 互动动画
+    how-to-use: 提供人物、宠物或角色照片，先确认主体身份、低模风格、社交框文案与互动方向。
+    outputs: 主体分析、3D静态卡、互动分镜、固定镜头提示词与可选动画短片。
+  en-US:
+    summary: Turn a photo into a minimalist social-frame 3D figurine card, then optionally extend it into a locked-camera interaction short.
+    best-for:
+      - 3D Figurines
+      - Social Cards
+      - Interactive Motion
+    how-to-use: Provide a person, pet, or character photo, then confirm identity, low-poly style, social copy, and interaction direction.
+    outputs: Subject analysis, 3D still card, interaction storyboard, locked-camera prompt, and optional short.

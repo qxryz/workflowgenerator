@@ -1,0 +1,40 @@
+display-name-zh: 3D漫剧半解说
+version: 1.0.1
+tag-en: "Short Drama"
+tag-cn: "短剧漫剧"
+complete-tags-en:
+  - "Short Drama / Planning"
+  - "Short Drama / Creative Generation"
+  - "Short Drama / Post-production"
+complete-tags-cn:
+  - "短剧漫剧 / 计划制定"
+  - "短剧漫剧 / 创作生成"
+  - "短剧漫剧 / 后期处理"
+summary-en: "Turn a story or script into a guided 3D manhua short-drama package with dialogue video and separate narration audio."
+summary-cn: "把故事或剧本整理成含对白视频和独立旁白音频的可剪辑3D漫剧短剧制作包。"
+desc-en: "For creators developing a 3D manhua short drama from a premise, script fragment, reference image, or existing assets. Confirm the story and delivery choices, reconcile every source beat, reserve narration and dialogue windows, build reusable character and scene anchors, generate measured audio and image-to-video shots, then assemble a dialogue-only video in the approved order. Deliver narration, its transcript, and placement timing as a separate package for user-led editing. The workflow prioritizes continuity and clear review gates. Best for short episodic 3D manhua; not live action, pure 2D animation, narrated master mixing, or long-form series planning."
+desc-cn: "面向需要制作 3D 漫剧短剧的创作者，可从故事、剧本片段、参考图或已有素材开始。Skill 先确认剧情与交付选项，完成剧本对账，在分镜阶段预留旁白和对白时间窗，建立角色与场景锚点，生成定时音频和图生视频镜头，再按确认顺序拼接无旁白对白视频。旁白作为独立音频包交付，方便用户自行剪辑。适合短篇连续 3D 漫剧；不负责真人实拍、纯二维动画、旁白混音母版或长篇系列统筹。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3c465f19-ad82-4ee4-bc80-7532f52df93c.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3c465f19-ad82-4ee4-bc80-7532f52df93c.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/half-narrated-3d-short-drama-01-20260908-1788867276244.mp4"
+structured-info:
+  zh-CN:
+    summary: 将故事或剧本整理成旁白推进、对白补充的连续3D漫剧制作包，支持后续剪辑与配音。
+    best-for:
+      - 3D漫剧
+      - 半解说短剧
+      - 连续性制作
+    how-to-use: 提供故事或剧本、角色参考和类型偏好，先确认起始路径、画幅、时长与声音结构。
+    outputs: 角色场景资产、双通道脚本、分镜、对白视频、独立旁白音频与剪辑包。
+  en-US:
+    summary: Turn a story or script into a continuous 3D manhua package driven by narration and supported by character dialogue for editing.
+    best-for:
+      - 3D Manhua
+      - Narrated Drama
+      - Continuity Production
+    how-to-use: Provide the story or script, character references, and genre preference, then confirm the start path, framing, duration, and sound structure.
+    outputs: Character and scene assets, a two-channel script, storyboard, dialogue video, standalone narration audio, and an edit package.

@@ -1,0 +1,39 @@
+display-name-zh: 羊毛毡故事短片
+version: 1.0.2
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+  - "Sound & Music / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+  - "音频音乐 / 创作生成"
+summary-en: "Turns story copy into a gated wool-felt short with locked format and image/video resolution choices, non-overlapping narration and dialogue timing, reusable visual assets, validated shot audio, and separate final cuts."
+summary-cn: "将故事文案转为分阶段确认的羊毛毡短片，锁定画幅、图片与视频清晰度、旁白音色和非重叠音频时间轴，并交付独立成片。"
+desc-en: "For creators turning narration, scripts, or story copy into portrait or landscape wool-felt story shorts. Users may add character, scene, prop, and style references. The workflow locks an approved aspect ratio, asks for 1K or 2K image assets and 768P or 2K video, builds reusable felt elements, plans narration and dialogue without unintended overlap, reviews shots one at a time, preserves natural sound effects, and assembles a no-BGM cut before offering a separate BGM version. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once for the diagnosed failure, then replaced by another available model. Best for realistic-scale felt worlds and continuity-sensitive stories, not standalone images, one-off clips, realistic commercials, miniature dioramas, puppet stages, or toy displays."
+desc-cn: "面向把旁白、脚本或故事文案制作成竖版或横版羊毛毡短片的创作者，可补充角色、场景、道具和风格参考。流程先锁定画幅，并在相应生成节点确认图片与视频清晰度；随后建立可复用羊毛毡元素，规划纯旁白、纯对白或混合模式的非重叠音频时间轴，逐镜生成并确认画面、原声对白和环境音，先合成无 BGM 成片，再按需输出独立配乐版。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换可用模型。适合现实比例羊毛毡叙事，不用于单图、写实广告或微缩玩偶舞台。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/a3af6f27-9d65-49b7-b278-73cd7fd5b1ef.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/a3af6f27-9d65-49b7-b278-73cd7fd5b1ef.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/wool-felt-story-short-01-20260908-1788867276244.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/wool-felt-story-short-02-20260908-1788867276244.mp4"
+structured-info:
+  zh-CN:
+    summary: 将故事文案转成具有羊毛毡材质、旁白对白时间轴和阶段确认的连续故事短片。
+    best-for:
+      - 羊毛毡动画
+      - 故事短片
+      - 语音时间轴
+    how-to-use: 提供故事文案或剧本及可选角色场景参考，先确认画幅、声音结构和成片版本。
+    outputs: 羊毛毡角色场景、故事板、语音时间轴、自然音效与可选配乐成片。
+  en-US:
+    summary: Turn story copy into a continuous wool-felt short with a narration and dialogue timeline and approval gates at each stage.
+    best-for:
+      - Wool-felt Animation
+      - Story Shorts
+      - Voice Timelines
+    how-to-use: Provide story copy or a script with optional character and scene references, then confirm framing, sound structure, and delivery versions.
+    outputs: Wool-felt character and scene assets, storyboard, voice timeline, natural sound, and an optional music version.

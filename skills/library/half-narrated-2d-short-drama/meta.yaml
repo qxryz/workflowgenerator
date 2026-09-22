@@ -1,0 +1,40 @@
+display-name-zh: 2D动画半解说短剧
+version: 1.0.1
+tag-en: "Short Drama"
+tag-cn: "短剧漫剧"
+complete-tags-en:
+  - "Short Drama / Planning"
+  - "Short Drama / Creative Generation"
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "短剧漫剧 / 计划制定"
+  - "短剧漫剧 / 创作生成"
+  - "动画 / 创作生成"
+summary-en: "Locks narration and dialogue windows during storyboard design, generates consistent narration with original dialogue assets, and hands the validated package to the user for editing."
+summary-cn: "在分镜阶段锁定旁白与对白窗口，生成统一旁白和原声对白素材，交付用户自行剪辑。"
+desc-en: "For creators making a 2D cel or webtoon half-narrated short drama from a story, script, reference video, or existing assets. The workflow locks plot, assets, resolution, narrator voice, and speech windows before generation, binds every shot to approved characters and scenes, validates original dialogue audio, and delivers a narration master, dialogue tracks, timing metadata, and editing handoff notes. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once for the diagnosed cause, then replaced by another available model. Best for staged short-drama production; it does not perform final cutting, mixing, subtitle burn-in, or export QC."
+desc-cn: "面向需要制作2D赛璐珞或国漫 webtoon 半解说短剧的创作者。用户提供故事、剧本、参考视频或已有素材，流程先锁定剧情、资产、清晰度和旁白音色，规划每镜旁白与对白窗口，再绑定角色场景资产并逐镜生成视频，验证原声后交付旁白母轨、对白轨和时间元数据，由用户自行剪辑。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换可用模型。适合分阶段制作，不负责最终剪辑、混音、字幕烧录或导出质检。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/d58b3975-d059-4c5e-90e7-3d6431761ab7.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/d58b3975-d059-4c5e-90e7-3d6431761ab7.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/half-narrated-2d-short-drama-01-20260908-1788867276244.mp4"
+structured-info:
+  zh-CN:
+    summary: 将2D短剧剧本整理为旁白与对白双声道的分镜和素材包，便于用户继续剪辑成片。
+    best-for:
+      - 2D漫剧
+      - 旁白对白
+      - 可剪辑素材
+    how-to-use: 提供故事或剧本、角色与画风参考，先锁定旁白窗口、对白窗口和单集规格。
+    outputs: 双通道脚本、角色与场景锚点、分镜、对白视频、旁白音频和剪辑包。
+  en-US:
+    summary: Turn a 2D short-drama script into a storyboard and asset package with separate narration and dialogue channels for editing.
+    best-for:
+      - 2D Manhua
+      - Narration and Dialogue
+      - Editable Assets
+    how-to-use: Provide the story or script with character and style references, then lock narration windows, dialogue windows, and episode specs.
+    outputs: A two-channel script, character and scene anchors, storyboard, dialogue video, narration audio, and an edit package.

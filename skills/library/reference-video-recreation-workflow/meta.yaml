@@ -1,0 +1,28 @@
+display-name-zh: 参考视频复刻
+version: 1.0.0
+tag-en: Commercial Ad / Creative Generation
+tag-cn: 商业广告 / 创作生成
+complete-tags-en:
+  - Commercial Ad / Creative Generation
+complete-tags-cn:
+  - 商业广告 / 创作生成
+summary-en: Recreate a reference video through a confirmed change script, source-grounded motion planning, controlled generation, and evidence-based audiovisual validation.
+summary-cn: 以参考视频为依据锁定运动节奏和变更脚本，通过受控生成与音画验收减少反复，稳定交付复刻成片。
+desc-en: This Skill turns a request to recreate a reference video into a controlled and traceable production process. Users provide the source video, requested changes, and necessary brand or replacement assets. The workflow inspects shot structure and source evidence, records a reviewable change script, confirms exact text and element decisions, preserves motion, rhythm, camera, and sound relationships, generates only the approved scope, and validates the result against composition, action, timing, typography, and audiovisual requirements. It reports achieved, approximate, unverified, and failed items, prioritizes repair with existing assets, and prevents blind repeated spending. The final delivery includes the finished video, version history, and an honest statement of editability. It is best for promos, launches, and motion-graphics recreations.
+desc-cn: 面向需要按参考视频重建宣传片、产品发布片或动态图形内容的创作者，把模糊的“照着重做”转化为可控、可追溯的生产流程。用户提供原片、明确改动和必要品牌或替换素材后，流程拆解镜头结构与证据，锁定可核对的变更脚本，确认文字和元素决定，继承原片运动、节奏、摄影与声音关系，只生成批准范围，并按构图、动作、时序、文字和音画要求验收。结果会标明已实现、近似、未验证和失败项，优先利用现有素材修复，避免盲目重复消耗；最终交付成片、版本记录和真实可编辑范围。
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将参考影片与明确变更转成可核对的复刻方案，继承原片运动和节奏并按音画要求逐项验收。
+    best-for: [广告复刻, 发布短片, 动态图形]
+    how-to-use: 上传完整参考视频并说明修改范围，补充替换素材后确认变更脚本。
+    outputs: 复刻成片、变更脚本、版本记录及交付范围说明。
+  en-US:
+    summary: Convert a reference film and explicit changes into a reviewable recreation that preserves source motion and rhythm and validates audiovisual requirements.
+    best-for: [Ad Recreation, Launch Videos, Motion Graphics]
+    how-to-use: Upload the full source video, describe changes, and supply replacement assets before approving the change script.
+    outputs: Recreated video, change script, version history, and a statement of delivery scope.
+cover: https://cdn.hailuoai.com/hailuo-video-web/public_assets/af2a3388-2b77-46bc-b8c0-58fb8f578e45.mp4
+cover-en: https://cdn.hailuoai.com/hailuo-video-web/public_assets/af2a3388-2b77-46bc-b8c0-58fb8f578e45.mp4

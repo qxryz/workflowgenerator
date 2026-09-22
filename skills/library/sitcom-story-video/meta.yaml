@@ -1,0 +1,36 @@
+display-name-zh: 情景喜剧故事视频
+version: 1.0.1
+tag-en: "Professional Film"
+tag-cn: "专业影视"
+complete-tags-en:
+  - "Professional Film / Full Production"
+complete-tags-cn:
+  - "专业影视 / 成片制作"
+summary-en: "Turns sitcom premises, scripts, or references into continuity-safe shorts with comic beats, shot prompts, production QA, and optional post-final instrumental BGM design."
+summary-cn: "把情景喜剧素材整理成含喜剧节拍、镜头提示词、连续性检查和成片后纯器乐 BGM 设计的短片制作包。"
+desc-en: "For creators making narrative AI sitcom shorts from a premise, script, storyboard, or visual references. The workflow locks production choices, a durable comic engine, and a retro indoor television look; builds continuity-safe character, set, and prop bibles; prepares a timed beat sheet, cut map, shot prompts, and review assets; then guides shot generation, variant selection, tail-frame handoffs, editing, audio intelligibility, and final QA. Optional instrumental BGM is designed only after the first final cut. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once for the diagnosed failure, then replaced by another available model. Best for short situation comedies, not standalone images, generic prompts, or long-form drama."
+desc-cn: "面向制作叙事型 AI 情景喜剧短片的创作者，可输入梗概、剧本、分镜或视觉参考。流程先锁定制作规格、喜剧引擎和复古室内电视风格，建立角色、场景与道具连续性锚点，再编写时间化节拍表、剪辑图和逐镜提示词，审核中间资产后逐镜生成、筛选版本、衔接尾帧并完成剪辑与声音验收。需要时可在成片后加入带时间码的纯器乐 BGM。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换可用模型。适合情景喜剧短片，不用于单图、泛化提示词或长篇剧情制作。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/90f805fe-bbed-4edb-8b3d-005da35c18c1.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/90f805fe-bbed-4edb-8b3d-005da35c18c1.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/sitcom-story-video-01-20260908-1788867276244.mp4"
+structured-info:
+  zh-CN:
+    summary: 将梗概、剧本、分镜或视觉参考转化为角色场景连续、喜剧节拍明确且可执行的情景喜剧短片制作包。
+    best-for:
+      - 情景喜剧
+      - 叙事短片
+      - 喜剧节拍
+    how-to-use: 提供梗概、剧本、分镜或视觉参考，确认规格、喜剧引擎、视觉预设与声音方案。
+    outputs: 角色场景圣经、节拍表、剪辑图、逐镜提示词、质检方案及可选成片配乐。
+  en-US:
+    summary: Turn a premise, script, storyboard, or visual reference into an executable sitcom production package with consistent characters, sets, and comic beats.
+    best-for:
+      - Sitcom Shorts
+      - Narrative Comedy
+      - Comic Timing
+    how-to-use: Provide a premise, script, storyboard, or visual references, then confirm format, comic engine, visual preset, and sound approach.
+    outputs: Character and set bibles, beat sheet, cut map, shot prompts, QA guidance, and optional final-cut music.

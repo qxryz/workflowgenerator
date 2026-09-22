@@ -1,0 +1,28 @@
+display-name-zh: 中式传统动画短片
+version: 1.0.0
+tag-en: Animation / Creative Generation
+tag-cn: 动画 / 创作生成
+complete-tags-en:
+  - Animation / Creative Generation
+complete-tags-cn:
+  - 动画 / 创作生成
+summary-en: Turn a culturally rooted story into a coherent animated short through approved style, character, scene, shot, sound, assembly, and review stages.
+summary-cn: 将文化题材故事转化为中式传统动画短片，通过风格、角色、场景、分镜、声音、合成与复核保持统一表达。
+desc-en: This Skill helps creators turn a mythic, folkloric, classical, allegorical, or culturally rooted idea, script, or reference into a coherent Chinese traditional animated short. It captures production intent, expands and confirms the story, locks an appropriate visual branch, builds a style bible, and designs characters, scenes, props, layered staging, a shot table, and an audio map. After staged approvals, it creates reference assets, shot videos, sound, assembly, mixing, and structured quality review. The deliverable is a finished short with reusable production documents when requested. It is best for culturally grounded animation requiring continuity and review gates, not live-action editing, generic posters, routine image-to-video, or unrelated visual styles.
+desc-cn: 面向希望把神话、民间、古典、寓言或其他文化题材创意、剧本和参考素材制作成中式传统动画短片的创作者。流程先收集制作意图，扩展并确认故事，锁定合适的视觉分支，建立风格圣经，再设计角色、场景、道具、分层调度、镜头表和音频地图；经过阶段确认后生成参考资产、分镜视频与声音，完成合成、混音和结构化质量复核。最终交付成片，并可按需保留可复用制作文档。适合重视文化语境、视觉连续性和确认节点的动画创作，不用于真人剪辑、普通海报、常规图生视频或无关视觉风格。
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 以传统绘画与分层动画语言组织文化题材故事，保持人物与场景连贯并完成具有统一声音设计的短片。
+    best-for: [文化故事, 水墨动画, 工笔动画]
+    how-to-use: 提供文化题材创意或剧本，确认故事、美术方向、画幅与时长。
+    outputs: 角色场景设定、分镜与声音方案，以及完整动画短片。
+  en-US:
+    summary: Shape culturally rooted stories with traditional painting and layered animation, maintaining character continuity and coherent sound through a complete short.
+    best-for: [Cultural Stories, Ink Animation, Gongbi Animation]
+    how-to-use: Provide a cultural premise or script, then approve the story, art direction, framing, and duration.
+    outputs: Character and scene designs, shot and sound plans, and a completed animated short.
+cover: https://cdn.hailuoai.com/hailuo-video-web/public_assets/386b30a4-2b7e-4d98-bb94-d58246fcc62e.mp4
+cover-en: https://cdn.hailuoai.com/hailuo-video-web/public_assets/386b30a4-2b7e-4d98-bb94-d58246fcc62e.mp4

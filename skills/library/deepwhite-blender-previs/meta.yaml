@@ -1,0 +1,28 @@
+display-name-zh: Deepwhite Blender 建模与镜头预演
+version: 1.0.0
+tag-en: "Professional Film"
+tag-cn: "专业影视"
+complete-tags-en:
+  - "Professional Film / Creative Generation"
+complete-tags-cn:
+  - "专业影视 / 创作生成"
+summary-en: "Turn ideas or existing previs into reviewed silent Blender blockouts, synchronized shot prompts and stylized films generated from the approved previs plus complete appearance references."
+summary-cn: "将创意或现有预演转为已审核无声白模、同步分镜Prompt及白模与参考图联合生成的风格化成片。"
+desc-en: "For filmmakers who want to validate spatial choreography before producing a stylized short, this workflow accepts an idea, Blender project, previs video, and appearance references. It prepares an approved timecoded shot script, builds or audits silent geometric previs, and maps each visible proxy to a character, environment, vehicle, or prop reference. The previs defines camera motion, staging, timing, and events; images define identity, materials, and style. A synchronized prompt binds both, with optional timestamped style frames added after previs approval. After resolution confirmation, it generates and reviews the film. Deliverables include the video, editable project, references, and shot list. It does not provide production-ready characters, exact pose replication, or series management."
+desc-cn: "面向需要先验证空间调度再制作风格化短片的创作者，接收故事创意、三维工程、白模视频和外观参考图。流程先确认带时间码的分镜脚本，制作或审核无声几何预演，再将可见代理逐项映射到人物、场景、车辆或道具参考。预演限定运镜、站位、时序与事件，整组图片限定身份、材质和风格；同步提示词绑定两类输入，预演确认后可按需补充带时间戳的风格帧，再确认分辨率并生成、审核成片。交付视频、可编辑工程、参考图与镜头清单，不提供生产级角色资产、精确姿态复刻或长剧统筹。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: https://cdn.hailuoai.com/prod/2026-09-17-01/video/1789580016787560755-1789580016754.mp4
+cover-en: https://cdn.hailuoai.com/prod/2026-09-17-01/video/1789580016787560755-1789580016754.mp4
+structured-info:
+  zh-CN:
+    summary: 先用无声几何预演验证镜头与空间调度，再结合完整外观参考制作身份和视觉风格一致的短片。
+    best-for: [镜头预演, 空间调度, 风格化短片]
+    how-to-use: 提供故事、三维工程或现有预演，先确认分镜与所需外观参考。
+    outputs: 无声白模预演、可编辑工程、同步分镜提示词及成片。
+  en-US:
+    summary: Validate camera work and spatial choreography with silent geometric previs, then use complete appearance references to create a consistent stylized film.
+    best-for: [Shot Previs, Spatial Choreography, Stylized Films]
+    how-to-use: Provide a story, Blender project, or existing previs, then approve shots and required appearance references.
+    outputs: Silent geometric previs, editable project, synchronized shot prompts, and a completed film.

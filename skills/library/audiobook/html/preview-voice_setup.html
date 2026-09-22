@@ -1,0 +1,580 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Audiobook Voice Preview</title>
+<style>
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --text-secondary: #8b949e; --accent: #58a6ff;
+    --narrator: #f0883e; --character: #d2a8ff; --success: #3fb950;
+    --danger: #f85149; --warning: #d29922;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, sans-serif; padding: 24px; padding-bottom: 100px; }
+  h1 { font-size: 24px; margin-bottom: 4px; }
+  .subtitle { color: var(--text-secondary); margin-bottom: 32px; font-size: 14px; }
+
+  .section { margin-bottom: 32px; }
+  .section-title {
+    font-size: 16px; font-weight: 600; margin-bottom: 12px;
+    padding-bottom: 8px; border-bottom: 1px solid var(--border);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .section-icon {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 24px; height: 24px; border-radius: 6px; font-size: 12px;
+  }
+  .section-icon.narrator { background: rgba(240,136,62,0.2); color: var(--narrator); }
+  .section-icon.character { background: rgba(210,168,255,0.2); color: var(--character); }
+
+  .voice-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 12px;
+    position: relative; transition: border-color 0.2s;
+  }
+  .voice-card:hover { border-color: var(--accent); }
+
+  .card-header {
+    display: flex; align-items: center; justify-content: space-between;
+    margin-bottom: 12px;
+  }
+  .card-title { display: flex; align-items: center; gap: 10px; }
+  .card-name { font-size: 16px; font-weight: 600; }
+  .card-badge {
+    display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 10px;
+  }
+  .card-badge.narrator { background: rgba(240,136,62,0.15); color: var(--narrator); }
+  .card-badge.character { background: rgba(210,168,255,0.15); color: var(--character); }
+
+  /* Per-card note */
+  .note-toggle {
+    font-size: 12px; color: var(--accent); cursor: pointer;
+    margin-top: 12px; user-select: none; display: inline-flex; align-items: center; gap: 4px;
+  }
+  .note-toggle:hover { text-decoration: underline; }
+  .note-area { margin-top: 8px; display: none; }
+  .note-area.open { display: block; }
+  .note-input {
+    width: 100%; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 8px 12px;
+    font-size: 13px; font-family: inherit; resize: none; height: 36px; line-height: 20px;
+  }
+  .note-input:focus { outline: none; border-color: var(--accent); }
+  .note-input::placeholder { color: var(--text-secondary); }
+
+  /* Voice selector dropdown */
+  .voice-selector {
+    display: flex; align-items: center; gap: 10px; margin-bottom: 12px;
+  }
+  .voice-selector label {
+    font-size: 13px; color: var(--text-secondary); white-space: nowrap;
+  }
+  .voice-select {
+    flex: 1; background: var(--bg); color: var(--text); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; font-size: 13px; font-family: inherit;
+    appearance: none; -webkit-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%238b949e' d='M2 4l4 4 4-4'/%3E%3C/svg%3E");
+    background-repeat: no-repeat; background-position: right 12px center;
+    cursor: pointer;
+  }
+  .voice-select:focus { outline: none; border-color: var(--accent); }
+  .voice-desc {
+    font-size: 12px; color: var(--text-secondary); margin-bottom: 8px;
+    font-style: italic; min-height: 18px;
+  }
+
+  .sample-text {
+    background: var(--bg); border-radius: 8px; padding: 12px 14px;
+    font-size: 13px; line-height: 1.6; color: var(--text-secondary);
+    margin-bottom: 12px; border: 1px solid var(--border);
+  }
+
+  /* Audio player */
+  .audio-row { margin-bottom: 16px; }
+  audio { width: 100%; height: 44px; border-radius: 8px; filter: invert(1) hue-rotate(180deg); }
+  audio::-webkit-media-controls-panel { border-radius: 8px; }
+
+  /* Feedback radio controls (single-click state toggle) */
+  .params {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 4px;
+  }
+  .param-group { display: flex; flex-direction: column; gap: 8px; }
+  .param-label { font-size: 12px; color: var(--text-secondary); }
+  .param-buttons {
+    display: flex; gap: 6px;
+  }
+  .param-btn {
+    flex: 1; padding: 7px 4px; border-radius: 8px; border: 1px solid var(--border);
+    background: var(--bg); color: var(--text-secondary); cursor: pointer;
+    font-size: 11px; text-align: center; transition: all 0.15s;
+    user-select: none; line-height: 1.3;
+  }
+  .param-btn:hover { border-color: var(--accent); color: var(--accent); }
+  .param-btn.active-ok {
+    border-color: var(--success); color: var(--success); background: rgba(63,185,80,0.12);
+  }
+  .param-btn.active-dec {
+    border-color: var(--danger); color: var(--danger); background: rgba(248,81,73,0.12);
+  }
+  .param-btn.active-inc {
+    border-color: var(--warning); color: var(--warning); background: rgba(210,153,34,0.12);
+  }
+
+  /* Global settings */
+  .global-settings {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 20px; margin-bottom: 32px;
+  }
+  .settings-title { font-size: 14px; font-weight: 600; margin-bottom: 12px; }
+  .settings-row {
+    display: flex; align-items: center; gap: 16px; margin-bottom: 8px;
+  }
+  .settings-label { font-size: 13px; color: var(--text-secondary); min-width: 120px; }
+  .radio-group { display: flex; gap: 8px; }
+  .radio-option {
+    padding: 4px 12px; border-radius: 16px; font-size: 12px;
+    border: 1px solid var(--border); cursor: pointer; transition: all 0.2s;
+    user-select: none;
+  }
+  .radio-option:hover { border-color: var(--accent); }
+  .radio-option.active { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+
+  /* Language toggle */
+  .lang-toggle {
+    position: fixed; top: 16px; right: 24px; z-index: 200;
+    display: flex; gap: 2px; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; overflow: hidden;
+  }
+  .lang-btn {
+    padding: 4px 10px; font-size: 12px; border: none; cursor: pointer;
+    background: transparent; color: var(--text-secondary); transition: all 0.2s;
+  }
+  .lang-btn.active { background: var(--accent); color: var(--bg); }
+
+  /* Dirty indicator */
+  .dirty-dot {
+    display: inline-block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--narrator); margin-left: 6px; vertical-align: middle;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .dirty-dot.visible { opacity: 1; }
+
+  /* Feedback bar */
+  .feedback-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    background: var(--surface); border-top: 1px solid var(--border);
+    padding: 12px 24px; display: flex; gap: 12px; align-items: center; z-index: 100;
+  }
+  .feedback-bar textarea {
+    flex: 1; background: var(--bg); border: 1px solid var(--border);
+    color: var(--text); border-radius: 8px; padding: 10px 14px;
+    font-size: 14px; resize: none; height: 44px; line-height: 24px; font-family: inherit;
+  }
+  .feedback-bar textarea:focus { outline: none; border-color: var(--accent); }
+  .feedback-bar button {
+    background: var(--accent); color: var(--bg); border: none;
+    padding: 10px 20px; border-radius: 8px; font-weight: 600;
+    cursor: pointer; font-size: 14px; white-space: nowrap;
+  }
+  .feedback-bar button:hover { opacity: 0.9; }
+</style>
+</head>
+<body>
+<script>
+const PREVIEW_TYPE = null;  /* __PREVIEW_TYPE__ */
+const PREVIEW_DATA = null;  /* __PREVIEW_DATA__ */
+</script>
+
+<!-- i18n string table -->
+<script>
+const i18n = {
+  en: {
+    pageTitle: 'Audiobook Voice Preview',
+    subtitle: 'Pick a voice from the dropdown, press play to preview. Submit when satisfied.',
+    voiceTip: '<b>Tip:</b> Character voices should contrast clearly with the narrator (different timbre, pitch, speaking style) so listeners can tell narration from dialogue. Alternate playback between narrator and characters to confirm the contrast is noticeable.',
+    globalSettings: 'Global Settings',
+    pauseDensity: 'Pause Density',
+    sparse: 'Sparse', medium: 'Medium', dense: 'Dense',
+    narratorVoice: 'Narrator Voice',
+    characterVoices: (n) => `Character Voices (${n} characters)`,
+    narrator: 'Narrator',
+    character: 'Character',
+    voice: 'Voice',
+    speed: 'Speed',
+    volume: 'Volume',
+    slowerPlease: '🐢 Slower',
+    justRight: '✓ Just right',
+    fasterPlease: 'Faster ⚡',
+    tooQuiet: '🔈 Louder',
+    goodVol: '✓ Good',
+    tooLoud: 'Quieter 🔊',
+    addNote: '+ Add note',
+    notePlaceholder: 'e.g. too deep, try a younger voice...',
+    feedbackPlaceholder: 'General feedback (optional)... leave blank to confirm current selections',
+    submit: '✓ Confirm & Continue',
+    submitted: 'Confirmed! Closing shortly...',
+    submitFailed: 'Submission failed: ',
+    audiobook: 'Audiobook',
+  },
+  zh: {
+    pageTitle: '有声书音色预览',
+    subtitle: '从下拉菜单选择音色，点击播放试听。满意后点击确认。',
+    voiceTip: '<b>选音提示：</b>角色音色与旁白音色应有较大对比度（音色、音高、语速风格不同），听众才能清晰区分叙述和对话。建议交替播放旁白与角色音色，确认差异足够明显。',
+    globalSettings: '全局设置',
+    pauseDensity: '停顿密度',
+    sparse: '疏', medium: '中', dense: '密',
+    narratorVoice: '旁白音色',
+    characterVoices: (n) => `角色音色（${n} 个角色）`,
+    narrator: '旁白',
+    character: '角色',
+    voice: '音色',
+    speed: '语速',
+    volume: '音量',
+    slowerPlease: '🐢 慢一点',
+    justRight: '✓ 刚好',
+    fasterPlease: '⚡ 快一点',
+    tooQuiet: '🔈 大一点',
+    goodVol: '✓ 合适',
+    tooLoud: '🔊 小一点',
+    addNote: '+ 添加备注',
+    notePlaceholder: '例如：声音太沉，换一个更年轻的...',
+    feedbackPlaceholder: '整体反馈（可选）… 留空则确认当前选择',
+    submit: '✓ 确认并继续',
+    submitted: '已确认！窗口即将关闭...',
+    submitFailed: '提交失败: ',
+    audiobook: '有声书',
+  }
+};
+
+let lang = 'en'; // will be set from data.lang after PREVIEW_DATA is parsed
+function t(key) { return i18n[lang][key] || i18n['en'][key] || key; }
+function setLang(l) {
+  lang = l;
+  localStorage.setItem('audiobook_lang', l);
+  document.documentElement.lang = l === 'zh' ? 'zh-CN' : 'en';
+  document.title = t('pageTitle');
+  render();
+  const ta = document.getElementById('feedbackText');
+  if (ta) ta.placeholder = t('feedbackPlaceholder');
+  document.getElementById('btn-submit').textContent = t('submit');
+  document.querySelectorAll('.lang-btn').forEach(b => {
+    b.classList.toggle('active', b.dataset.lang === l);
+  });
+}
+</script>
+
+<div class="lang-toggle">
+  <button type="button" class="lang-btn active" data-lang="en" onclick="setLang('en')">EN</button>
+  <button type="button" class="lang-btn" data-lang="zh" onclick="setLang('zh')">中文</button>
+</div>
+
+<div id="app"></div>
+
+<div class="feedback-bar">
+  <textarea id="feedbackText"></textarea>
+  <button type="button" id="btn-submit" onclick="submitFeedback()">✓ Confirm & Continue</button>
+</div>
+
+<script>
+const data = JSON.parse(PREVIEW_DATA);
+
+// Set language from data (agent sets this based on user's conversation language)
+lang = data.lang || localStorage.getItem('audiobook_lang') || 'en';
+document.documentElement.lang = lang === 'zh' ? 'zh-CN' : 'en';
+document.querySelectorAll('.lang-btn').forEach(b => {
+  b.classList.toggle('active', b.dataset.lang === lang);
+});
+
+/* --- State: current user selections + feedback --- */
+const state = {
+  pauseDensity: data.pauseDensity || 'medium',
+  voices: {},
+  speed: {},   // cardId -> "fast" | "ok" | "slow"
+  volume: {},  // cardId -> "loud" | "ok" | "quiet"
+};
+
+// Initialize state from data defaults
+function initState() {
+  if (data.narrator) {
+    const cid = 'narrator';
+    state.voices[cid] = data.narrator.selectedVoiceId
+      || (data.narrator.candidates?.[0]?.voiceId) || '';
+    state.speed[cid]  = 'ok';
+    state.volume[cid] = 'ok';
+  }
+  if (data.characters) {
+    data.characters.forEach((c, i) => {
+      const cid = `char_${i}`;
+      state.voices[cid] = c.selectedVoiceId || (c.candidates?.[0]?.voiceId) || '';
+      state.speed[cid]  = 'ok';
+      state.volume[cid] = 'ok';
+    });
+  }
+}
+initState();
+
+/* --- Helpers --- */
+function getCandidate(candidates, voiceId) {
+  return (candidates || []).find(c => c.voiceId === voiceId);
+}
+
+function setSpeedFeedback(cardId, value) {
+  state.speed[cardId] = value;
+  const btns = document.querySelectorAll(`#speed-group-${cardId} .param-btn`);
+  btns.forEach(b => {
+    b.className = 'param-btn';
+    if (b.dataset.value === value) {
+      b.classList.add(value === 'ok' ? 'active-ok' : value === 'faster' ? 'active-dec' : 'active-inc');
+    }
+  });
+}
+function setVolumeFeedback(cardId, value) {
+  state.volume[cardId] = value;
+  const btns = document.querySelectorAll(`#vol-group-${cardId} .param-btn`);
+  btns.forEach(b => {
+    b.className = 'param-btn';
+    if (b.dataset.value === value) {
+      b.classList.add(value === 'ok' ? 'active-ok' : value === 'louder' ? 'active-dec' : 'active-inc');
+    }
+  });
+}
+
+/* --- Render voice card --- */
+function renderVoiceCard(item, type, index) {
+  const typeLabel  = t(type === 'narrator' ? 'narrator' : 'character');
+  const badgeClass = type === 'narrator' ? 'narrator' : 'character';
+  const cardId     = type === 'narrator' ? 'narrator' : `char_${index}`;
+  const candidates = item.candidates || [];
+  const selectedVoiceId = state.voices[cardId] || '';
+  const selected = getCandidate(candidates, selectedVoiceId) || candidates[0] || {};
+  const roleName = type === 'narrator' ? t('narrator') : item.name;
+  const spdState = state.speed[cardId]  || 'ok';
+  const volState = state.volume[cardId] || 'ok';
+
+  const options = candidates.map(c =>
+    `<option value="${c.voiceId}" ${c.voiceId === selectedVoiceId ? 'selected' : ''}>${c.voiceName || c.voiceId}</option>`
+  ).join('');
+
+  return `
+    <div class="voice-card" id="card-${cardId}">
+      <div class="card-header">
+        <div class="card-title">
+          <span class="card-name">${roleName}</span>
+          <span class="card-badge ${badgeClass}">${typeLabel}</span>
+          <span class="dirty-dot" id="dirty-${cardId}"></span>
+        </div>
+      </div>
+
+      ${item.description ? `<div style="color:var(--text-secondary);font-size:12px;margin-bottom:8px;">${item.description}</div>` : ''}
+
+      <div class="voice-selector">
+        <label>${t('voice')}</label>
+        <select class="voice-select" id="select-${cardId}" onchange="onVoiceChange('${cardId}', this.value)">
+          ${options}
+        </select>
+      </div>
+      <div class="voice-desc" id="desc-${cardId}">${selected.description || ''}</div>
+
+      <div class="sample-text">${item.sampleText || ''}</div>
+
+      <div class="audio-row">
+        <audio controls preload="metadata" id="audio-${cardId}" src="${selected.sampleUrl || ''}"></audio>
+      </div>
+
+      <!-- Speed & volume feedback (single-click radio toggles) -->
+      <div class="params">
+        <div class="param-group">
+          <span class="param-label">${t('speed')}</span>
+          <div class="param-buttons" id="speed-group-${cardId}">
+            <button type="button" class="param-btn${spdState === 'slower' ? ' active-inc' : ''}" data-value="slower" onclick="setSpeedFeedback('${cardId}', 'slower')">${t('slowerPlease')}</button>
+            <button type="button" class="param-btn${spdState === 'ok' ? ' active-ok' : ''}" data-value="ok" onclick="setSpeedFeedback('${cardId}', 'ok')">${t('justRight')}</button>
+            <button type="button" class="param-btn${spdState === 'faster' ? ' active-dec' : ''}" data-value="faster" onclick="setSpeedFeedback('${cardId}', 'faster')">${t('fasterPlease')}</button>
+          </div>
+        </div>
+        <div class="param-group">
+          <span class="param-label">${t('volume')}</span>
+          <div class="param-buttons" id="vol-group-${cardId}">
+            <button type="button" class="param-btn${volState === 'quieter' ? ' active-inc' : ''}" data-value="quieter" onclick="setVolumeFeedback('${cardId}', 'quieter')">${t('tooLoud')}</button>
+            <button type="button" class="param-btn${volState === 'ok' ? ' active-ok' : ''}" data-value="ok" onclick="setVolumeFeedback('${cardId}', 'ok')">${t('goodVol')}</button>
+            <button type="button" class="param-btn${volState === 'louder' ? ' active-dec' : ''}" data-value="louder" onclick="setVolumeFeedback('${cardId}', 'louder')">${t('tooQuiet')}</button>
+          </div>
+        </div>
+      </div>
+
+      <span class="note-toggle" onclick="toggleNote('${cardId}')">${t('addNote')}</span>
+      <div class="note-area" id="note-area-${cardId}">
+        <input type="text" class="note-input" id="note-${cardId}"
+               placeholder="${t('notePlaceholder')}" />
+      </div>
+    </div>
+  `;
+}
+
+const densityKeys = ['sparse', 'medium', 'dense'];
+
+function render() {
+  let html = `<h1>${data.bookName || t('audiobook')} — ${t('pageTitle')}</h1>`;
+  html += `<div class="subtitle">${t('subtitle')}</div>`;
+  html += `<div style="background:rgba(240,136,62,0.1);border:1px solid rgba(240,136,62,0.3);border-radius:8px;padding:12px 16px;margin-bottom:24px;font-size:13px;color:#f0883e;line-height:1.6;">
+    ${t('voiceTip')}
+  </div>`;
+
+  // Global settings
+  html += `
+    <div class="global-settings">
+      <div class="settings-title">${t('globalSettings')}</div>
+      <div class="settings-row">
+        <span class="settings-label">${t('pauseDensity')}</span>
+        <div class="radio-group">
+          ${densityKeys.map(d => `
+            <span class="radio-option ${state.pauseDensity === d ? 'active' : ''}"
+                  data-density="${d}"
+                  onclick="setPauseDensity('${d}')">${t(d)}</span>
+          `).join('')}
+        </div>
+      </div>
+    </div>
+  `;
+
+  // Narrator
+  if (data.narrator) {
+    html += `
+      <div class="section">
+        <div class="section-title">
+          <span class="section-icon narrator">N</span>
+          ${t('narratorVoice')}
+        </div>
+        ${renderVoiceCard(data.narrator, 'narrator', 0)}
+      </div>
+    `;
+  }
+
+  // Characters
+  if (data.characters && data.characters.length) {
+    html += `
+      <div class="section">
+        <div class="section-title">
+          <span class="section-icon character">C</span>
+          ${t('characterVoices')(data.characters.length)}
+        </div>
+    `;
+    data.characters.forEach((c, i) => {
+      html += renderVoiceCard(c, 'character', i);
+    });
+    html += `</div>`;
+  }
+
+  document.getElementById('app').innerHTML = html;
+}
+
+/* --- Voice change: swap audio source instantly --- */
+function onVoiceChange(cardId, voiceId) {
+  state.voices[cardId] = voiceId;
+
+  let item = cardId === 'narrator' ? data.narrator : data.characters[parseInt(cardId.replace('char_', ''))];
+  if (!item) return;
+
+  const candidate = getCandidate(item.candidates, voiceId);
+  if (!candidate) return;
+
+  const descEl = document.getElementById(`desc-${cardId}`);
+  if (descEl) descEl.textContent = candidate.description || '';
+
+  const audioEl = document.getElementById(`audio-${cardId}`);
+  if (audioEl && candidate.sampleUrl) {
+    audioEl.src = candidate.sampleUrl;
+    audioEl.load();
+  }
+
+  const defaultVoice = item.selectedVoiceId || item.candidates?.[0]?.voiceId;
+  const dot = document.getElementById(`dirty-${cardId}`);
+  if (dot) dot.classList.toggle('visible', voiceId !== defaultVoice);
+}
+
+function setPauseDensity(density) {
+  state.pauseDensity = density;
+  document.querySelectorAll('.radio-option').forEach(el => {
+    el.classList.toggle('active', el.dataset.density === density);
+  });
+}
+
+function toggleNote(cardId) {
+  const area = document.getElementById(`note-area-${cardId}`);
+  if (area) {
+    area.classList.toggle('open');
+    if (area.classList.contains('open')) area.querySelector('.note-input')?.focus();
+  }
+}
+
+/* --- Collect all settings from current page state --- */
+function collectSettings() {
+  const settings = { pauseDensity: state.pauseDensity, narrator: null, characters: [] };
+
+  if (data.narrator) {
+    settings.narrator = {
+      voiceId: state.voices['narrator'] || '',
+      speed:   state.speed['narrator']  || 'ok',
+      volume:  state.volume['narrator'] || 'ok',
+    };
+  }
+  if (data.characters) {
+    data.characters.forEach((c, i) => {
+      const cid = `char_${i}`;
+      settings.characters.push({
+        name:   c.name,
+        label:  c.label || c.name,
+        voiceId: state.voices[cid] || '',
+        speed:   state.speed[cid]  || 'ok',
+        volume:  state.volume[cid] || 'ok',
+      });
+    });
+  }
+  return settings;
+}
+
+async function submitFeedback() {
+  const generalText = document.getElementById('feedbackText').value.trim();
+
+  // Collect per-card notes
+  const notes = [];
+  document.querySelectorAll('.note-input').forEach(input => {
+    const val = input.value.trim();
+    if (val) {
+      const cardId = input.id.replace('note-', '');
+      const name = document.getElementById(`card-${cardId}`)?.querySelector('.card-name')?.textContent || cardId;
+      notes.push(`@${name}: ${val}`);
+    }
+  });
+
+  const parts = [...notes];
+  if (generalText) parts.push(generalText);
+  const text = parts.join('\n') || 'LGTM';
+
+  const settings = collectSettings();
+  try {
+    const res = await fetch('/feedback', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ feedback: text, settings }),
+    });
+    const d = await res.json();
+    if (d.ok) {
+      document.body.innerHTML = `<div style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:100vh;gap:16px;">
+        <div style="font-size:48px;">✅</div>
+        <div style="font-size:20px;color:var(--success);">${t('submitted')}</div>
+      </div>`;
+      setTimeout(() => { try { window.close(); } catch(e) {} }, 1500);
+    }
+  } catch (e) {
+    alert(t('submitFailed') + e.message);
+  }
+}
+
+// Initial render
+document.getElementById('feedbackText').placeholder = t('feedbackPlaceholder');
+render();
+</script>
+</body>
+</html>

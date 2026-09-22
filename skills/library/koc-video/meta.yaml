@@ -1,0 +1,32 @@
+display-name-zh: 达人种草视频
+version: 8.7.3
+tag-en: "Commercial Ad / Full Production"
+tag-cn: "商业广告 / 成片制作"
+complete-tags-en:
+  - "Commercial Ad / Full Production"
+complete-tags-cn:
+  - "商业广告 / 成片制作"
+summary-en: "Generate creator-native social videos including product seeding, talking heads, testimonials, POV, and virtual hosts"
+summary-cn: "生成达人原生风格的社交种草视频，覆盖口播、测评、证言、无脸视角与数字人栏目"
+desc-en: "For brands and creators making creator-native social content: product or service seeding, creator talking heads, expert shares, customer testimonials, faceless POV, hands-only demos, digital humans, and account series formats. Built for Douyin, Xiaohongshu, TikTok, and Reels content that drives immersion, engagement, follows, inquiries, or conversion. Neither a physical product nor a real person on camera is required. Not for brand films, TVC, serialized drama, news explainers, or videos without an audience action goal."
+desc-cn: "面向品牌与创作者的达人原生内容生产入口，生成产品或服务种草、创作者口播、专家分享、客户证言、无脸视角、手部实测、数字人与虚拟角色以及账号栏目等形态的社交视频。适用于抖音、小红书等平台中服务于代入、互动、关注、咨询或转化目标的内容，产品与真人出镜都不是前提条件。流程覆盖表达视角确认、创意路线选择、脚本与画面规划、视频生成与成片交付，不适用于品牌大片、连续剧情或没有受众行动目标的普通视频。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 将产品事实和目标受众转化为口播、测评、证言或无脸视角的原生社交种草视频。
+    best-for:
+      - KOC种草
+      - 产品测评
+      - 原生口播
+    how-to-use: 提供产品资料、受众、平台和可用素材，先确认内容路线与前三秒开场策略。
+    outputs: 产品事实表、脚本与镜头表、原生表达方案、视频素材及种草成片。
+  en-US:
+    summary: Turn product facts and audience context into native social seeding videos across talking-head, review, testimonial, or faceless formats.
+    best-for:
+      - KOC Seeding
+      - Product Reviews
+      - Native Talking-head
+    how-to-use: Provide product information, audience, platform, and available assets, then choose the format and opening strategy.
+    outputs: A product fact sheet, script and shot list, native delivery direction, video assets, and the finished seeding video.

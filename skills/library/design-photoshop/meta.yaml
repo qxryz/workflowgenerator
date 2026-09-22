@@ -1,0 +1,34 @@
+display-name-zh: PS 可编辑设计
+version: 0.1.0
+tag-en: Creative & Experimental / Post-production
+tag-cn: 创意实验 / 后期处理
+complete-tags-en:
+- Creative & Experimental / Creative Generation
+- Creative & Experimental / Post-production
+complete-tags-cn:
+- 创意实验 / 创作生成
+- 创意实验 / 后期处理
+summary-en: Turn briefs, photos, canvas assets and existing documents into editable layered designs, with retouching, compositing, previews and files for continued revision.
+summary-cn: 将简报、照片、画布素材和已有文档制作成可编辑分层设计，支持精修合成、预览交接与后续修改。
+desc-en: For designers who need editable Photoshop work, this workflow accepts briefs, photos, canvas assets, flattened references and existing PSD documents. It establishes the intended output and source version, checks application readiness, then plans layers before building layouts, retouching subjects or compositing products. Native text, shapes, masks, adjustment layers and Smart Objects preserve meaningful editing controls. It checks edges, lighting, typography, color and saved document structure before delivering a versioned PSD or PSB, image previews returned to the canvas and editing notes. Where file exchange is available, outputs retain their source correspondence for subsequent revisions. Actual document control is required; flattened references cannot reveal hidden original layers, and imported previews are not native editable canvas elements.
+desc-cn: 面向需要继续编辑作品的设计师，接收简报、照片、画布素材、扁平参考图或已有文档。先明确交付意图与源版本，检查应用就绪状态，再规划图层，完成排版、人物精修或商品合成；通过原生文字、形状、蒙版、调整图层及智能对象保留编辑能力。检查边缘、光影、字体、色彩和保存后的结构，交付分版本文档、回传画布的图片预览与修改说明。具备文件交接能力时保留来源关系供后续续改。需要真实文档控制能力，不承诺恢复扁平图中隐藏的原始图层，也不把导入预览视为画布原生元素。
+structured-info:
+  zh-CN:
+    summary: 将简报、照片与参考素材制作成结构清晰、可继续修改的分层Photoshop设计，并交付一致预览。
+    best-for:
+      - 版式设计
+      - 照片精修
+      - 商品合成
+    how-to-use: 提供简报、照片、画布素材或PSD文档，先确认交付用途、源版本与需要编辑的元素。
+    outputs: 可编辑PSD或PSB文档、链接素材、导出预览及修改说明。
+  en-US:
+    summary: Turn briefs, photos, and references into structured, editable layered Photoshop designs with matching previews.
+    best-for:
+      - Layout Design
+      - Photo Retouching
+      - Product Compositing
+    how-to-use: Provide a brief, photos, canvas assets, or a PSD document, then confirm the delivery purpose, source version, and editable elements.
+    outputs: An editable PSD or PSB document, linked assets, exported previews, and revision notes.
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official

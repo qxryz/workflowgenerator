@@ -1,0 +1,36 @@
+display-name-zh: "数字产品宣传片生成"
+version: "1.0.1"
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Full Production"
+complete-tags-cn:
+  - "商业广告 / 成片制作"
+summary-en: "Turns real product pages, frontend projects, screenshots, and supplied motion references into reviewable cinematic promos with accurate UI, purposeful camera movement, rhythmic editing, and sound design."
+summary-cn: "把真实产品页面、前端项目与用户动效参考转成可审片的电影感宣传片，准确呈现界面、运镜、节奏和声音。"
+desc-en: "This Skill helps product teams and creators turn a webpage, frontend project, screenshots, screen recordings, or a user-supplied motion reference into a cinematic product promo. It first collects the real product source, brand assets, target duration, aspect ratio, audience, and delivery constraints, then analyzes the interface's layout, typography, colors, copy, and interaction logic. Before generation, it presents a reviewable narrative, shot, camera, transition, text, rhythm, and sound plan while identifying any missing source material. After approval, it generates the confirmed shots with MiniMax-H3 by default, edits them with the approved audio, and checks continuity, text accuracy, beat alignment, and clean opening and end frames. User-supplied Ink Press examples or shot cards can guide the result, but no bundled template, code project, or audio pack is assumed. It is intended for product launch films, feature demos, and web or desktop product storytelling, not generic editing, talking-head cleanup, or unrelated motion art."
+desc-cn: "本 Skill 面向需要制作产品宣传片、发布短片或功能演示的产品团队与创作者，可将网页、前端项目、截图、录屏或用户提供的动效参考转化为电影感成片。流程先收集真实产品来源、品牌素材、目标时长、画幅、受众与交付约束，再分析界面的布局、字体、颜色、文案和交互逻辑；生成前提供可审阅的叙事、镜头、运镜、转场、屏幕文字、节奏和声音方案，并明确缺失素材。用户确认后默认使用 MiniMax-H3 生成已批准镜头，结合确认的音频完成剪辑，再检查连续性、文字准确性、节奏卡点和干净首尾帧。用户提供的 Ink Press 示例或镜头卡可作为风格参考，但不假设 Skill 内置模板、代码工程或音频包。适合 Web 与桌面产品叙事，不用于通用剪辑、口播清理或无关动效创作。"
+cover: "https://cdn.hailuoai.com/pre/2026-08-14-21/video/1786713897391782105-1786713897381.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-14-21/video/1786713897391782105-1786713897381.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/digital-product-promo-generator-01-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 把真实产品页面、前端项目或界面参考转成准确呈现功能、运镜、节奏和声音的产品宣传片。
+    best-for:
+      - 产品演示
+      - 界面动效
+      - 发布短片
+    how-to-use: 提供网页、截图、录屏或前端项目及品牌资料，先确认功能重点、受众和交付规格。
+    outputs: 产品事实表、镜头与运镜方案、界面资产、声音设计及宣传片成片。
+  en-US:
+    summary: Turn a real product page, frontend project, or interface reference into a product film that accurately presents features, camera movement, rhythm, and sound.
+    best-for:
+      - Product Demos
+      - UI Motion
+      - Launch Films
+    how-to-use: Provide a webpage, screenshots, recording, or frontend project with brand context, then confirm the feature focus, audience, and delivery spec.
+    outputs: A product fact sheet, shot and camera plan, interface assets, sound design, and finished promo.

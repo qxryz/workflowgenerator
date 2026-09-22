@@ -1,0 +1,38 @@
+display-name-zh: 丝印装饰插画风格短片
+version: 1.0.2
+tag-en: "Creative & Experimental"
+tag-cn: "创意实验"
+complete-tags-en:
+  - "Creative & Experimental / Creative Generation"
+  - "Commercial Ad / Creative Generation"
+complete-tags-cn:
+  - "创意实验 / 创作生成"
+  - "商业广告 / 创作生成"
+summary-en: "Turns a refined silkscreen-decorative illustration theme into a restrained TVC workflow that follows the user's language and adds clean SFX assembly plus an optional same-duration instrumental BGM version."
+summary-cn: "将丝印装饰插画主题转成同步音效短片，并可追加同等时长的器乐BGM版，适合奢华叙事广告。"
+desc-en: "Creates a refined silkscreen-decorative illustration short with restrained TVC pacing. It confirms the final video spec, analyzes references, designs key elements and paired wide/close shots, generates images and videos, adds synchronized natural sound effects, assembles a clean SFX cut, and optionally mixes a same-duration instrumental BGM version. MiniMax-H3 is the default; a user-selected other model is checked before use."
+desc-cn: "本 Skill 面向想制作奢侈品创意广告片质感插画短视频的创作者，强调精细均匀线稿、高密度装饰叙事、冷暖宝石色和平面丝印质感。流程会先确认 Final Video Spec，分析参考图，设计 key element 与固定的全景建立镜头、局部近景跟随镜头，生成元素图和逐镜视频，添加与动作同步的自然音效并完成硬切组接；用户需要时，再生成同等时长的器乐 BGM 版。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败后按原因重试并切换可用模型。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/8f3ee671-c950-440a-8ea2-e23fc61a3af8.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/8f3ee671-c950-440a-8ea2-e23fc61a3af8.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/silkscreen-decorative-illustration-short-01-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 将丝印装饰插画主题编排成画面精致、音效同步的奢华叙事短片，并可追加器乐版本。
+    best-for:
+      - 丝印插画
+      - 奢华广告
+      - 音效同步
+    how-to-use: 提供主题、文案和参考图，先确认最终规格、装饰风格、叙事节奏与音频版本。
+    outputs: 主题简报、关键元素、分镜、画面提示词、同步音效与短片成片。
+  en-US:
+    summary: Turn a silkscreen decorative-illustration theme into a refined narrative short with synchronized sound effects and an optional instrumental version.
+    best-for:
+      - Silkscreen Illustration
+      - Luxury Ads
+      - Sound Sync
+    how-to-use: Provide the theme, copy, and references, then confirm final specs, decorative style, narrative rhythm, and audio version.
+    outputs: A theme brief, key elements, storyboard, visual prompts, synchronized effects, and the finished short.

@@ -1,0 +1,41 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "WorkflowGenerator",
+  "version": "0.1.9",
+  "identifier": "com.qxryz.workflowgenerator",
+  "build": {
+    "beforeBuildCommand": "node scripts/prepare-agent-runtime.mjs && npm run build",
+    "beforeDevCommand": "npm run build",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [],
+    "security": {
+      "capabilities": ["desktop-updater"]
+    }
+  },
+  "bundle": {
+    "active": true,
+    "createUpdaterArtifacts": true,
+    "targets": [
+      "app"
+    ],
+    "resources": {
+      "../dist/": "web/",
+      "runtime/": "runtime/"
+    },
+    "icon": [
+      "icons/icon.icns",
+      "icons/icon.png"
+    ],
+    "macOS": {
+      "minimumSystemVersion": "12.0"
+    }
+  },
+  "plugins": {
+    "updater": {
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEZCOTI3QTEwNjFFMUU1MUEKUldRYTVlRmhFSHFTKzNWNzlvVDZ2VU4ydlJIa1owZXYwUmZUMy9Rb0U5dzRxanBwaTNrd0dJK3QK",
+      "endpoints": ["https://github.com/qxryz/workflowgenerator/releases/latest/download/latest.json"]
+    }
+  }
+}

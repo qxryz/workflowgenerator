@@ -1,0 +1,42 @@
+display-name-zh: 线条图解科普视频生成
+version: 1.0.4
+tag-en: "Education"
+tag-cn: "教育"
+complete-tags-en:
+  - "Education / Intent Brainstorming"
+  - "Education / Planning"
+  - "Education / Creative Generation"
+  - "Education / Post-production"
+complete-tags-cn:
+  - "教育 / 意图脑爆"
+  - "教育 / 计划制定"
+  - "教育 / 创作生成"
+  - "教育 / 后期处理"
+summary-en: "Generate line-doodle infographic explainer video plans and production assets from knowledge topics or lesson materials."
+summary-cn: "根据知识主题或教材内容，生成线条小人图解科普视频方案与成片素材，适用于知识讲解短视频。"
+desc-en: "Turns science, humanities, history, or lesson material into a line-doodle infographic explainer. The workflow clarifies the brief, extracts the core idea, writes narration, designs diagrams and a storyboard, plans assets, generates media, assembles the video, and reviews quality at approval gates. Best for educational knowledge shorts; not for live-action realism, complex narrative films, or classroom exercises."
+desc-cn: "面向需要将知识内容制作成线条小人图解科普视频的用户，适用于科学、人文、历史、社会科学、教材片段或课程材料的视频化表达。Skill 会先梳理需求与视频方案，再提炼核心观点、撰写口播脚本、设计图解系统和分镜，随后规划素材、生成媒体、完成合成与质检，并在主要节点用选项卡确认。适合知识讲解和教育短视频，不适合真人写实、复杂剧情或课堂练习题生成，强调信息清晰与节奏易懂。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/2990c6db-3f34-468d-a03c-47dbb9efd89d.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/2990c6db-3f34-468d-a03c-47dbb9efd89d.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/line-doodle-explainer-generator-01-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将知识主题或教材转化为线条小人讲解方案，按确认节点完成可理解、可观看的科普视频。
+    best-for:
+      - 知识讲解
+      - 线条动画
+      - 科普短视频
+    how-to-use: 提供主题、教材或讲解稿，先确认学习目标、受众、画幅与分步制作范围。
+    outputs: 讲解结构、视觉隐喻、分镜方案、线条动画素材、旁白字幕与科普视频。
+  en-US:
+    summary: Turn a knowledge topic or teaching material into an understandable line-doodle explainer through confirmed production stages.
+    best-for:
+      - Knowledge Explainers
+      - Line Animation
+      - Science Shorts
+    how-to-use: Provide the topic, teaching material, or narration, then confirm learning goals, audience, framing, and production scope.
+    outputs: An explanation structure, visual metaphors, storyboard, line-animation assets, narration and subtitles, and the explainer video.

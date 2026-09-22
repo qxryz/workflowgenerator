@@ -1,0 +1,55 @@
+name: Validate WG Skills Registry
+
+on:
+  push:
+    branches: ["main"]
+    paths:
+      - "skills/library/**"
+      - "skills/registry/**"
+  workflow_dispatch:
+
+concurrency:
+  group: publish-skills-registry
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: 22
+
+      - name: Install registry dependencies
+        working-directory: skills/registry
+        run: npm ci --no-audit --no-fund
+
+      - name: Build registry
+        working-directory: skills/registry
+        run: npm run build
+
+      - name: Validate registry
+        working-directory: skills/registry
+        run: |
+          node -e '
+          const fs = require("node:fs");
+          const path = require("node:path");
+          const fail = (message) => { console.error(message); process.exit(1); };
+          const index = JSON.parse(fs.readFileSync("dist/official-skills.json", "utf8"));
+          if (index.schemaVersion !== 2) fail("schemaVersion 必须是 2");
+          if (!Array.isArray(index.skills) || index.skills.length === 0) fail("技能列表为空");
+          for (const skill of index.skills) {
+            const manifest = Array.isArray(skill.files) ? skill : JSON.parse(fs.readFileSync(path.join("dist", "skills", skill.id, "skill.json"), "utf8"));
+            if (!Array.isArray(manifest.files) || manifest.files.length === 0) fail(skill.id + " 的 files 为空");
+            if (!manifest.files.some((file) => file.path === skill.entry)) fail(skill.id + " 的 entry " + skill.entry + " 不在 files 中");
+          }
+          console.log("registry ok: " + index.skills.length + " skills");
+          '
+
+      - name: Keep a downloadable registry artifact
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: wg-skills-registry
+          path: skills/registry/dist

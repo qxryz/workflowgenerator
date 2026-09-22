@@ -1,0 +1,33 @@
+display-name-zh: 音色克隆
+version: 0.4.12
+tag-en: "Audio Content / Audio Generation"
+tag-cn: "音频内容 / 音频生成"
+complete-tags-en:
+  - "Sound & Music / Creative Generation"
+complete-tags-cn:
+  - "音频音乐 / 创作生成"
+summary-en: "Create an authorized reusable voice from a reference recording with consent and quality checks."
+summary-cn: "根据已获授权的参考录音创建可复用音色，并完成合规和质量检查。"
+desc-en: "Creates a reusable cloned voice from an authorized recording. The workflow confirms consent, reviews and optionally cleans the source, matches language and demo text, checks the result, and supports safe reuse."
+desc-cn: "根据已获授权的参考录音创建可复用克隆音色。流程包含授权确认、源录音检查与可选清理、语种和试听文本匹配、结果验收及安全复用，不用于未经授权的模仿。"
+cover: ""
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 在确认说话人授权和源录音质量后创建可复用音色，并完成试听、验收与安全使用说明。
+    best-for:
+      - 音色克隆
+      - 授权音频
+      - 声音验收
+    how-to-use: 提供已获授权的参考录音，先确认授权范围、语种、源质量与预期使用场景。
+    outputs: 授权记录、录音检查、克隆音色、试听样本、验收结果与复用说明。
+  en-US:
+    summary: Create a reusable voice from an authorized recording while checking consent, source quality, preview results, and safe downstream use.
+    best-for:
+      - Voice Cloning
+      - Authorized Audio
+      - Voice QA
+    how-to-use: Provide an authorized reference recording, then confirm consent scope, language, source quality, and intended use.
+    outputs: Consent record, recording check, cloned voice, preview sample, acceptance result, and reuse guidance.

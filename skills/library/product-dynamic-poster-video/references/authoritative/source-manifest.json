@@ -1,0 +1,70 @@
+{
+  "manifest_version": 1,
+  "policy": "Authoritative prompt and preset assets are immutable at runtime. Any hash mismatch is fatal.",
+  "files": {
+    "prompts/poster-system-prompt.txt": {
+      "doc": "CqZLdOTANo88UzxkilCcghXfn0d",
+      "revision": 531,
+      "heading": "doxcnjs9AjEXdtljDa2cfmEOyhb",
+      "url": "https://bytedance.larkoffice.com/docx/CqZLdOTANo88UzxkilCcghXfn0d?from=from_copylink",
+      "sha256": "ea061685d23f29eb2a255ec12989ce032786ee67950e2a5dfa58cd037aba59b0",
+      "bytes": 27464,
+      "lines": 687,
+      "extraction": "first fenced SQL code block in the named section; UTF-8; one terminal LF"
+    },
+    "prompts/video-system-prompt.txt": {
+      "doc": "CqZLdOTANo88UzxkilCcghXfn0d",
+      "revision": 531,
+      "heading": "doxcn94Hz7sVznb0mILK2UGdVPd",
+      "url": "https://bytedance.larkoffice.com/docx/CqZLdOTANo88UzxkilCcghXfn0d?from=from_copylink",
+      "sha256": "b4342a4876503fa51901f696a6c084f1eb4cb787107428eaf86cd5e549c43cfb",
+      "bytes": 8652,
+      "lines": 119,
+      "extraction": "first fenced SQL code block in the named section; UTF-8; one terminal LF"
+    },
+    "presets/edge-light.json": {
+      "doc": "QRaLdoIXfoBnECxdHhyc13b3ndg",
+      "revision": 1819,
+      "heading": "V2jtdWB6roLp7ZxRorvcU4YGnXc",
+      "url": "https://bytedance.larkoffice.com/wiki/IPLMwDT5oiRWQlky31ccR9lbncg?from=from_copylink",
+      "source_block_index": 1,
+      "sha256": "e37a1027186d227aa5e20d14a87976a179e96ff0afbf0765e2c412c9257fed48",
+      "bytes": 30865,
+      "lines": 96,
+      "extraction": "verbatim decoded JSON code block from the first tool-preset table; UTF-8; one terminal LF"
+    },
+    "presets/side-key-light.json": {
+      "doc": "QRaLdoIXfoBnECxdHhyc13b3ndg",
+      "revision": 1819,
+      "heading": "V2jtdWB6roLp7ZxRorvcU4YGnXc",
+      "url": "https://bytedance.larkoffice.com/wiki/IPLMwDT5oiRWQlky31ccR9lbncg?from=from_copylink",
+      "source_block_index": 2,
+      "sha256": "47f8498c4a1f48ab3209fee835d1457337761afc99a8da148bca2448357ef3fa",
+      "bytes": 28341,
+      "lines": 95,
+      "extraction": "verbatim decoded JSON code block from the first tool-preset table; UTF-8; one terminal LF"
+    },
+    "presets/overhead-key-light.json": {
+      "doc": "QRaLdoIXfoBnECxdHhyc13b3ndg",
+      "revision": 1819,
+      "heading": "V2jtdWB6roLp7ZxRorvcU4YGnXc",
+      "url": "https://bytedance.larkoffice.com/wiki/IPLMwDT5oiRWQlky31ccR9lbncg?from=from_copylink",
+      "source_block_index": 3,
+      "sha256": "59a9997c32a96ac1d3600f44f1876ecda240e56aa2393df79cef1ff108ae020e",
+      "bytes": 29024,
+      "lines": 87,
+      "extraction": "verbatim decoded JSON code block from the first tool-preset table; UTF-8; one terminal LF"
+    },
+    "presets/low-angle-key-light.json": {
+      "doc": "QRaLdoIXfoBnECxdHhyc13b3ndg",
+      "revision": 1819,
+      "heading": "V2jtdWB6roLp7ZxRorvcU4YGnXc",
+      "url": "https://bytedance.larkoffice.com/wiki/IPLMwDT5oiRWQlky31ccR9lbncg?from=from_copylink",
+      "source_block_index": 4,
+      "sha256": "3fa40fdeab813c1b45cf6d144ec157b60e6dd294d2c75750559c06ea2a2ef1b2",
+      "bytes": 26679,
+      "lines": 86,
+      "extraction": "verbatim decoded JSON code block from the first tool-preset table; UTF-8; one terminal LF"
+    }
+  }
+}

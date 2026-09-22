@@ -1,0 +1,57 @@
+.next/
+out/
+node_modules/
+.env*
+!.env.example
+data/
+*.log
+*.tsbuildinfo
+.DS_Store
+.idea
+
+# 本地文件，不随仓库分发。这两个是作者本机的工作产物：design-qa.md 记录的是
+# 本机渲染路径与截图位置，.agents/ 是本机 AI agent 的技能配置（第三方内容，
+# 应用代码并不引用）。加到忽略里，避免以后又被 git add 收进来。
+/design-qa.md
+/.agents/
+/.claude/
+
+# 作者本地的开发交接笔记（含个人计划与仓库历史细节），只在本地保留。
+/HANDOVER.md
+/HANDOVER-*.md
+/CHANGELOG.md
+/docs/
+/web/src/pages/model-adaptations/
+/development-notes/
+
+# 构建产物。这里用 `**/` 而不是写死某一条路径：Rust crate 在 web/server/ 下，
+# 而 web/.gitignore 里写的是 `src-tauri/target/`，换目录后规则就失效了，约 2GB
+# 构建产物因此进了 git 历史，最后不得不重写仓库。新增构建目录时应当自动覆盖到。
+**/target
+**/dist
+**/build
+
+plugins/canvas/*/dist
+plugins/canvas/*/node_modules
+web/public/plugins
+
+# Local visual QA output
+/artifacts/
+/web/.playwright-cli/
+/web/artifacts/
+/web/output/
+/web/-background
+
+# Local agent instructions and development snapshots
+AGENTS.md
+/snapshots/
+*.pem
+*.p12
+*.key
+
+# Bundled runtime prepared locally during packaging
+/web/src-tauri/runtime/
+
+# Isolated development data
+.dev-data/
+.zodiac-dev/

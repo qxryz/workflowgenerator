@@ -1,0 +1,7 @@
+shot_id,start_tc,end_tc,duration_s,music_phrase,beat_or_cue,shot_function,visual_verb,subject,composition,lens_mm,camera_move,primary_motion,secondary_motion,texture_motion,entry_vector,exit_vector,base_color,accent_color,luma_plan,light_direction,transition_basis,text_or_ui,sound_cue,production_method,risk,acceptance_signal
+S01,00:00.000,00:02.000,2.0,Hook,Downbeat,Hook,Reveal,,,,,,,,,,,,,,,,,,,,
+S02,00:02.000,00:05.000,3.0,Establish,Phrase A,Establish world,Traverse,,,,,,,,,,,,,,,,,,,,
+S03,00:05.000,00:07.000,2.0,Develop,Beat 1,Explain feature,Assemble,,,,,,,,,,,,,,,,,,,,
+S04,00:07.000,00:10.000,3.0,Develop,Phrase end,Prove benefit,Transform,,,,,,,,,,,,,,,,,,,,
+S05,00:10.000,00:13.000,3.0,Climax,Drop,Hero reveal,Settle,,,,,,,,,,,,,,,,,,,,
+S06,00:13.000,00:15.000,2.0,End tag,Tail,Brand landing,Hold,,,,,,,,,,,,,,,,,,,,

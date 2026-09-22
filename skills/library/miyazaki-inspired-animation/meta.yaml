@@ -1,0 +1,28 @@
+display-name-zh: 宫崎骏风格原创动画短片
+version: 1.0.0
+tag-en: Animation / Full Production
+tag-cn: 动画 / 成片制作
+complete-tags-en:
+  - Animation / Full Production
+complete-tags-cn:
+  - 动画 / 成片制作
+summary-en: Develop an original hand-drawn animated short from a story or references through approved visual anchors, shot planning, generation, assembly, and final quality review.
+summary-cn: 从故事或参考素材出发，建立原创视觉资产和镜头计划，完成分镜生成、合成与质量复核，交付温暖手绘动画短片。
+desc-en: This Skill helps creators produce an original warm hand-drawn animated short from an idea, script, source document, or reference set. It confirms the story direction, framing, duration, sound, and originality boundary; builds reusable character, environment, prop, and mechanical anchors; prepares an executable shot table and approved text storyboard; generates reference-bound clips; assembles accepted shots; and reviews identity, motion, physics, audio, and visual artifacts. The final result uses watercolor or gouache settings, cel-like depth, natural movement, everyday tenderness, travel, growth, gentle fantasy, or poetic machinery as appropriate. It creates an original reinterpretation and does not copy recognizable characters, costumes, vehicles, locations, logos, signs, or iconic compositions from existing works.
+desc-cn: 面向希望制作温暖手绘动画短片的创作者，接收创意、剧本、源文档或参考素材。流程先确认故事方向、画幅、时长、声音与原创边界，再建立可复用的角色、场景、道具和机械资产，编写可执行镜头表与文本故事板；确认后按参考绑定生成镜头，合成已接受片段，并复核身份、动作、物理、音频和画面瑕疵。成片可采用水彩或水粉环境、赛璐珞层次、自然微运动、日常温情、旅途成长、轻奇幻或机械诗意。流程只做原创转化，不复刻现有作品的可识别角色、服装、载具、地点、标志、文字或经典构图。
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 用温暖手绘线条、水彩环境与自然动作呈现原创故事，贯通视觉资产、镜头制作与成片验收。
+    best-for: [手绘短片, 日常温情, 原创奇幻]
+    how-to-use: 提供故事创意或参考素材，确认叙事方向、声音、画幅与片长。
+    outputs: 原创角色与场景资产、分镜计划及完整手绘动画短片。
+  en-US:
+    summary: Tell an original story with warm hand-drawn lines, watercolor environments, and natural motion through approved assets, shot production, and final review.
+    best-for: [Hand-drawn Shorts, Everyday Tenderness, Original Fantasy]
+    how-to-use: Provide a story idea or references, then confirm narrative direction, sound, framing, and runtime.
+    outputs: Original character and environment assets, shot plans, and a complete hand-drawn animated short.
+cover: https://cdn.hailuoai.com/hailuo-video-web/public_assets/86ff64fd-7827-4f0a-afc2-c5e1d3b601d1.mp4
+cover-en: https://cdn.hailuoai.com/hailuo-video-web/public_assets/86ff64fd-7827-4f0a-afc2-c5e1d3b601d1.mp4

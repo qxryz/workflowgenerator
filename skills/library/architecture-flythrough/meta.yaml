@@ -1,0 +1,28 @@
+display-name-zh: 建筑空间飞行
+version: 1.0.0
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+summary-en: "Researches architectural references, builds editable scenes, designs FPV camera moves, and produces 2560×1440 previews and consistent cinematic flythrough videos using an embedded H3 prompt framework."
+summary-cn: "主动搜集建筑与城市图片参考，制作可编辑三维场景、高清预演和一致风格飞行视频，支持地标展示与空间漫游。"
+desc-en: "Designed for buildings, landmarks, and city scenes, this skill turns requests, photographs, plans, and concept images into continuous flythrough videos. It searches for and examines visual references, asking before generating supplementary designs when essential evidence is missing. It builds editable scenes and provides native 2560×1440 previews for model and camera approval. Three or four styled images cover the beginning, intermediate states, and ending. After consistency checks and user approval, an embedded H3 prompt framework combines the preview and images in all-purpose reference mode. Deliverables include the editable project, preview, style images, production records, and final film. It is not intended for complex character acting or crowd choreography."
+desc-cn: "面向建筑、地标与城市场景，将用户需求、照片、平面图和概念图转化为连续飞行视频。主动搜集并查看参考图片，关键资料不足时询问是否生成补充设定，再建立可编辑三维场景。通过原生2560×1440预演确认模型与运镜，生成覆盖起点、中间状态和终点的三至四张风格图。整组一致性检查与用户确认后，使用内置提示词框架，以全能参考模式生成视频。交付工程、预演、风格图、记录及成片，不适用于复杂角色表演或群演调度。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: https://cdn.hailuoai.com/prod/2026-09-17-01/video/1789580017747785981-1789580017673.mp4
+cover-en: https://cdn.hailuoai.com/prod/2026-09-17-01/video/1789580017747785981-1789580017673.mp4
+structured-info:
+  zh-CN:
+    summary: 将建筑和城市参考重建为可编辑空间，通过预演锁定飞行路径并生成风格连贯的建筑展示短片。
+    best-for: [建筑展示, 地标漫游, 飞行运镜]
+    how-to-use: 提供建筑名称、照片或平面图，先确认模型细节与飞行运镜预演。
+    outputs: 可编辑三维工程、高清预演、风格关键帧及飞行成片。
+  en-US:
+    summary: Reconstruct architecture and city references as editable spaces, approve a flight path through previs, and create a stylistically coherent flythrough.
+    best-for: [Architectural Showcases, Landmark Tours, Flying Cameras]
+    how-to-use: Provide a building name, photographs, or plans, then approve model details and the camera preview.
+    outputs: Editable 3D project, high-resolution previs, style keyframes, and final flythrough video.

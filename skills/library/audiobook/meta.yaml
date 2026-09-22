@@ -1,0 +1,33 @@
+display-name-zh: 有声书
+version: 0.3.17
+tag-en: "Audio Content / Audio Generation"
+tag-cn: "音频内容 / 音频生成"
+complete-tags-en:
+  - "Sound & Music / Creative Generation"
+complete-tags-cn:
+  - "音频音乐 / 创作生成"
+summary-en: "Turn books into multi-voice audiobooks"
+summary-cn: "把书籍转化为多角色有声书"
+desc-en: "For converting books into multi-character narrated audio with professional-grade production quality. Takes book text typically chapter by chapter as input material. Produces audiobook audio with automatic dialogue and narration detection, per-character voice assignment for distinct character voices, smart pause insertion at natural break points and chapter-by-chapter generation. Supports both fiction and non-fiction genres."
+desc-cn: "适用于将文本书籍转换为多角色配音有声音频的场景,产出专业级制作品质的有声书。输入书籍文本(通常分章节处理),输出有声书音频,自动识别对话与旁白段落、为每个角色分配独立且有辨识度的音色、在自然停顿点智能添加间隔、按章节顺序逐步生成。同时支持虚构类与非虚构类书籍体裁。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/c9d8e5e2-1370-40b4-87da-dde20f536cb9.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 将书籍文本整理为角色可辨、节奏自然的多角色有声书，并按章节组织连续音频交付。
+    best-for:
+      - 有声书制作
+      - 多角色朗读
+      - 章节音频
+    how-to-use: 提供书籍文本和章节范围，先确认体裁、角色关系与朗读风格。
+    outputs: 角色音色表、朗读脚本、章节音频与连续性检查结果。
+  en-US:
+    summary: Turn book text into a natural, character-distinct multi-voice audiobook organized for continuous chapter delivery.
+    best-for:
+      - Audiobook Production
+      - Multi-voice Reading
+      - Chapter Audio
+    how-to-use: Provide the book text and chapter scope, then confirm genre, character relationships, and reading direction.
+    outputs: Voice assignments, narration scripts, chapter audio, and continuity checks.

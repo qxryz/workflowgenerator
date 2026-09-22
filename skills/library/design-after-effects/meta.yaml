@@ -1,0 +1,41 @@
+display-name-zh: AE 可编辑动效
+version: 0.1.0
+tag-en: Creative & Experimental / Post-production
+tag-cn: 创意实验 / 后期处理
+complete-tags-en:
+- Creative & Experimental / Creative Generation
+- Creative & Experimental / Post-production
+complete-tags-cn:
+- 创意实验 / 创作生成
+- 创意实验 / 后期处理
+summary-en: Turn designs, video references and existing projects into editable After Effects motion graphics, with
+  previews and project handoff for continued revision.
+summary-cn: 将设计素材、视频参考或已有工程制作成可编辑动效，交付预览与工程并支持画布交接和持续修改。
+desc-en: For designers who need motion graphics they can continue editing in After Effects, this workflow accepts
+  design assets, selected canvas material, video references or existing AEP projects. It first establishes intent,
+  source versions and editing boundaries, then checks application readiness and builds a representative segment
+  using native text, shapes, masks, keyframes and effects. It reviews appearance, timing and project dependencies
+  before delivering a versioned AEP, rendered canvas previews, and practical editing notes. Where file exchange
+  is available, outputs remain associated with source assets for later revisions. It requires accessible After Effects
+  control and does not promise original project recovery from flattened video or conversion into native canvas nodes.
+desc-cn: 面向需要继续修改工程的设计师，将设计素材、画布资产、视频参考或已有工程制作成可编辑的动效。先确认创作意图、源版本与修改边界，再检查应用和素材是否就绪，使用原生文字、形状、遮罩、关键帧与效果建立代表片段，随后验证画面、运动和工程依赖。最终交付分版本工程、回传画布的渲染预览及修改说明；具备文件交接能力时关联画布来源，支持后续局部续改。需要可用的应用控制能力，不承诺从扁平视频恢复原作者工程，也不承诺转换为画布原生节点。
+structured-info:
+  zh-CN:
+    summary: 将设计素材与视频参考制作成结构清晰、可继续修改的After Effects动效工程，并交付渲染预览。
+    best-for:
+      - 动效设计
+      - 片头包装
+      - 工程续改
+    how-to-use: 提供创作简报、设计素材、视频参考或AEP工程，先确认目标动效与修改边界。
+    outputs: 分版本AEP工程、依赖素材、渲染预览及修改说明。
+  en-US:
+    summary: Turn design assets and video references into structured, editable After Effects motion projects with rendered previews.
+    best-for:
+      - Motion Design
+      - Title Sequences
+      - Project Revision
+    how-to-use: Provide a brief, design assets, video references, or an AEP project, then confirm the target motion and editing boundaries.
+    outputs: A versioned AEP project, dependencies, rendered previews, and revision notes.
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official

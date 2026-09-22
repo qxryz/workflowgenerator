@@ -1,0 +1,36 @@
+display-name-zh: 未来科幻质感影视生成器
+version: 1.0.1
+tag-en: "Professional Film"
+tag-cn: "专业影视"
+complete-tags-en:
+  - "Professional Film / Creative Generation"
+complete-tags-cn:
+  - "专业影视 / 创作生成"
+summary-en: "Turns a confirmed future-sci-fi brief into continuity-safe characters, scenes, storyboards, timed video segments, and an assembled realistic short film."
+summary-cn: "将确认的未来科幻故事转为连续的人物场景资产、分镜、分段视频和写实短片成片。"
+desc-en: "For creators who need a realistic live-action future science-fiction short from a story brief. Provide a synopsis, optional character or scene references, duration, paragraph count, aspect ratio, language, and style preference. The workflow locks the visual direction, audits references, builds complete character, species, prop, and scene assets, binds them to a continuity storyboard, generates timed video segments, and assembles the approved film. MiniMax-H3 is the default video model; if the user explicitly selects another model, check its capabilities first, retry a failed segment once for the diagnosed cause, then switch to another available model. Best for one 16:9 narrative short; not for anime or game PVs, cyberpunk-first pieces, music videos, title sequences, or simple image-to-video motion."
+desc-cn: "面向需要制作超写实真人未来科幻短片的创作者。用户提供故事梗概、人物或场景参考图、时长、段落数、画幅和风格偏好。流程先锁定视觉方向与规格，再建立人物、物种、道具和场景资产，制作连续性分镜，分段生成并按时间轴合成成片。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败按原因重试一次后切换可用模型。适合16:9叙事科幻短片，不适合二次元、赛博朋克主导、音乐视频、片头标题序列或简单图生视频。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/47f97192-a363-4eba-be9a-331062e6450d.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/47f97192-a363-4eba-be9a-331062e6450d.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/future-sci-fi-cinematic-generator-01-20260908-1788867276244.mp4"
+structured-info:
+  zh-CN:
+    summary: 将未来科幻故事编排为人物、物种、道具和场景资产，再生成连续的写实影视短片。
+    best-for:
+      - 未来科幻
+      - 写实短片
+      - 世界观资产
+    how-to-use: 提供科幻故事、角色设定或参考素材，先锁定创意简报、视觉质感与叙事范围。
+    outputs: 人物与场景锚点、道具资产、分镜、视频片段、音画合成与科幻短片。
+  en-US:
+    summary: Turn a future science-fiction story into character, species, prop, and scene assets before producing a continuous live-action-style short.
+    best-for:
+      - Future Sci-fi
+      - Live-action Shorts
+      - World-building Assets
+    how-to-use: Provide the sci-fi story, character direction, or references, then lock the brief, visual realism, and narrative scope.
+    outputs: Character and scene anchors, prop assets, storyboard, video segments, audio-visual assembly, and the finished short.

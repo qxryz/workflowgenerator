@@ -1,0 +1,42 @@
+display-name-zh: 极简产品广告生成器
+version: 1.0.4
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Planning"
+  - "Commercial Ad / Creative Generation"
+  - "E-Commerce / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 计划制定"
+  - "商业广告 / 创作生成"
+  - "电商 / 创作生成"
+summary-en: "Turn product images and ad requirements into minimalist product ad shorts"
+summary-cn: "基于产品图片和广告需求，完成卖点提炼、英文文案与节拍分镜设计，输出极简产品广告短片，适用于电商推广与新品发布。"
+desc-en: "Upload a product image and create a polished Apple-style ad short for e-commerce products, small-brand launches, food, toys, gadgets, accessories, and other physical goods. The Skill helps confirm format, extract selling points, write concise English copy, create product anchors, plan beat-synced typography, and generate a clean product film with premium camera language."
+desc-cn: "面向电商卖家、小品牌主理人和独立创作者，用于把食品、潮玩、数码配件等实体产品图片制作成极简高级广告短片。用户提供产品图、款式信息和广告需求后，Skill 会确认时长、画幅与文案方式，提炼卖点并生成简洁英文广告语，制作三张独立产品锚定图，规划文字卡点和精确节拍分镜，再默认使用 H3 生成具有留白、细节特写与高级镜头语言的产品片；如果原生音乐不理想，可按需替换独立配乐。最终交付适用于电商推广和新品发布的成片，不用于口播广告、普通剪辑或复杂屏幕演示。"
+structured-info:
+  zh-CN:
+    summary: 将产品图片与广告需求转化为保持产品身份的极简高级广告短片，并输出成片。
+    best-for:
+      - 电商产品
+      - 新品发布
+      - 极简产品广告
+    how-to-use: 上传产品图，选择款式、时长、画幅、模板和文案方式。
+    outputs: 卖点文案、产品锚定图、节拍分镜及广告成片。
+  en-US:
+    summary: Turn product images and advertising requirements into a premium minimalist commercial that preserves product identity.
+    best-for:
+      - E-commerce Products
+      - Product Launches
+      - Minimalist Ads
+    how-to-use: Upload product images, then choose the look, duration, framing, template, and copy approach.
+    outputs: Selling-point copy, product anchor images, beat-synced storyboard, and finished ad.
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620876704323439-1786620876698.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620876704323439-1786620876698.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/minimalist-product-ad-generator-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/minimalist-product-ad-generator-02-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/minimalist-product-ad-generator-03-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured

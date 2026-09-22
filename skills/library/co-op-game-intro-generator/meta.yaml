@@ -1,0 +1,36 @@
+display-name-zh: 双人游戏开场视频生成器
+version: 0.2.2
+tag-en: Animation
+tag-cn: 动画
+complete-tags-en:
+  - Animation / Creative Generation
+complete-tags-cn:
+  - 动画 / 创作生成
+summary-en: Create a reusable co-op game menu intro from player names, visual style, character references, and one approved confirmation image.
+summary-cn: 根据玩家名称、视觉风格和角色参考图，经首图确认后生成双人游戏菜单开场视频。
+desc-en: This Skill is for creators who want a repeatable, platform-ready workflow for two-player co-op game menu intros and opening animations. The user provides PLAYER 1 and PLAYER 2 names, a game title, a desired visual style, and optional character reference images. The workflow first maps identity cues without inheriting unwanted source-image realism, fills a fixed confirmation-image template, generates one 16:9 menu approval image, waits for user approval, then refills an H3 video prompt from the approved image, player data, UI copy, timing events, motion directions, and negative constraints. The final deliverable is a co-op game intro video featuring two characters, player cards, menu interaction, equipment configuration, loading, and world-entry motion. It is best for game concept videos, social media openings, and character-led menu animation, not for playable game development, complex multi-page UI systems, exact commercial logo replication, or generic character-free title sequences.
+desc-cn: 本 Skill 面向需要反复制作双人合作游戏主菜单或开场动画的创作者，并已整理为平台可发布结构。用户提供 PLAYER 1 与 PLAYER 2 名称、游戏标题、目标视觉风格，并可上传角色参考图。流程会先提取身份锚点但避免继承原图写实质感，再填写固定确认首图模板，生成一张 16:9 菜单确认图；用户批准后，基于确认图、玩家信息、UI 文案、时间线事件、运动方向和负面约束回填 H3 视频提示词。最终输出包含双人角色、玩家信息卡、菜单交互、装备配置、加载和进入游戏世界的开场视频。适用于游戏概念展示、社交内容和角色化菜单动效，不处理可玩游戏开发、复杂多页面 UI、精确商业 Logo 复刻或无角色通用片头。
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620867045038554-1786620867039.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620867045038554-1786620867039.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/co-op-game-intro-generator-01-20260908-1788854461283.mp4"
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 根据双人玩家信息、角色参考和视觉风格制作先确认首图、再进入游戏世界的合作游戏开场动画。
+    best-for:
+      - 双人游戏
+      - 菜单开场
+      - 角色联动
+    how-to-use: 提供两位玩家名称、游戏标题、风格和可选角色图，先确认菜单首图中的身份与布局。
+    outputs: 菜单确认图、玩家信息卡、时间线提示词及双人开场视频。
+  en-US:
+    summary: Create a co-op game opening that uses player data, character references, and a confirmed menu image before entering the game world.
+    best-for:
+      - Co-op Games
+      - Menu Openings
+      - Character Pairing
+    how-to-use: Provide two player names, the game title, style, and optional character art, then approve the identity and layout of the menu anchor.
+    outputs: A menu anchor image, player cards, timeline prompts, and a two-player opening video.

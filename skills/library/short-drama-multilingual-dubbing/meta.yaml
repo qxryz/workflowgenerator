@@ -1,0 +1,35 @@
+display-name-zh: 短剧多语言出海配音
+version: 1.0.1
+tag-en: "Sound & Music"
+tag-cn: "音频音乐"
+complete-tags-en:
+  - "Sound & Music / Post-production"
+  - "Creative & Experimental / Post-production"
+complete-tags-cn:
+  - "音频音乐 / 后期处理"
+  - "创意实验 / 后期处理"
+summary-en: "Re-localize video dialogue into natural dubbing in any target language."
+summary-cn: "分离人声与背景音并逐句复刻音色和节奏，输出目标语言配音视频与字幕文件。"
+desc-en: "Re-localizes uploaded videos into dubbed versions in the user’s chosen target language. It extracts audio, separates voice and background stems, recognizes dialogue, and creates a dubbing table. It recommends clean voice tracks and subtitle files as sources for dialogue text and timing; otherwise it confirms extraction and target language first. After approval, it prioritizes line-level audio replication to preserve timbre, emotion, rhythm, pauses, intensity, and duration, then outputs the localized dubbed video and subtitle file."
+desc-cn: "将用户上传视频重制为目标语言的本土化配音视频：先提取音轨并分离人声与背景声，识别对白并生成配音表；建议提供干净人声轨和字幕文件作为文字与时间来源，若无则确认是否从视频提取并选择目标语言。确认后优先逐句音频复刻，保留音色、情绪、节奏、停顿、强度和时长，最终输出本土化配音视频与字幕文件。适合短剧与剧情对白的多语言本地化，不负责改写原剧情或重新设计画面内容。"
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620884229238303-1786620884220.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将短剧对白翻译并按原有节奏重配目标语言，同时保留背景音、人物音色和字幕交付关系。
+    best-for:
+      - 短剧出海
+      - 多语言配音
+      - 字幕本地化
+    how-to-use: 提供原片、目标语言和字幕需求，先确认对白分段、译文风格与音画保留范围。
+    outputs: 对白转录、目标语言脚本、音色与节奏方案、配音视频及字幕文件。
+  en-US:
+    summary: Localize short-drama dialogue into a target language while matching timing and voice character and preserving the background mix.
+    best-for:
+      - Drama Localization
+      - Multilingual Dubbing
+      - Subtitle Localization
+    how-to-use: Provide the source video, target language, and subtitle needs, then confirm dialogue segments, translation tone, and preserved audio layers.
+    outputs: Dialogue transcription, localized script, voice and timing direction, dubbed video, and subtitle files.

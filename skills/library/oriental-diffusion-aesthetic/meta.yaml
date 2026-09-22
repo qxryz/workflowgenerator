@@ -1,0 +1,37 @@
+display-name-zh: 东方弥散美学
+version: 1.0.3
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+summary-en: "Transforms an uploaded image into an Eastern diffusion still, then optionally extends the approved still into a restrained short video."
+summary-cn: "先将上传图转成东方弥散静图，确认后再延展为克制的循环短视频，保持主体色域与轮廓。"
+desc-en: "For creators who want an uploaded product, person, object, animal, or character turned into an Eastern diffusion poster before optional motion. The workflow extracts the silhouette and visual anchors, keeps the source color gamut, simplifies the background into a dark paper-like base, and confirms the still image first. If video is requested, it uses a fixed camera, keeps the subject stable, and creates a relay-style outward color wave within the source palette. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once on failure, then replaced by another available model. Not for full ads, KOC content, or multi-shot stories."
+desc-cn: "用于把上传的商品、人物、器物、动物或角色图先转成东方弥散静图，再在确认后延展为短视频。流程提取主体轮廓和关键锚点，保留原图已有色域，把背景压成暗底纸感并完成居中、符号化构图；静图确认后才进入视频阶段。视频默认使用 MiniMax-H3，固定机位、主体基本不动，只在原图色域内做接力式外涌循环。用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。不适合完整广告、KOC 或多镜头剧情。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/492e45f1-12f4-4f1e-b37b-6b7c89a62761.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/492e45f1-12f4-4f1e-b37b-6b7c89a62761.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/oriental-diffusion-aesthetic-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/oriental-diffusion-aesthetic-02-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 将上传主体转成保留轮廓与色域的东方弥散静图，确认后延展为克制的固定机位循环视频。
+    best-for:
+      - 东方美学
+      - 弥散静图
+      - 循环短视频
+    how-to-use: 提供商品、人物或角色图，先确认主体锚点、画幅与暗底纸感的视觉方向。
+    outputs: 主体分析、东方弥散静图、视频延展提示词与克制循环短片。
+  en-US:
+    summary: Transform an uploaded subject into an Eastern diffusion still that preserves silhouette and palette, then optionally extend it into a restrained loop.
+    best-for:
+      - Eastern Aesthetics
+      - Diffusion Stills
+      - Looping Shorts
+    how-to-use: Provide a product, person, or character image, then confirm subject anchors, framing, and the dark paper-like visual direction.
+    outputs: Subject analysis, Eastern diffusion still, video-extension prompt, and restrained looping short.

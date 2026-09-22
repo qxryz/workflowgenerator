@@ -1,0 +1,28 @@
+display-name-zh: 视频元素替换
+version: 1.0.0
+tag-en: Creative & Experimental / Post-production
+tag-cn: 创意实验 / 后期处理
+complete-tags-en:
+  - Creative & Experimental / Post-production
+complete-tags-cn:
+  - 创意实验 / 后期处理
+summary-en: Replace selected people, backgrounds, products, or props in a source video while preserving its motion, framing, continuity, timing, and chosen audio.
+summary-cn: 根据源视频和参考素材替换指定人物、背景、产品或道具，同时保持动作、镜头、节奏、连续性与声音策略。
+desc-en: This Skill serves video creators who need semantic element replacement without losing the source performance. Users provide a source video and optional image or video references for each target. The workflow inspects shots, motion, occlusion, contact, timing, audio, and reference suitability; confirms what changes and what must remain; binds every reference to a clear role; chooses an audio strategy; generates the replacement; and checks identity, geometry, continuity, and synchronization before delivery. It outputs a replacement video that follows the original action and camera structure. It is suited to replacing people, backgrounds, products, props, or several visible elements, not subtitles, routine editing, color grading, transcoding, or still-image animation.
+desc-cn: 面向需要保留原表演与镜头结构的视频创作者，用于替换人物、背景、产品、道具或多个可见元素。用户提供源视频，并按需补充每个替换目标对应的参考图或参考视频。流程先分析镜头、动作、遮挡、接触、节奏、声音和素材适配度，再确认替换范围与保留项，逐一绑定参考素材职责，确定声音策略，执行替换并检查身份、结构、连续性与音画同步。最终交付遵循原动作和摄影结构的替换视频；适合语义级元素替换，不处理字幕、普通剪辑、调色、转码或静态图动画化。
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 在保持原片表演、摄影和时序的基础上更换可见元素，让新主体自然适配动作并维持跨镜头连续性。
+    best-for: [视频换人, 背景替换, 产品替换]
+    how-to-use: 上传源视频与替换参考素材，明确更换对象和必须保留的内容。
+    outputs: 完成元素替换并经身份、连续性与音画同步检查的视频。
+  en-US:
+    summary: Replace visible elements while retaining the source performance, camera, and timing, adapting new subjects naturally and preserving continuity across shots.
+    best-for: [Subject Replacement, Background Replacement, Product Replacement]
+    how-to-use: Upload the source and replacement references, then identify the targets and details that must remain.
+    outputs: Replacement video reviewed for identity, continuity, and audiovisual synchronization.
+cover: https://cdn.hailuoai.com/hailuo-video-web/public_assets/1c7cb4d2-ec7e-4017-ae9f-5d73a0678bea.mp4
+cover-en: https://cdn.hailuoai.com/hailuo-video-web/public_assets/1c7cb4d2-ec7e-4017-ae9f-5d73a0678bea.mp4

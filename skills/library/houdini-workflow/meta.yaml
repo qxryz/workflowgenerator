@@ -1,0 +1,34 @@
+display-name-zh: Houdini 程序化创作与工程分析
+version: 0.1.0
+tag-en: Creative & Experimental / Creative Generation
+tag-cn: 创意实验 / 创作生成
+complete-tags-en:
+  - Creative & Experimental / Creative Generation
+  - Creative & Experimental / Post-production
+complete-tags-cn:
+  - 创意实验 / 创作生成
+  - 创意实验 / 后期处理
+summary-en: Turn briefs, references and existing scenes into editable procedural assets, with project analysis, staged verification and previews linked to source projects for continued revision.
+summary-cn: 将需求、参考与已有场景转为可编辑程序化资产，结合工程分析与分阶段检查，交付关联源工程的预览以便继续修改。
+desc-en: For designers working in Houdini, this workflow accepts briefs, references and existing HIP or HDA projects. It distinguishes analysis from production, identifies the intended version and scene, prepares application access when needed, and builds or revises procedural networks. It draws on modeling, VEX, simulation, art direction and motion references selectively, checking geometry, dependencies and visual results before saving. Delivery includes an editable project, requested exports and verified previews associated with the source for continued revision. Automatic preparation depends on the installed application, license and client capabilities; Windows connection evidence does not establish Mac compatibility. Generic three-dimensional requests do not select Houdini, and historical examples are not current validation results.
+desc-cn: 面向使用 Houdini 的设计师，接收需求、参考素材和已有工程。先区分分析与制作，确认目标版本与场景，按需准备软件连接；再选择建模、程序化代码、模拟、美术与节奏资料，搭建或修改节点网络，分阶段检查几何、依赖和实际画面。最终交付可编辑工程、所需导出及关联源工程的预览，支持继续修改。自动准备取决于已安装软件、许可证及客户端能力，已有 Windows 连接记录不代表 Mac 兼容通过；泛称三维不默认选择本流程，历史案例不作为当前验收结果。
+structured-info:
+  zh-CN:
+    summary: 将需求与参考素材转化为可编辑的Houdini程序化工程，兼顾项目分析、分阶段验证与后续修改。
+    best-for:
+      - 程序化建模
+      - 特效模拟
+      - 工程分析
+    how-to-use: 提供创作需求、参考素材或HIP与HDA工程，先确认分析或制作目标及工程版本。
+    outputs: 可编辑HIP或HDA工程、所需导出文件及关联源工程的验证预览。
+  en-US:
+    summary: Turn requirements and references into editable Houdini procedural projects with project analysis, staged verification, and revision support.
+    best-for:
+      - Procedural Modeling
+      - Effects Simulation
+      - Project Analysis
+    how-to-use: Provide requirements, references, or a HIP or HDA project, then confirm the analysis or production goal and project version.
+    outputs: An editable HIP or HDA project, requested exports, and verified previews linked to the source project.
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official

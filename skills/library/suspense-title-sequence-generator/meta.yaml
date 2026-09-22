@@ -1,0 +1,35 @@
+display-name-zh: 悬疑电影片头生成
+version: 1.0.1
+tag-en: "Video"
+tag-cn: "视频"
+complete-tags-en:
+  - "Creative & Experimental / Creative Generation"
+complete-tags-cn:
+  - "创意实验 / 创作生成"
+summary-en: "Anchors keyframes and credits to generate a suspense-aesthetic film opening."
+summary-cn: "根据电影设定与参考素材锚定关键帧和英文署名，生成十五秒复古悬疑美学片头成片。"
+desc-en: "For creators making suspense, crime, noir, or spy-style title sequences, this Skill takes film type, title, logline, cast, optional credits, and reference images. It confirms reference roles, anchors six keyframes, designs readable English credits and beat-driven motion, then generates a 15-second 16:9 suspense-aesthetic opening. It supports retro pop-art collage, hard-edge silhouettes, and limited stylized face reveals, not full trailers or IP/celebrity replication."
+desc-cn: "面向制作悬疑、犯罪、黑色电影或间谍风片头的创作者。用户提供电影类型、片名、一句话剧情、演员表、可选署名和参考图后，Skill 会先确认素材角色，再锚定六张关键帧，设计清晰可读的英文署名与节拍动效，最后生成十五秒、十六比九的复古悬疑美学片头。成片强调波普拼贴、硬边剪影、有限人物露出和爵士悬疑节奏，适合作为电影或短片开场，不用于完整剧情预告、长篇叙事或真实 IP 与名人复刻。"
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620885996021233-1786620885990.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/suspense-title-sequence-generator-01-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将悬疑电影设定、参考素材和准确署名锚定为复古美学关键帧，再生成十五秒片头成片。
+    best-for:
+      - 悬疑片头
+      - 复古美学
+      - 关键帧叙事
+    how-to-use: 提供电影设定、片名、署名和参考图，先确认片头信息、六个镜头锚点与视觉气质。
+    outputs: 电影信息表、六张关键帧提示词、署名设计、镜头提示词与悬疑片头视频。
+  en-US:
+    summary: Anchor a suspense-film setting, references, and exact credits in retro-styled keyframes before producing a fifteen-second title sequence.
+    best-for:
+      - Suspense Titles
+      - Retro Aesthetics
+      - Keyframe Narratives
+    how-to-use: Provide the film setting, title, credits, and references, then confirm title data, six shot anchors, and visual tone.
+    outputs: A film fact sheet, six keyframe prompts, credit design, shot prompts, and the suspense title video.

@@ -1,0 +1,41 @@
+display-name-zh: 品牌宣传短片生成器
+version: 0.1.16
+tag-en: Commercial Ad
+tag-cn: 商业广告
+complete-tags-en:
+- Commercial Ad / Planning
+- Commercial Ad / Creative Generation
+- Commercial Ad / Post-production
+complete-tags-cn:
+- 商业广告 / 计划制定
+- 商业广告 / 创作生成
+- 商业广告 / 后期处理
+summary-en: Turn verified brand assets and campaign goals into a polished promotional short video.
+summary-cn: 基于品牌素材与推广目标，完成事实核验、创意方向、分镜和音画合成，输出可展示的品牌宣传短片。
+desc-en: For marketers and creators producing promotional content for brands, products, websites, apps, shops, or personal projects. Users provide logos, product images, interface screenshots, official links, or other verifiable assets and confirm duration, aspect ratio, audience, and campaign focus. The Skill organizes brand facts and asset provenance, selects a narrative direction, plans precise beats and shots, generates needed imagery, video, voiceover, or music, and completes assembly and pre-delivery review. It outputs a promotional short that highlights product capabilities, use cases, and a call to action. Best for launches, website showcases, and social promotion; not for imitating real brand marks without authorized assets, inventing product claims, or producing long-form narrative films.
+desc-cn: 面向需要为品牌、产品、网站、App、小店或个人项目制作宣传内容的运营与创作者。用户需提供 LOGO、产品图、界面截图、官网链接或其他可核验素材，并确认时长、画幅、受众和推广重点。Skill 会整理品牌事实与素材来源，选择叙事方向，规划精确节拍和镜头，生成所需图像、视频、旁白或音乐，并完成合成与交付前检查。最终输出一条突出产品功能、使用场景和行动号召的品牌宣传短片。适用于新品发布、官网展示和社交媒体推广，不适用于缺少授权素材时仿造真实品牌标识、虚构产品功能或制作长篇剧情影片。
+structured-info:
+  zh-CN:
+    summary: 将品牌素材与推广目标转化为清晰可信、可展示传播的品牌宣传短片。
+    best-for:
+      - 品牌发布
+      - 网站宣传
+      - 应用推广
+    how-to-use: 提供授权品牌素材和官网资料，确认时长、受众与推广重点。
+    outputs: 品牌事实清单、创意分镜、音画素材及宣传成片。
+  en-US:
+    summary: Turn verified brand assets and promotion goals into a clear, credible, presentation-ready brand video.
+    best-for:
+      - Brand Launches
+      - Website Promotion
+      - App Promotion
+    how-to-use: Provide authorized brand assets and official materials, then confirm duration, audience, and focus.
+    outputs: Brand fact sheet, creative storyboard, audio-visual assets, and finished promo video.
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620863948845933-1786620863940.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620863948845933-1786620863940.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/brand-promo-video-generator-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/brand-promo-video-generator-02-20260908-1788854461283.mp4"
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured

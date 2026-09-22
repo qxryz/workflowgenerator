@@ -1,0 +1,38 @@
+display-name-zh: 时装场景展示视频
+version: 1.0.4
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+  - "E-Commerce / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+  - "电商 / 创作生成"
+summary-en: "Turns garment references into staged showcase videos by locking specifications, confirming assets, previewing storyboards, and delivering a 30-second cut."
+summary-cn: "把服装参考分阶段编排成时装展示视频，锁定规格、确认资产并输出30秒成片。"
+desc-en: "For fashion teams, designers, and creators who need a repeatable showcase pipeline from garment photos, lookbook references, or a clothing brief. The workflow locks a final specification, analyzes garment structure and fabric behavior, confirms technical outfit sheets, model cards, scenes, and a six-panel storyboard, then generates one complete 30-second showcase per outfit with music and assembly. MiniMax-H3 is the default video model; an explicitly selected alternative is checked for capability, retried once on failure, and then replaced with another available model. Best for runway-style showcases and lookbooks, not simple retouching, generic product ads, or unrelated narrative shorts."
+desc-cn: "面向服装团队、设计师和创作者，把服装照片、Lookbook 参考或穿搭 brief 转成可复用的时装展示视频流程。系统先锁定最终规格，分析服装结构与面料物理，分步确认刀版图、模特服饰卡、场景候选和六宫格分镜，再按每套服装生成完整 30 秒成片，并完成配乐与组装。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。适合秀场展示、生活方式 Lookbook 和服装场景视频，不负责简单修图、泛品类广告或无关剧情短片。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3683f35f-cda6-4a86-a3c5-64d06173ed69.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/3683f35f-cda6-4a86-a3c5-64d06173ed69.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/fashion-scene-video-planner-01-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将服装参考分阶段转成锁定规格、资产一致且具有场景叙事的时装展示视频。
+    best-for:
+      - 服装展示
+      - 时装画册
+      - 场景造型
+    how-to-use: 提供服装照片或穿搭概念，先锁定画幅、时长、套装范围与展示目标。
+    outputs: 服装结构分析、模特与场景卡、六宫格分镜、配乐与时装成片。
+  en-US:
+    summary: Turn garment references into a specification-locked fashion showcase with consistent assets and scene-led styling.
+    best-for:
+      - Fashion Showcases
+      - Lookbooks
+      - Styled Scenes
+    how-to-use: Provide garment photos or a styling concept, then lock framing, duration, outfit scope, and showcase goal.
+    outputs: Garment analysis, model and scene cards, a grid storyboard, music, and finished fashion videos.

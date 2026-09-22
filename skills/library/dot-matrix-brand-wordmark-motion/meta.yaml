@@ -1,0 +1,36 @@
+display-name-zh: 点阵品牌字形动效
+version: 1.0.1
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+summary-en: "Creates dot matrix brand wordmark motion from a supplied logo, brand name, and slogan, producing a horizontal brand plate, a rewritten motion prompt, and a dot matrix brand wordmark motion video."
+summary-cn: "根据用户提供的品牌 Logo、品牌名与标语生成点阵品牌字形动效，输出横版品牌图、改写后的动效提示词与点阵品牌字形动效视频。"
+desc-en: "This Skill is designed for users who already have a logo, brand-name image, or slogan-containing brand visual and want a repeatable brand motion workflow rather than a one-off prompt. The user provides a logo image and may optionally describe the brand, but all final readable text must come from the image itself or explicit user-provided brand/slogan text. The workflow first creates a 16:9 horizontal brand-name plate with GPT Image, preserving the source image’s theme color and design background. It then reads that generated plate with the current model, treats the plate text as authoritative, extracts only the visible brand name and slogan, and rewrites a fixed MiniMax H motion prompt so the first, last, and prefix character logic matches the detected plate text. Finally, it generates a 8-second 16:9 MiniMax H3 reference-driven brand motion video with audio. It is best for logo-slogan identity reels and flat motion graphics openings, not for designing a new trademark, inventing slogans, or restoring official brand names from outside knowledge."
+desc-cn: "本 Skill 面向已有 Logo、品牌名称图或含标语品牌视觉素材的用户，用于把静态品牌图转化为可复用的 H3 平面动态图形视频流程。用户提供一张 Logo 或品牌视觉图，也可以补充品牌说明，但最终视频中的所有可读文字必须来自图片本身或用户明确输入的品牌名 / 标语。流程先用 GPT Image 生成 16:9 横版品牌名称图，保留原图主题色与设计背景；再由当前模型直接读取生成后的横版图，并以该图中可见文字作为最终权威文本，只提取品牌名称与 slogan，按该图重新计算首字母、尾字母和前序文字锚点后改写固定 MiniMax H 动效 prompt；最后使用 MiniMax H3 生成 8 秒 16:9 带声音品牌动效视频。它适合品牌 Logo 标语动效、品牌片头和视觉识别展示，不适合从零设计商标、凭空补全 slogan 或依据外部知识还原官方品牌名。"
+cover: "https://cdn.hailuoai.com/pre/2026-08-14-21/video/1786713895599854613-1786713895590.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-14-21/video/1786713895599854613-1786713895590.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/dot-matrix-brand-wordmark-motion-01-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将品牌Logo、名称与标语转成文字准确、点阵风格统一的横版品牌图和短片动效。
+    best-for:
+      - 点阵字形
+      - Logo动效
+      - 品牌开场
+    how-to-use: 提供Logo或品牌视觉图及准确文字，先确认横版品牌图中的文字和点阵运动方向。
+    outputs: 横版品牌图、独立动效提示词、品牌文字映射与点阵动效视频。
+  en-US:
+    summary: Transform a logo, brand name, and slogan into an accurate horizontal brand plate and a cohesive dot-matrix motion short.
+    best-for:
+      - Dot-matrix Type
+      - Logo Motion
+      - Brand Openers
+    how-to-use: Provide the logo or brand visual with exact text, then confirm the wording and dot-matrix movement for the horizontal plate.
+    outputs: A horizontal brand plate, standalone motion prompt, text mapping, and dot-matrix motion video.

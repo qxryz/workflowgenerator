@@ -1,0 +1,33 @@
+display-name-zh: 电影质感提示词大师
+version: 1.0.1
+tag-en: "Visual Production / Prompt Engineering"
+tag-cn: "视觉创作 / 提示词工程"
+complete-tags-en:
+  - "Professional Film / Intent Brainstorming"
+complete-tags-cn:
+  - "专业影视 / 意图脑爆"
+summary-en: "Turns film titles or movie stills into executable prompts by translating reference evidence into visual and camera rules."
+summary-cn: "从电影名称、剧照或截图提炼可复用的视觉与镜头规则，生成可直接执行的图像或视频提示词。"
+desc-en: "For creators, directors, and AI visual users who want to translate an existing film reference into an executable prompt, this skill analyzes a film title, movie still, screenshot set, or short creative request and turns the reference evidence into practical image or video prompt language. It separates visible evidence, verified source facts, reasonable inference, and user-specified creative additions; inspects composition, lighting, tone, color, optics, production design, atmosphere, and movement; then writes a prompt with clear subject, framing, camera behavior, visual character, output requirements, and avoidances. It produces either a quick copyable prompt or a deeper reference analysis plus prompt. It is best for film-reference translation, screenshot breakdowns, and reference-based camera prompts; it is not a style-reference search catalog, a generic motion-vocabulary guide, a full screenplay tool, or a long production planner."
+desc-cn: "面向想把电影参考转成可执行 AI 视觉语言的创作者、导演和提示词用户，解决只会写“电影感”“高级感”但模型难以执行的问题。用户可以输入电影名称、剧照截图、一组参考图，或一句人物、场景、情绪、运镜要求；技能会区分画面可见、资料确认、合理推断和用户指定内容，分析构图、光色、影调、镜头、焦点、美术、空气感与运镜，再输出快速可复制提示词，或完整视觉 DNA 分析加图像/视频提示词。它擅长电影质感迁移、摄影风格拆解和运镜提示词，不负责完整剧本、长流程制片规划，除非用户明确要求继续生成成片。"
+cover: "https://cdn.hailuoai.com/hub-skill-market/covers/2026-09-09film-reference-prompt-writer-cover-51d39501.mp4"
+author-en: "鲤鱼与鱼Ai"
+author-cn: "鲤鱼与鱼Ai"
+source: community
+structured-info:
+  zh-CN:
+    summary: 从电影名称、剧照或截图建立证据层级，提炼可复用的视觉与镜头语言并写成执行提示词。
+    best-for:
+      - 电影参考
+      - 视觉DNA
+      - 镜头提示词
+    how-to-use: 提供电影名称、剧照、截图或创作要求，先区分可见证据、资料确认、推断和用户指定内容。
+    outputs: 视觉语言分析、摄影与美术规则、图像或视频提示词及参考依据。
+  en-US:
+    summary: Build an evidence hierarchy from film titles, stills, or screenshots, extract reusable visual and camera language, and write executable prompts.
+    best-for:
+      - Film References
+      - Visual DNA
+      - Camera Prompts
+    how-to-use: Provide a film title, stills, screenshots, or a creative request, then separate visible evidence, verified facts, inference, and user direction.
+    outputs: Visual-language analysis, cinematography and art rules, image or video prompts, and supporting evidence.

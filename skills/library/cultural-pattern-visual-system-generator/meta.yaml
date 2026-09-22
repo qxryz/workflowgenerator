@@ -1,0 +1,39 @@
+display-name-zh: 文化纹样视觉系统生成器
+version: 1.0.5
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+  - "E-Commerce / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+  - "电商 / 创作生成"
+summary-en: "Extracts cultural motifs into pattern masters, repeats, colorways, product mockups, packaging, wallpapers, and a short motion showcase."
+summary-cn: "从文化装饰提取纹样，分步生成母版、连续纹样、配色、样机、包装、壁纸与动效。"
+desc-en: "For cultural brands, designers, and creative teams that want to turn architectural, folk-craft, tile, ironwork, wall, gate, or ornamental references into a reusable visual system. The Skill processes each reference independently, producing motif masters, clean extraction masters, seamless repeats, four labeled colorways, category-matched product mockups, packaging, cultural merchandise, wallpapers, and a short motion showcase. MiniMax-H3 is the default video model; an explicitly selected alternative is capability-checked, retried once when needed, then replaced by another available model. It is for pattern extraction and brand extension, not full brand strategy or long campaign production."
+desc-cn: "面向文创品牌、设计师和创意团队，将建筑、民艺、花砖、铁艺、墙体、柱子、门窗等装饰参考转化为可复用的视觉系统。Skill 严格分步处理每张参考图，依次生成独立纹样母版、白底提取母版、连续纹样、四套带十六进制标注的配色、匹配品类的产品样机、包装与文创周边、壁纸和短动效。视频默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。适合纹样提取、文创产品和品牌展示，不替代完整品牌策略或长篇 campaign。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/1cacf030-34de-4470-ae8d-9cc3daed7e84.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/1cacf030-34de-4470-ae8d-9cc3daed7e84.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/cultural-pattern-visual-system-generator-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/cultural-pattern-visual-system-generator-02-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 从文化、建筑或民艺参考提取可复用纹样，并发展为配色、样机、包装、壁纸和动效视觉系统。
+    best-for:
+      - 文化纹样
+      - 视觉系统
+      - 文创样机
+    how-to-use: 提供文化装饰参考和品牌主题，先确认纹样来源、母版提取范围与应用品类。
+    outputs: 纹样母版、连续纹样、配色方案、产品与包装样机、壁纸及动效资产。
+  en-US:
+    summary: Extract reusable motifs from cultural, architectural, or craft references and develop them into a visual system with applications and motion.
+    best-for:
+      - Cultural Motifs
+      - Visual Systems
+      - Cultural Mockups
+    how-to-use: Provide cultural ornament references and a brand theme, then confirm motif sources, master extraction scope, and application categories.
+    outputs: Master motifs, repeating patterns, color systems, product and package mockups, wallpapers, and motion assets.

@@ -1,0 +1,38 @@
+display-name-zh: 第一视角短片生成
+version: 1.0.1
+tag-en: "Short Drama"
+tag-cn: "短剧"
+complete-tags-en:
+  - "Short Drama / Planning"
+  - "Short Drama / Creative Generation"
+complete-tags-cn:
+  - "短剧漫剧 / 计划制定"
+  - "短剧漫剧 / 创作生成"
+summary-en: "Plan strict first-person POV immersive short films."
+summary-cn: 将创意、剧本或参考素材规划为严格主角眼睛视角的沉浸式短片制作方案。
+desc-en: "This Skill turns concepts, scripts, reference images, or existing clips into strict first-person POV immersive short-film workflows. It locks the protagonist-eye viewpoint, prevents third-person protagonist shots and face exposure, physicalizes visual style choices, and guides specification writing, POV asset planning, storyboard design, clip prompts, quality checks, and assembly guidance for compact short-form scenes."
+desc-cn: 面向制作悬疑、生存、恋爱、恐怖、职场或现实题材第一视角短片的创作者。用户提供创意、剧本、参考图或既有片段后，Skill 会锁定主角眼睛视角，把抽象风格转化为可执行的画面规则，依次完成规格书、第一视角资产规划、分镜设计、镜头提示词、质量检查与组装建议。最终交付可执行的沉浸式短片制作方案，并持续排除主角正脸、第三人称主角镜头和纯产品展示；适合紧凑短片，不负责长剧集统筹。
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620882582516275-1786620882576.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/pov-short-film-generator-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/pov-short-film-generator-02-20260908-1788854461283.mp4"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将创意、剧本或参考素材转化为严格主角眼睛视角的沉浸式短片规划与可执行镜头方案。
+    best-for:
+      - 第一视角
+      - 沉浸短片
+      - 主观镜头
+    how-to-use: 提供创意、剧本或参考素材，先确认主角视角、叙事限制、画幅和风格路线。
+    outputs: POV核心简报、视觉风格、镜头表、提示词与可选沉浸式短片。
+  en-US:
+    summary: Turn an idea, script, or reference into an immersive short-film plan locked to the protagonist’s eye-level point of view.
+    best-for:
+      - First-person POV
+      - Immersive Shorts
+      - Subjective Camera
+    how-to-use: Provide the idea, script, or references, then confirm the protagonist viewpoint, narrative limits, framing, and style route.
+    outputs: A POV brief, visual style, shot list, prompts, and an optional immersive short.

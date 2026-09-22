@@ -1,0 +1,11 @@
+{
+  "name": "workflowgenerator-skills-registry",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build-registry.mjs"
+  },
+  "dependencies": {
+    "yaml": "^2.9.1"
+  }
+}

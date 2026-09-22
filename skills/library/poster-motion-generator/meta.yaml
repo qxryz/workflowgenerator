@@ -1,0 +1,36 @@
+display-name-zh: 海报动态生成器
+version: 1.0.2
+tag-en: "Creative & Experimental"
+tag-cn: "创意实验"
+complete-tags-en:
+  - "Creative & Experimental / Creative Generation"
+complete-tags-cn:
+  - "创意实验 / 创作生成"
+summary-en: "Turns uploaded posters into single-take MiniMax H3 motion posters with ratio mapping, readable text, and timestamped motion prompts."
+summary-cn: "将上传海报转为一镜到底动态视频，保留文字清晰、主体关系与最终版式，适合社媒传播。"
+desc-en: "Turns an uploaded poster into a polished single-take motion video. The workflow analyzes ratio, layers, typography, anchors, depth, and motion potential, then creates reusable directions, a 2K 8–15-second specification, timestamped prompts, and synchronized sound cues before generation. MiniMax-H3 is the default video model; another model is used only after explicit user selection and capability checking."
+desc-cn: "面向已有海报图片、希望生成精致动态海报视频的创作者。Skill 会先分析比例、海报类型、视觉层级、文字版式、锚点、景深和动效潜力，再输出可复用动态方向；上传海报作为最终锁版参考，随后制定 2K、8–15 秒一镜到底规格，编写带时间码的动效提示词与同步音效，并在确认后生成成片。默认使用 MiniMax-H3；用户明确指定其他模型时先检查能力再执行，强调文字可读、版式稳定、主体连贯与画面节奏。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official-featured
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/ae64bf13-9da5-413c-b116-35a2348f2bd8.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/ae64bf13-9da5-413c-b116-35a2348f2bd8.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/poster-motion-generator-01-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 让上传海报在保持文字、版式和主体关系的前提下产生一镜到底的克制动态，适合社媒传播。
+    best-for:
+      - 海报动效
+      - 版式保护
+      - 社媒视频
+    how-to-use: 提供最终海报和目标平台，先确认画幅映射、可动元素与必须保持清晰的文字。
+    outputs: 海报结构分析、运动方案、视频提示词、动态海报视频与平台版本。
+  en-US:
+    summary: Animate an uploaded poster in one continuous shot while preserving readable text, layout, and subject relationships for social publishing.
+    best-for:
+      - Poster Motion
+      - Layout Protection
+      - Social Video
+    how-to-use: Provide the final poster and target platform, then confirm framing, movable elements, and protected text.
+    outputs: Poster analysis, motion direction, video prompts, a motion-poster video, and platform variants.

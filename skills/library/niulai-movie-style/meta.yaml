@@ -1,0 +1,37 @@
+display-name-zh: 牛来电影风格
+version: 1.0.1
+tag-en: "Animation"
+tag-cn: "动画"
+complete-tags-en:
+  - "Animation / Creative Generation"
+complete-tags-cn:
+  - "动画 / 创作生成"
+summary-en: "Guide users from uploaded photos to deliberately failed primitive low-poly images and optional short videos."
+summary-cn: "引导用户上传照片，生成故意失败的原始低模图像，并可继续延展成笨拙运镜短视频。"
+desc-en: "For creators who want an intentionally cheap and awkward early-3D reconstruction rather than polished low-poly art. The Skill first guides users to upload a photo or source image unless they explicitly ask for a new scene, then extracts broad anchors such as subject count, layout, action, camera, scene type, props, and large color blocks. It then rebuilds the image with extremely sparse geometry, broken proportions, stiff rigging, local clipping, crude faces, tiny repeated diffuse textures, reused assets, naive lighting, and cheap rendering. The deliverable is an edited image, followed by a lightweight prompt asking whether to continue into a short video; it can also provide a video-ready prompt or production prompt when requested. It is best for primitive folk CGI, bootleg CGI, and reverse-viral low-quality aesthetics; it does not create simple pixelation, VHS filters, horror deformation, ordinary polished low-poly illustration, or smooth cinematic animation."
+desc-cn: "面向想把源图转成“制作能力不足”的早期3D效果的创作者，而不是做精致低模艺术。Skill 会先引导用户上传照片或源图；除非用户明确要求生成新场景，否则先基于图片提取主体数量、布局、动作、镜头、场景类型、主要道具和大色块等锚点，再用极低面数、失真比例、僵硬绑定、局部穿模、粗糙脸部、低分辨率重复贴图、复用资产、朴素灯光和廉价渲染进行重建。最终先交付编辑图，并轻量询问是否继续生成短视频；也可在用户要求时交付视频可用提示词或生产提示词。适合 primitive folk CGI、bootleg CGI 和反向出圈低画质审美，不用于普通像素化、VHS 滤镜、恐怖变形、常规精致低模插画或顺滑电影动画。"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+cover: "https://cdn.hailuoai.com/pre/2026-08-18-17/video/1787046735278572549-1787046735272.mp4"
+cover-en: "https://cdn.hailuoai.com/pre/2026-08-18-17/video/1787046735278572549-1787046735272.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/niulai-movie-style-01-20260908-1788854461283.mp4"
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/niulai-movie-style-02-20260908-1788854461283.mp4"
+structured-info:
+  zh-CN:
+    summary: 将照片重建为故意粗糙、比例失真且渲染笨拙的早期3D图像，并可延展为低质量运镜短视频。
+    best-for:
+      - 原始低模
+      - 失败美学
+      - 笨拙运镜
+    how-to-use: 提供源图并说明是否继续视频，先确认需要保留的主体、布局和低模失真强度。
+    outputs: 主体锚点分析、低模重建图、风格化编辑提示词与可选笨拙运镜视频。
+  en-US:
+    summary: Rebuild a source photo as intentionally crude early-3D imagery with distorted proportions and awkward rendering, with an optional motion extension.
+    best-for:
+      - Primitive Low-poly
+      - Failure Aesthetics
+      - Awkward Camera
+    how-to-use: Provide the source image and whether to continue to video, then confirm protected subject anchors and distortion strength.
+    outputs: Subject-anchor analysis, crude 3D image, style-edit prompt, and optional awkward-camera video.

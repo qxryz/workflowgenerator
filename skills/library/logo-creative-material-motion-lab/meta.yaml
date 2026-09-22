@@ -1,0 +1,38 @@
+display-name-zh: Logo创意材质动效实验室
+version: 1.0.4
+tag-en: "Commercial Ad"
+tag-cn: "商业广告"
+complete-tags-en:
+  - "Commercial Ad / Creative Generation"
+  - "E-Commerce / Creative Generation"
+complete-tags-cn:
+  - "商业广告 / 创作生成"
+  - "电商 / 创作生成"
+summary-en: "Builds a logo motion package with paired 3D bases, three material directions, and horizontal and vertical video variants."
+summary-cn: "以Logo和参考图生成3D基底、三种材质方向及横竖版品牌动效视频，适合TVC与社媒切条。"
+desc-en: "For designers, brand teams, and motion creators who need a structured logo motion package. The workflow pairs one logo with one reference image to create 3D material bases, writes three distinct directions with horizontal and vertical prompts, then generates six short videos with MiniMax-H3 by default. If the user explicitly chooses another model, its capabilities are checked first; a failure is retried once for the diagnosed cause, then moved to another available model. The package is suited to brand reveals, TVC openers, and social cutdowns, not unrelated editing or long-form story planning."
+desc-cn: "适用于设计师、品牌团队和动效创作者的结构化 Logo 动效流程。用户提供 Logo、品牌名、品牌调性和可选参考图后，Skill 坚持一张 Logo 配一张参考图，逐一生成 3D 材质基底，整理三条互相区分的材质动效方向，每条包含横版与竖版提示词，最后默认使用 MiniMax-H3 生成 6 条短视频。用户明确指定其他模型时先检查能力，失败针对原因重试一次后切换其他可用模型。适合品牌开场、TVC 和社媒切条，不负责无关剪辑或长篇叙事。"
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/033fd37b-8953-4928-9d93-69c22da8e43d.mp4"
+cover-en: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/033fd37b-8953-4928-9d93-69c22da8e43d.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/logo-creative-material-motion-lab-01-20260908-1788854461283.mp4"
+author-en: "Kido G"
+author-cn: "Kido G"
+source: community
+structured-info:
+  zh-CN:
+    summary: 从Logo与参考图生成三维材质基底和三条差异化动效方向，再输出横竖版品牌短视频。
+    best-for:
+      - Logo材质
+      - 品牌动效
+      - TVC切条
+    how-to-use: 提供Logo、品牌名、品牌调性和参考图，先确认每组Logo与参考的对应关系及材质方向。
+    outputs: 3D Logo基底、三种材质方案、横竖版提示词与六条品牌动效视频。
+  en-US:
+    summary: Create 3D logo material bases and three distinct motion directions from a logo and references, then deliver horizontal and vertical brand shorts.
+    best-for:
+      - Logo Materials
+      - Brand Motion
+      - TVC Cutdowns
+    how-to-use: Provide the logo, brand name, tone, and references, then confirm each logo-reference pairing and material direction.
+    outputs: 3D logo bases, three material directions, horizontal and vertical prompts, and six brand motion videos.

@@ -1,0 +1,32 @@
+display-name-zh: 影视片头序列
+version: 1.0.2
+tag-en: "Professional Film / Full Production"
+tag-cn: "专业影视 / 成片制作"
+complete-tags-en:
+  - "Professional Film / Full Production"
+complete-tags-cn:
+  - "专业影视 / 成片制作"
+summary-en: "Create film or series opening title sequences and 15-second concept teasers ending on the title reveal"
+summary-cn: "制作电影或剧集片头标题序列与十五秒影视概念预告，以片名或卡司落板收束"
+desc-en: "For filmmakers and series creators who need an opening title sequence, credits sequence, or a single 15-second concept teaser. Takes stills, posters, title text, cast names, or a story premise as input, then routes scope, selects the master style and typography system, confirms exact on-screen text, compiles shots and transitions into a long-form video prompt, and generates the final film with synchronized music. The narrative uses the film world, characters, and conflicts, always closing on the title or cast reveal."
+desc-cn: "面向需要影视片头或概念预告的创作者，把剧照、海报、片名、卡司文字或故事设定转化为一条完整的片头标题序列或十五秒影视概念预告。流程覆盖成片范围分流、主风格与文字系统选择、参考素材约束、原创影片方案与准确文字确认、镜头与转场编译、长篇幅视频提示词生成、同步音乐与最终成片交付。叙事以影片世界、人物行动、关系与冲突推进，最终以片名、卡司或预告落板收束，保证文字准确与画面连续。"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+structured-info:
+  zh-CN:
+    summary: 把影视设定、片名与准确署名编排成叙事连贯的电影片头或概念预告，并以文字落板收束。
+    best-for:
+      - 影视片头
+      - 概念预告
+      - 片名字效
+    how-to-use: 提供片名、卡司、剧照或故事设定，先确认片头范围、文字内容和视觉方向。
+    outputs: 影片视觉方案、镜头与转场设计、文字系统、音乐及完整片头成片。
+  en-US:
+    summary: Turn film context, titles, and verified credits into a coherent cinematic title sequence or concept teaser that resolves on-screen.
+    best-for:
+      - Title Sequences
+      - Concept Teasers
+      - Title Design
+    how-to-use: Provide the title, credits, stills, or story setting, then confirm scope, exact text, and visual direction.
+    outputs: A film treatment, shot and transition design, typography system, music, and finished title sequence.

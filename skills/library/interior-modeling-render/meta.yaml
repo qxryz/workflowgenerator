@@ -1,0 +1,28 @@
+display-name-zh: 室内空间建模与实景渲染
+version: 1.0.0
+tag-en: Animation / Creative Generation
+tag-cn: 动画 / 创作生成
+complete-tags-en:
+  - Animation / Creative Generation
+complete-tags-cn:
+  - 动画 / 创作生成
+summary-en: Convert plans, photos, Blender scenes, references, or text briefs into an approved editable interior and a coherent one-take photoreal walkthrough.
+summary-cn: 根据平面图、实景照片、文字简报或 Blender 场景建立可编辑室内空间，并交付连贯的一镜到底写实漫游视频。
+desc-en: This Skill helps interior designers and visualization teams turn colored floor plans, real-space photos, Blender files, style references, or written briefs into a coherent editable interior. It creates or reconstructs a 2D plan, prepares a detailed axonometric concept for approval, builds the Blender scene, and delivers the model plus a modeling render for review. After confirmation, it records an 8–15 second one-take walkthrough from the main camera and applies a consistent photoreal treatment while preserving geometry, furniture, circulation, route, and lighting intent. The deliverables are an editable model and validated walkthrough video. It supports interior visualization and design communication, but it does not provide structural engineering, measured survey, construction documentation, or safety advice.
+desc-cn: 面向室内设计师和建筑可视化团队，接收彩色平面图、实景照片、Blender 文件、风格参考或文字简报，并转化为一致、可编辑的室内空间。流程先制作或重建二维平面图，再生成精细轴测概念供确认，随后建立 Blender 场景并交付模型和建模渲染图复核；确认后使用主摄像机录制八至十五秒一镜到底漫游，并在保持几何、家具、动线、路线和灯光意图的前提下完成统一写实处理。最终交付可编辑模型与验收通过的漫游视频；适用于室内可视化和方案沟通，不提供结构工程、实测测绘、施工图或安全建议。
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将室内设计资料转化为可编辑空间与连续写实漫游，保留家具布置和空间动线以支持方案沟通。
+    best-for: [室内设计, 空间漫游, 方案展示]
+    how-to-use: 上传平面图、实景照片或现有工程，先确认空间布局和视觉方向。
+    outputs: 可编辑室内模型、建模渲染图及一镜到底写实漫游视频。
+  en-US:
+    summary: Turn interior design materials into an editable space and continuous photoreal walkthrough that preserves furniture placement and circulation for design communication.
+    best-for: [Interior Design, Spatial Walkthroughs, Design Presentations]
+    how-to-use: Upload plans, room photos, or an existing project, then confirm the layout and visual direction.
+    outputs: Editable interior model, modeling renders, and a continuous photoreal walkthrough video.
+cover: https://cdn.hailuoai.com/hailuo-video-web/public_assets/b09d5f72-e900-45a1-84be-e4f46fc871d6.mp4
+cover-en: https://cdn.hailuoai.com/hailuo-video-web/public_assets/b09d5f72-e900-45a1-84be-e4f46fc871d6.mp4

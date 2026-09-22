@@ -1,0 +1,35 @@
+display-name-zh: 唇部彩妆广告生成
+version: 1.0.1
+tag-en: Creative & Experimental
+tag-cn: 创意实验
+complete-tags-en:
+  - "Creative & Experimental / Creative Generation"
+complete-tags-cn:
+  - "创意实验 / 创作生成"
+summary-en: "Builds a 30s horizontal lip-product TVC in a fixed order, requiring model portrait, 3×3 still-life, and storyboard files before video generation, while using the still-life only as storyboard reference and keeping interactions natural."
+summary-cn: "按固定顺序生成横屏30秒唇部彩妆TVC，先完成模特图、3×3静物图和脚本文件再生成视频，并强化自然的人物与产品、道具互动。"
+desc-en: "For creators making lipstick, lip gloss, lip tint, lip mud, lip oil, lip glaze, or other lip-product commercials from scratch or from uploaded references. It follows a fixed workflow: generate the model portrait, generate a 3×3 product still-life using the canvas still-life prompt, write or refine the storyboard, produce storyboard-accurate shot-level video segments only after all three files exist, using the still-life only as storyboard reference and requiring natural model/product/prop interaction beats, add background audio, and then composite and validate the final 30s TVC. It keeps model identity and product presentation consistent, supports segment-level regeneration, and stays brand-agnostic, texture-agnostic, packaging-agnostic, and lip-format-agnostic when the references are broad. It is best for H3-style horizontal beauty ads and does not cover generic beauty reels, skincare, eye makeup, or silent video-only delivery."
+desc-cn: "面向需要从零开始制作口红、唇釉、唇泥、唇蜜、唇油、唇釉唇泥综合类或其他唇部广告的创作者。它固定按照模特图、3×3 静物图、分镜脚本、脚本级小分段视频、背景音乐、最终合成校验的顺序执行；静物图必须严格跟随画布静物图提示词，视频必须在模特图、3×3静物图和脚本文件完成后生成，静物图仅作分镜参考，视频按脚本拆段，并强制加入自然灵动的人物和产品互动、产品质感与道具对比、人物和道具互动镜头，保证模特身份和产品呈现一致，支持按段重做，也能在参考较泛时保持品牌、质地、包装和产品形式都可泛化。它最适合 H3 横屏美妆广告，不适合泛美妆混剪、护肤、眼妆或无背景音的纯视频交付。"
+cover: "https://cdn.hailuoai.com/pre/2026-08-13-19/video/1786620871400679467-1786620871394.mp4"
+showcase:
+  - "https://cdn.hailuoai.com/hub-skill-market/showcase/2026-09-08/lip-product-ad-generator-01-20260908-1788854461283.mov"
+author-en: MiniMax Design
+author-cn: MiniMax Design
+source: official-featured
+structured-info:
+  zh-CN:
+    summary: 将唇部产品与品牌需求编排为横屏彩妆TVC，先锁定模特、静物和脚本，再完成自然互动成片。
+    best-for:
+      - 彩妆TVC
+      - 唇部产品
+      - 产品互动
+    how-to-use: 提供唇部产品图、品牌要求和可选模特方向，先确认产品身份、画幅与叙事重点。
+    outputs: 模特图、产品静物图、脚本、镜头计划、视频片段与彩妆广告成片。
+  en-US:
+    summary: Shape a lip product and brand brief into a horizontal beauty TVC by locking the model, still life, and script before production.
+    best-for:
+      - Beauty TVCs
+      - Lip Products
+      - Product Interaction
+    how-to-use: Provide product images, brand requirements, and optional model direction, then confirm product identity, framing, and narrative focus.
+    outputs: A model image, product still life, script, shot plan, video segments, and finished beauty ad.

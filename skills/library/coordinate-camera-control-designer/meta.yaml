@@ -1,0 +1,35 @@
+display-name-zh: 坐标运镜分镜设计师
+version: 0.1.7
+tag-en: "Commercial Ad / Planning"
+tag-cn: "商业广告 / 计划制定"
+summary-en: "Convert action scenes into coordinate-based camera-control prompts and storyboard planning assets."
+summary-cn: "坐标化运镜与分镜规划"
+desc-en: "Coordinate-based camera control and visual storyboarding. Converts subject position, movement targets, impact points, and camera follow, push, pull, pan, and tilt directives into controllable [L,T,W,H] coordinate prompts. Generates a 4K scene motion-path overview image and a black-and-white line-art 3x3 master storyboard, then outputs Seedance video camera-motion prompts with embedded coordinate control for reliable action, chase, and fight-beat execution."
+desc-cn: "坐标运镜与可视化分镜。把主体位置、运动目标、撞击点、镜头跟随/推拉摇移转写成可控的 [L,T,W,H] 坐标提示词；生成 4K 场景运动轨迹图与黑白线稿 3x3 总分镜，输出带坐标控制的 Seedance 视频运镜提示词；适合动作、追逐、打斗、撞击等高速动作场面。"
+complete-tags-en:
+  - "Commercial Ad / Planning"
+  - "Animation / Planning"
+complete-tags-cn:
+  - "商业广告 / 计划制定"
+  - "动画 / 计划制定"
+author-en: "MiniMax Design"
+author-cn: "MiniMax Design"
+source: official
+cover: "https://cdn.hailuoai.com/hailuo-video-web/public_assets/500c4998-65ac-49a5-8518-dbbb18ce1138.mp4"
+structured-info:
+  zh-CN:
+    summary: 将动作、空间和镜头路径转成可检查的坐标化运镜分镜，帮助高速场面保持位置与运动逻辑。
+    best-for:
+      - 坐标运镜
+      - 动作分镜
+      - 空间控制
+    how-to-use: 提供场景、主体动作和镜头意图，先确认画面边界、运动目标与撞击节点。
+    outputs: 运动轨迹图、黑白分镜、坐标提示词与可执行的运镜方案。
+  en-US:
+    summary: Translate action, space, and camera paths into coordinate-based storyboards that preserve spatial and motion logic in fast scenes.
+    best-for:
+      - Coordinate Camera
+      - Action Storyboards
+      - Spatial Control
+    how-to-use: Provide the scene, subject action, and camera intent, then confirm frame boundaries, motion targets, and impact points.
+    outputs: A trajectory diagram, monochrome storyboard, coordinate prompts, and an executable camera plan.
