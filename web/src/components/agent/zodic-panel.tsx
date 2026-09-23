@@ -1,3 +1,4 @@
+import { zodiacPlanMessageAnchor } from "@/lib/agent/zodiac-plan-presentation";
 import { zodiacSessionWriteFence } from "@/lib/agent/zodiac-session-write-fence";
 import "./zodiac-interface.css";
 import { ZodiacGlyph } from "@/components/brand/zodiac-glyph";
@@ -109,7 +110,7 @@ type ZodicRecovery = {
     actionLabel: string;
     retryPrompt: string;
 };
-type ZodicItem = CanvasAgentChatMessage & { errorMessage?: string; activity?: ZodiacActivity[]; tool?: ZodicTool; run?: ZodiacRun; decision?: ZodicDecision; decisionProtocol?: string; recovery?: ZodicRecovery; workProcess?: string; skills?: ZodiacSkillAttachment[] };
+type ZodicItem = CanvasAgentChatMessage & { planIds?: string[]; errorMessage?: string; activity?: ZodiacActivity[]; tool?: ZodicTool; run?: ZodiacRun; decision?: ZodicDecision; decisionProtocol?: string; recovery?: ZodicRecovery; workProcess?: string; skills?: ZodiacSkillAttachment[] };
 type ActiveZodiacOperation = ZodiacActiveOperation<ZodicItem>;
 
 const MAX_ATTACHMENTS = 6;
@@ -159,6 +160,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         signal.addEventListener("abort", abort, { once: true });
         setApproval({ request, resolve: finish });
     });
+    const [displayedPlan, setDisplayedPlan] = useState<{ id: string; createdAt: number } | null>(null);
     const [stageRunning, setStageRunning] = useState(false);
     useEffect(() => {
         if (!projectId) return;
@@ -651,6 +653,8 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                         if (typeof args.expectedRevision !== "number") throw new Error("请先读取计划的当前版本。");
                         result = await mutateZodiacPlan({ planId: plan.id, expectedRevision: args.expectedRevision, requestId, ...(actor?.role === "planner" ? { plannerSessionId: actor.taskId } : {}), command: request.name === "hub_plan_patch_stage" ? { type: "write_stage", stage: await prepareStage(args.stage) } : { type: "replan", outline: args.outline as ZodiacStageOutline[], stage: await prepareStage(args.stage), reason: args.reason as string } });
                     }
+                    // Keep this stage card in the turn that authored it, through execution and later replies.
+                    setItems(current => current.map(item => item.id === assistantId ? { ...item, planIds: [...new Set([...(item.planIds || []), result.plan.id])] } : item));
                     structuredReply = true;
                     const stageId = zodiacPlanFrontier(result.plan)?.stage?.id;
                     if (planActionsRef.current) {
@@ -1026,12 +1030,32 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     useEffect(() => { markMediaReferencesChanged(); }, [attachments, items]);
 
     const pendingDecision = items.some((item) => item.decision?.status === "pending");
+    const planAnchor = zodiacPlanMessageAnchor(displayedPlan, items);
+    const planAnchorIndex = items.findIndex(item => item.id === planAnchor);
     const visibleItems = items.filter((item, index) => {
         if (item.run?.status === "error" && items[index + 1]?.role === "error") return false;
         if (item.run) return shouldShowZodiacRun(item.run) || !!item.activity?.length;
         if (item.role === "assistant" && !item.text.trim() && !item.workProcess?.trim() && !item.decision && !item.tool && !item.recovery) return false;
         return true;
     });
+
+    const changePrompt = (value: string) => {
+        setPrompt(value);
+        if (value.trim() && itemsRef.current.some(item => item.decision?.status === "pending")) {
+            controllerRef.current?.abort();
+            const next = itemsRef.current.map(item => item.decision?.status === "pending" ? { ...item, decision: { ...item.decision, status: "cancelled" as const, answerLabel: "已中断，等待调整" } } : item);
+            itemsRef.current = next;
+            setItems(next);
+        }
+    };
+    const visibleAnchor = visibleItems.filter(item => items.indexOf(item) <= planAnchorIndex).at(-1)?.id;
+    const planCard = canvasContext ? <ZodiacPlanPanel key="stage-plan" actionsRef={planActionsRef} projectId={sessionKey} sessionId={sessionRef.current.id} createContext={createHubContext} onRunningChange={setStageRunning} stopRef={stageStopRef} conversationBusy={sending} onPlanChange={setDisplayedPlan} onAdjust={title => changePrompt(`调整「${title}」：`)} onContinue={(planId, title) => void send(`继续已有计划「${title}」（planId: ${planId}），读取最新状态后规划下一阶段供我确认。`, "继续下一阶段")} /> : null;
+    const conversation = visibleItems.flatMap(item => {
+        const message = <div key={item.id} className="zodiac-enter"><ZodicConversationItem item={item} theme={theme} decisionDisabled={sending || applyingProposal} onTrace={() => setTraceOpen(true)} onResolve={resolveTool} onDecisionSubmit={submitDecision} onRecovery={(retryPrompt, actionLabel) => void send(retryPrompt, actionLabel)} /></div>;
+        return item.id === visibleAnchor ? [message, planCard] : [message];
+    });
+    // All keyed siblings stay in the same list: moving a card must not remount its executor.
+    if (!visibleAnchor) conversation.push(planCard);
 
     return (
         <div className="zodiac-panel flex min-h-0 flex-1 flex-col">
@@ -1056,23 +1080,9 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                             <p className="mt-4 text-xs leading-5" style={{ color: theme.node.muted }}>{directHint}</p>
                         )}
                     </div>
-                ) : (
-                    <div className="space-y-5">
-                        {visibleItems.map((item) => (
-                            <div key={item.id} className="zodiac-enter"><ZodicConversationItem
-                                item={item}
-                                theme={theme}
-                                decisionDisabled={sending || applyingProposal}
-                                onTrace={() => setTraceOpen(true)}
-                                onResolve={resolveTool}
-                                onDecisionSubmit={submitDecision}
-                                onRecovery={(retryPrompt, actionLabel) => void send(retryPrompt, actionLabel)}
-                            /></div>
-                        ))}
-                    </div>
-                )}
+                ) : null}
+                <div className="space-y-5">{conversation}</div>
                 {approval ? <div className="zodiac-enter mt-5" role="alertdialog" aria-label="工具审批"><AgentPendingToolCard minimal title={t("审批")} summary={zodiacToolLabel(approval.request.name)} children={<div><details><summary className="cursor-pointer text-xs">查看操作</summary><pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words text-xs">{toolApprovalSummary(approval.request, canvasContext?.getSnapshot())}</pre></details><Button type="link" size="small" onClick={() => setTraceOpen(true)}>查看轨迹</Button></div>} theme={theme} approveText="批准一次" rejectText="拒绝" onApprove={()=>approval.resolve(true)} onReject={()=>approval.resolve(false)} /></div> : null}
-                {canvasContext ? <ZodiacPlanPanel actionsRef={planActionsRef} projectId={sessionKey} sessionId={sessionRef.current.id} createContext={createHubContext} onRunningChange={setStageRunning} stopRef={stageStopRef} conversationBusy={sending} onAdjust={title => setPrompt(`调整「${title}」：`)} onContinue={(planId, title) => void send(`继续已有计划「${title}」（planId: ${planId}），读取最新状态后规划下一阶段供我确认。`, "继续下一阶段")} /> : null}
             </div>
             {awayFromLatest ? <div className="flex justify-center py-1"><Button size="small" shape="round" icon={<ZodiacGlyph name="send" className="size-3 rotate-180" />} onClick={scrollToLatest}>回到最新</Button></div> : null}
             {activeWorkflowRunId && !stageRunning ? (
@@ -1102,17 +1112,9 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 attachments={attachments}
                 disabled={!directReady || applyingProposal}
                 sending={sending || stageRunning}
-                placeholder={!directReady ? "先设置一个文本模型…" : applyingProposal ? "正在执行，可先写下下一条消息…" : pendingDecision ? t("Zodiac 该怎么调整？") : "描述你想做什么…"}
+                placeholder={!directReady ? "先设置一个文本模型…" : applyingProposal ? "正在执行，可先写下下一条消息…" : pendingDecision || items.at(-1)?.decision?.status === "cancelled" ? t("Zodiac 该怎么调整？") : "描述你想做什么…"}
                 theme={theme}
-                onPromptChange={value => {
-                    setPrompt(value);
-                    if (value.trim() && itemsRef.current.some(item => item.decision?.status === "pending")) {
-                        controllerRef.current?.abort();
-                        const next = itemsRef.current.map(item => item.decision?.status === "pending" ? { ...item, decision: { ...item.decision, status: "cancelled" as const, answerLabel: "已中断，等待调整" } } : item);
-                        itemsRef.current = next;
-                        setItems(next);
-                    }
-                }}
+                onPromptChange={changePrompt}
                 onSubmit={send}
                 onStop={() => { stageStopRef.current?.(); controllerRef.current?.abort(); }}
                 onAddFiles={addFiles}

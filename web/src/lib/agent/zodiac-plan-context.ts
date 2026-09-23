@@ -1,3 +1,4 @@
+import { zodiacStageExecutionState } from "./zodiac-plan-presentation.ts";
 import { zodiacPlanFrontier, type ZodiacStagePlan } from "./zodiac-stage-plan.ts";
 
 /** Model context is a projection; the persisted plan remains complete. */
@@ -8,7 +9,9 @@ export function zodiacPlanContext(plan: ZodiacStagePlan, args: Record<string, un
         plannerSessionId: plan.plannerSessionId, currentStageId: frontier?.outline.id,
         outline: plan.outline, view: "summary",
         stages: plan.stages.map(stage => ({ id: stage.id, goal: stage.contract.goal, review: stage.contract.review,
-            reviewPolicy: stage.runtime.reviewPolicy, status: stage.runtime.status, waitingReason: stage.runtime.waitingReason, blockedReason: stage.runtime.blockedReason,
+            reviewPolicy: stage.runtime.reviewPolicy, status: stage.runtime.status, waitingReason: stage.runtime.waitingReason, blockedReason: zodiacStageExecutionState(stage).error,
+            execution: zodiacStageExecutionState(stage),
+            nextAction: zodiacStageExecutionState(stage).needsReconciliation ? "请在会话的阶段卡点击「核对结果」，采用已有产物或确认任务已停止；无需重置画布。" : stage.runtime.status === "blocked" ? "可修改本阶段提示词或参数，重新提交后等待用户确认执行。" : undefined,
             itemCount: stage.contract.workItems.length,
             counts: Object.fromEntries(["pending", "running", "succeeded", "failed", "interrupted"].map(status => [status, Object.values(stage.runtime.items).filter(item => item.status === status).length])),
         })),

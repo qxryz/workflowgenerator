@@ -1,4 +1,5 @@
 import axios from "axios";
+import { GenerationError, generationErrorWithMessage } from "@/lib/generation-error";
 
 import { buildApiUrl, resolveModelRequestConfig, resolveModelScript, type AiConfig, type ModelChannel } from "@/stores/use-config-store";
 import { normalizePluginImages, runModelPlugin } from "./model-plugin";
@@ -207,7 +208,7 @@ function resolveArkRequestSize(quality: string | undefined, size: string, model:
 }
 
 async function postImageJson<T = ImageApiResponse>(config: AiConfig, url: string, body: Record<string, unknown>, options?: RequestOptions) {
-    return await postModelJson<T>(url, config.apiKey, body);
+    return await postModelJson<T>(url, config.apiKey, body, undefined, undefined, options?.signal);
 }
 
 function miniMaxBillingMode(config: AiConfig): MiniMaxBillingMode {
@@ -739,21 +740,21 @@ export async function requestGeneration(config: AiConfig, prompt: string, option
             });
             return normalizePluginImages(result).map((dataUrl) => ({ id: nanoid(), dataUrl }));
         } catch (error) {
-            throw new Error(readAxiosError(error, "请求失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
         }
     }
     if (isMiniMaxAdapter(requestConfig.adapter)) {
         try {
             return await requestMiniMaxImages(requestConfig, prompt, n, undefined, options);
         } catch (error) {
-            throw new Error(readAxiosError(error, "MiniMax 图片生成失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "MiniMax 图片生成失败"));
         }
     }
     if (requestConfig.apiFormat === "gemini") {
         try {
             return await requestGeminiImages(requestConfig, prompt, [], n, options);
         } catch (error) {
-            throw new Error(readAxiosError(error, "请求失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
         }
     }
     if (requestConfig.apiFormat === "xai") {
@@ -772,7 +773,7 @@ export async function requestGeneration(config: AiConfig, prompt: string, option
             );
             return parseImagePayload(response.data);
         } catch (error) {
-            throw new Error(readAxiosError(error, "Grok 图片生成失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "Grok 图片生成失败"));
         }
     }
     if (isOpenRouterRequest(requestConfig)) {
@@ -780,7 +781,7 @@ export async function requestGeneration(config: AiConfig, prompt: string, option
             const response = await postImageJson(requestConfig, aiApiUrl(requestConfig, "/images"), { model: requestConfig.model, prompt: withImagePromptPrefix(requestConfig, prompt), ...openRouterImageParameters(config, n) }, options);
             return parseImagePayload(response);
         } catch (error) {
-            throw new Error(readAxiosError(error, "OpenRouter 图片生成失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "OpenRouter 图片生成失败"));
         }
     }
     const quality = normalizeQuality(config.quality);
@@ -803,12 +804,12 @@ export async function requestGeneration(config: AiConfig, prompt: string, option
         const images = parseImagePayload(response);
         return images;
     } catch (error) {
-        throw new Error(readAxiosError(error, "请求失败"));
+        throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
     }
 }
 
 export async function requestEdit(config: AiConfig, prompt: string, references: ReferenceImage[], mask?: ReferenceImage, options?: RequestOptions) {
-    if (!references.length) throw new Error("图片编辑需要至少一张参考图，请重新连接或添加参考图片");
+    if (!references.length) throw new GenerationError("图片编辑需要至少一张参考图，请重新连接或添加参考图片");
     const requestConfig = resolveModelRequestConfig(config, config.model || config.imageModel);
     const n = Math.max(1, Math.min(15, Math.floor(Math.abs(Number(config.count)) || 1)));
     const requestPrompt = buildImageReferencePromptText(prompt, references);
@@ -831,17 +832,17 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
             });
             return normalizePluginImages(result).map((dataUrl) => ({ id: nanoid(), dataUrl }));
         } catch (error) {
-            throw new Error(readAxiosError(error, "请求失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
         }
     }
     if (isMiniMaxAdapter(requestConfig.adapter)) {
-        if (mask) throw new Error("MiniMax image-01 不支持蒙版编辑");
-        if (references.length !== 1) throw new Error("MiniMax image-01 人物参考需要且只支持 1 张参考图");
+        if (mask) throw new GenerationError("MiniMax image-01 不支持蒙版编辑");
+        if (references.length !== 1) throw new GenerationError("MiniMax image-01 人物参考需要且只支持 1 张参考图");
         try {
             const referenceImage = await imageToDataUrl(references[0]);
             return await requestMiniMaxImages(requestConfig, requestPrompt, n, referenceImage, options);
         } catch (error) {
-            throw new Error(readAxiosError(error, "MiniMax 人物参考生成失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "MiniMax 人物参考生成失败"));
         }
     }
     if (requestConfig.apiFormat === "gemini") {
@@ -849,7 +850,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
         try {
             return await requestGeminiImages(requestConfig, requestPrompt, references, n, options);
         } catch (error) {
-            throw new Error(readAxiosError(error, "请求失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
         }
     }
 
@@ -872,7 +873,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
             );
             return parseImagePayload(response.data);
         } catch (error) {
-            throw new Error(readAxiosError(error, "Grok 图片编辑失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "Grok 图片编辑失败"));
         }
     }
 
@@ -893,7 +894,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
             );
             return parseImagePayload(response);
         } catch (error) {
-            throw new Error(readAxiosError(error, "OpenRouter 图片编辑失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "OpenRouter 图片编辑失败"));
         }
     }
 
@@ -919,7 +920,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
             const response = await postImageJson(requestConfig, aiApiUrl(requestConfig, "/images/generations"), { model: requestConfig.model, prompt: withImagePromptPrefix(requestConfig, requestPrompt), image: refs, ...providerPayload }, options);
             return parseImagePayload(response);
         } catch (error) {
-            throw new Error(readAxiosError(error, "请求失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
         }
     }
 
@@ -951,7 +952,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
         const images = parseImagePayload(response.data);
         return images;
     } catch (error) {
-        throw new Error(readAxiosError(error, "请求失败"));
+        throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
     }
 }
 
@@ -1019,7 +1020,7 @@ export async function requestImageQuestion(config: AiConfig, messages: AiTextMes
             return text;
         } catch (error) {
             if (shouldFallbackToChatCompletions(requestConfig, error)) return requestCompatibleChatText(requestConfig, toCompatibleChatMessages(requestConfig, messages), onDelta, options);
-            throw new Error(readAxiosError(error, "请求失败"));
+            throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
         }
     }
     try {
@@ -1045,7 +1046,7 @@ export async function requestImageQuestion(config: AiConfig, messages: AiTextMes
         return answer;
     } catch (error) {
         if (shouldFallbackToChatCompletions(requestConfig, error)) return requestCompatibleChatText(requestConfig, toCompatibleChatMessages(requestConfig, messages), onDelta, options);
-        throw new Error(readAxiosError(error, "请求失败"));
+        throw generationErrorWithMessage(error, readAxiosError(error, "请求失败"));
     }
 }
 
@@ -1140,7 +1141,7 @@ export async function fetchImageModels(config: Pick<AiConfig, "baseUrl" | "apiKe
             .filter((id): id is string => Boolean(id))
             .sort((a, b) => a.localeCompare(b));
     } catch (error) {
-        throw new Error(readAxiosError(error, "读取模型失败"));
+        throw generationErrorWithMessage(error, readAxiosError(error, "读取模型失败"));
     }
 }
 

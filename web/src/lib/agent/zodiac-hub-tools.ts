@@ -1,3 +1,4 @@
+import { generationFailureCode } from "../generation-error.ts";
 /**
  * Hub 工具在浏览器侧的执行体。
  *
@@ -222,12 +223,13 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
         run = await context.runWorkflow([actionId], "guided", context.signal);
         context.signal?.throwIfAborted();
     } catch (error) {
+        if (generationFailureCode(error)) return { ok: false, error: error instanceof Error ? error.message : String(error), nodeId: slotId, actionNodeId: actionId };
         return { ok: false, error: `生成状态需要核对：${error instanceof Error ? error.message : String(error)}`, ...(submitted ? { requiresReconciliation: true as const, nodeId: slotId, actionNodeId: actionId } : {}) };
     }
     if (run.status === "error") {
         const failed = run.nodes.find((node) => node.status === "error");
-        // The runner also reports transport and persistence failures as "error".
-        // It does not expose proof that a remote submission never happened.
+        if (generationFailureCode(failed?.error)) return { ok: false, error: failed!.error!.message, nodeId: slotId, actionNodeId: actionId };
+        // Transport and persistence failures still require reconciliation before retry.
         return { ok: false, error: `生成状态需要核对：${failed?.error?.message || "执行或保存未完成核对，请检查画布中的运行状态。"}`, requiresReconciliation: true, nodeId: slotId, actionNodeId: actionId };
     }
     if (run.status === "stopped") return { ok: false, error: "生成已停止等待；远程任务状态仍需核对，不能直接重试。", requiresReconciliation: true, nodeId: slotId, actionNodeId: actionId };

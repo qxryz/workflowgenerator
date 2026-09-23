@@ -1,3 +1,5 @@
+import { GenerationError } from "./generation-error.ts";
+
 export type MiniMaxBillingMode = "token-plan" | "payg";
 export type MiniMaxCredentialKind = MiniMaxBillingMode | "unknown";
 export type MiniMaxNativeTask = "text" | "image" | "video-h3" | "video-hailuo" | "speech" | "voice-clone";
@@ -275,8 +277,8 @@ export type MiniMaxImageInput = {
 
 export function buildMiniMaxImageRequest(model: string, input: MiniMaxImageInput) {
     const prompt = input.prompt.trim();
-    if (!prompt) throw new Error("请输入图片提示词");
-    if (prompt.length > 1500) throw new Error("MiniMax 图片提示词不能超过 1500 个字符");
+    if (!prompt) throw new GenerationError("请输入图片提示词");
+    if (prompt.length > 1500) throw new GenerationError("MiniMax 图片提示词不能超过 1500 个字符");
     return {
         model: model || "image-01",
         prompt,

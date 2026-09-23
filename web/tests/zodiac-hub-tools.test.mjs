@@ -537,3 +537,13 @@ test("an invalid Seedream size is rejected before creating nodes or submitting g
     assert.equal(ctx.calls.applied.length, 0);
     assert.equal(ctx.calls.ran.length, 0);
 });
+
+test("明确的本地生成校验失败直接结束，网络或保存失败仍需核对", async () => {
+    for (const code of ["GENERATION_NOT_SUBMITTED", undefined]) {
+        const ctx = context({ runWorkflow: async () => ({ status: "error", nodes: [{ nodeId: "action", status: "error", error: { message: "提示词超出限制", code } }] }) });
+        const result = await executeHubTool({ name: "hub_generate_image", callId: "preflight", args: { prompt: "配图" } }, ctx);
+        assert.equal(result.ok, false);
+        assert.equal(result.requiresReconciliation, code ? undefined : true);
+        assert.match(result.error, /提示词超出限制/);
+    }
+});

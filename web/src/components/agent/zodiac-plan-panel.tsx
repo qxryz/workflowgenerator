@@ -1,3 +1,5 @@
+import { zodiacConfirmedCanvasFailures } from "@/lib/agent/zodiac-stage-reconciliation";
+import { zodiacStageExecutionState } from "@/lib/agent/zodiac-plan-presentation";
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Button, Drawer, Popconfirm, Select } from "antd";
 import { ZodiacGlyph } from "@/components/brand/zodiac-glyph";
@@ -29,6 +31,7 @@ export function ZodiacPlanPanel({
     sessionId,
     createContext,
     onRunningChange,
+    onPlanChange,
     stopRef,
     actionsRef,
     onContinue,
@@ -40,6 +43,7 @@ export function ZodiacPlanPanel({
     createContext: (signal: AbortSignal, operationNamespace: string, turnId?: string, ownerSessionId?: string) => HubExecutorContext;
     conversationBusy?: boolean;
     onRunningChange: (running: boolean) => void;
+    onPlanChange: (plan: { id: string; createdAt: number } | null) => void;
     stopRef: { current: (() => void) | null };
     actionsRef: { current: ZodiacPlanActions | null };
     onContinue: (planId: string, title: string) => void;
@@ -55,6 +59,7 @@ export function ZodiacPlanPanel({
     const [expanded, setExpanded] = useState(false);
     const [recovery, setRecovery] = useState<{ itemId: string; nodeId?: string; options: Array<{ value: string; label: string }> } | null>(null);
     const acting = useRef(false);
+    const reconciling = useRef(false);
     const controller = useRef<AbortController | null>(null);
     const epoch = useRef(0);
     const currentScope = `${projectId}:${sessionId}`;
@@ -95,6 +100,7 @@ export function ZodiacPlanPanel({
         };
     }, [currentScope]);
     const plan = plans.find((entry) => entry.id === selectedId) || plans.find((entry) => entry.sessionId === sessionId) || plans.find(entry => !entry.sessionId);
+    useEffect(() => { onPlanChange(plan ? { id: plan.id, createdAt: plan.createdAt } : null); }, [plan?.id, plan?.createdAt, onPlanChange]);
     const frontier = plan ? zodiacPlanFrontier(plan) : undefined;
     const stage = frontier?.stage;
     const update = (next: ZodiacStagePlan) => setPlans(current => current.some(entry => entry.id === next.id)
@@ -178,7 +184,7 @@ export function ZodiacPlanPanel({
         } finally {
             acting.current = false;
             if (scopeRef.current === originScope) {
-                setBusy(false);
+                setBusy(reconciling.current);
                 onRunningChange(false);
                 controller.current = null;
                 stopRef.current = null;
@@ -229,7 +235,10 @@ export function ZodiacPlanPanel({
         ) : null;
     const outline = plan.outline.filter((entry) => !entry.omitted);
     const completed = outline.filter((entry) => plan.stages.find((item) => item.id === entry.id)?.runtime.status === "done").length;
-    const executing = busy || stage?.runtime.status === "doing";
+    const execution = stage ? zodiacStageExecutionState(stage) : undefined;
+    const executing = busy || execution?.running;
+    const needsReconciliation = execution?.needsReconciliation;
+
     const stageActions = stage ? (
         <div className="flex flex-wrap gap-2">
             {stage.runtime.status === "ready" ? (
@@ -261,6 +270,38 @@ export function ZodiacPlanPanel({
             ) : null}
         </div>
     ) : null;
+    const adjustStage = async () => {
+        if (!stage || busy || conversationBusy || reconciling.current) return;
+        if (needsReconciliation) {
+            reconciling.current = true;
+            setBusy(true);
+            // Re-read before using persisted failure evidence; never infer that an unknown task stopped.
+            try {
+                let latest = await getZodiacPlan(plan.id);
+                if (scopeRef.current !== currentScope) return;
+                const context = createContext(new AbortController().signal, plan.id);
+                const failures = zodiacConfirmedCanvasFailures(latest, stage.id, context.getSnapshot().nodes);
+                for (const failure of failures) {
+                    const next = await act({ type: "resolve_item", stageId: stage.id, ...failure }, false, latest, { propagate: true });
+                    if (!next || scopeRef.current !== currentScope) return;
+                    latest = next;
+                }
+                update(latest);
+                const current = latest.stages.find(entry => entry.id === stage.id);
+                if (!current || !zodiacStageExecutionState(current).canEdit) {
+                    setExpanded(true);
+                    return;
+                }
+            } catch (reason) {
+                if (scopeRef.current === currentScope) setError(reason instanceof Error ? reason.message : "状态核对未完成，请重试。");
+                return;
+            } finally {
+                reconciling.current = false;
+                if (scopeRef.current === currentScope) setBusy(false);
+            }
+        }
+        onAdjust(frontier?.outline.title || plan.title);
+    };
     const ready = stage?.runtime.status === "ready";
     const waitingApproval = stage?.runtime.status === "waiting_user" && stage.runtime.waitingReason === "plan_review";
     const waitingResult = stage?.runtime.status === "waiting_user" && stage.runtime.waitingReason === "result_review";
@@ -273,12 +314,13 @@ export function ZodiacPlanPanel({
                     summary={executing ? `正在完成「${frontier?.outline.title}」` : waitingResult ? "内容已写入画布，请检查后继续。" : ready ? "文档已准备，可保存到画布。" : "确认后完成以下内容。"}
                     summaryMeta={`${stage.contract.workItems.length} 项内容`}
                     state={executing ? "running" : stage.runtime.status === "blocked" ? "failed" : "pending"}
-                    errorText={stage.runtime.blockedReason || error}
+                    errorText={t(error || execution?.error || "")}
                     approveText={ready ? "保存文档" : waitingResult ? "结果通过" : waitingApproval ? "确认执行" : "查看详情"}
+                    failureActionText={t(needsReconciliation ? "核对结果" : "仅重试未完成项")}
                     rejectText="继续调整"
-                    onApprove={conversationBusy || busy ? undefined : () => (ready ? void act({ type: "begin_documents", stageId: stage.id }, true) : waitingApproval ? void act({ type: "approve", stageId: stage.id }, true) : waitingResult ? void act({ type: "accept", stageId: stage.id }) : setExpanded(true))}
+                    onApprove={conversationBusy || busy ? undefined : () => (ready ? void act({ type: "begin_documents", stageId: stage.id }, true) : waitingApproval ? void act({ type: "approve", stageId: stage.id }, true) : waitingResult ? void act({ type: "accept", stageId: stage.id }) : stage.runtime.status === "blocked" && !needsReconciliation ? void act({ type: "retry", stageId: stage.id }, true) : setExpanded(true))}
                     disabled={conversationBusy || busy}
-                    onReject={conversationBusy || busy ? undefined : () => onAdjust(frontier?.outline.title || plan.title)}
+                    onReject={conversationBusy || busy ? undefined : () => void adjustStage()}
                 >
                     <ol className="space-y-3">
                         {stage.contract.workItems.slice(0, 4).map((item, index) => (
@@ -288,6 +330,7 @@ export function ZodiacPlanPanel({
                                 </span>
                                 <div className="min-w-0">
                                     <p className="font-medium">{item.title}</p>
+                                    {stage.contract.workItems.length > 1 && stage.runtime.items[item.id]?.error ? <p className="mt-1 break-words" style={{ color: theme.node.muted }}>{stage.runtime.items[item.id].error}</p> : null}
                                     {typeof item.args.model === "string" ? (
                                         <div style={{ color: theme.node.muted }}>
                                             {modelSelect(item)}

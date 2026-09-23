@@ -1,3 +1,5 @@
+import type { GenerationFailureCode } from "@/lib/generation-error";
+
 export type Position = {
     x: number;
     y: number;
@@ -67,6 +69,7 @@ export type CanvasResultSlotFailureVersion = CanvasResultSlotVersionBase & {
     status: "error";
     artifacts: [];
     errorDetails: string;
+    generationFailureCode?: GenerationFailureCode;
 };
 
 export type CanvasResultSlotVersion = CanvasResultSlotSuccessVersion | CanvasResultSlotFailureVersion;
@@ -84,6 +87,7 @@ export type CanvasNodeMetadata = {
     prompt?: string;
     status?: CanvasNodeStatus;
     errorDetails?: string;
+    generationFailureCode?: GenerationFailureCode;
     fontSize?: number;
     generationMode?: CanvasGenerationMode;
     generationType?: CanvasImageGenerationType;

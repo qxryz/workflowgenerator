@@ -1,3 +1,4 @@
+import { generationBatchError, generationFailureCode } from "@/lib/generation-error";
 import { deleteCanvasProjects } from "@/stores/canvas/use-canvas-store";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
@@ -3104,7 +3105,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                 if (!scene) return;
                 setRunningNodeId(nodeId);
                 const lease = startGenerationRequest(nodeId, nodeId, nodeId, runOptions?.attempt);
-                setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, prompt: scene, status: NODE_STATUS_LOADING, errorDetails: undefined } } : node)));
+                setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, prompt: scene, status: NODE_STATUS_LOADING, errorDetails: undefined, generationFailureCode: undefined } } : node)));
                 try {
                     const inputContext = runOptions?.generationContext || buildNodeGenerationContext(nodeId, nodesRef.current, connectionsRef.current, scene);
                     assertNodeGenerationContextSupported("image", inputContext);
@@ -3143,7 +3144,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
             const markSourceStatus = sourceNode?.type !== CanvasNodeType.Image && !editingTextNode;
             let pendingChildIds: string[] = [];
             if (markSourceStatus)
-                setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, ...(node.type === CanvasNodeType.Config ? {} : { prompt }), status: NODE_STATUS_LOADING, errorDetails: undefined } } : node)));
+                setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, ...(node.type === CanvasNodeType.Config ? {} : { prompt }), status: NODE_STATUS_LOADING, errorDetails: undefined, generationFailureCode: undefined } } : node)));
 
             try {
                 const inputContext = runOptions?.generationContext || buildNodeGenerationContext(nodeId, nodesRef.current, connectionsRef.current, contextPrompt);
@@ -3220,7 +3221,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                                       ? isConfigNode
                                           ? {
                                                 ...node,
-                                                metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined },
+                                                metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined, generationFailureCode: undefined },
                                             }
                                           : isEmptyImageNode
                                             ? {
@@ -3259,6 +3260,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                     let hasSuccess = false;
                     let hasFailure = false;
                     let firstError = "";
+                    const generationErrors: unknown[] = [];
                     await Promise.all(
                         targetIds.map(async (targetId) => {
                             const targetLease = targetLeaseById.get(targetId)!;
@@ -3301,6 +3303,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                                 if (isGenerationCanceled(error) || !isGenerationRequestCurrent(...leases)) return false;
                                 const errorDetails = error instanceof Error ? error.message : "生成失败";
                                 if (!firstError) firstError = errorDetails;
+                                generationErrors.push(error);
                                 hasFailure = true;
                                 setNodes((prev) => prev.map((node) => (node.id === targetId ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_ERROR, errorDetails } } : node)));
                             }
@@ -3311,6 +3314,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                     targetLeaseById.forEach((lease) => finishGenerationRequest(lease));
                     if (rootLease && !targetLeaseById.has(rootLease.targetNodeId) && rootLease.targetNodeId !== runLease.targetNodeId) finishGenerationRequest(rootLease);
                     if (!batchCurrent) return;
+                    if (hasFailure && !hasSuccess) throw generationBatchError(generationErrors);
                     if (hasFailure) {
                         if (!runOptions?.silent) message.error(hasSuccess ? "部分图片生成失败" : firstError || "生成失败");
                     }
@@ -3372,7 +3376,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                                   node.id === videoId
                                       ? { ...node, ...videoNode, metadata: { ...node.metadata, ...videoNode.metadata } }
                                       : node.id === nodeId && sourceNode?.type === CanvasNodeType.Config
-                                        ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined } }
+                                        ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined, generationFailureCode: undefined } }
                                         : node,
                               )
                             : [...prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_SUCCESS } } : node)), videoNode],
@@ -3470,7 +3474,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                                   node.id === audioId
                                       ? { ...node, ...audioNode, metadata: { ...node.metadata, ...audioNode.metadata } }
                                       : node.id === nodeId && sourceNode?.type === CanvasNodeType.Config
-                                        ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined } }
+                                        ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined, generationFailureCode: undefined } }
                                         : node,
                               )
                             : [...prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_SUCCESS } } : node)), audioNode],
@@ -3523,7 +3527,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                             node.id === declaredTextNode?.id
                                 ? { ...node, metadata: { ...node.metadata, ...childNodes[0]?.metadata } }
                                 : node.id === nodeId && isConfigNode
-                                  ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined } }
+                                  ? { ...node, metadata: { ...node.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined, generationFailureCode: undefined } }
                                   : node,
                         ),
                         ...childNodes.filter((node) => node.id !== declaredTextNode?.id),
@@ -3588,12 +3592,14 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                                           ...node.metadata,
                                           status: NODE_STATUS_ERROR,
                                           errorDetails,
+                                          generationFailureCode: generationFailureCode(error),
                                           ...(node.type === CanvasNodeType.Video && node.metadata?.videoTask ? { videoTask: { ...node.metadata.videoTask, state: "failed" as const, updatedAt: new Date().toISOString() } } : {}),
                                       },
                                   }
                             : node,
                     ),
                 );
+                if (runOptions?.silent) throw error;
             } finally {
                 finishGenerationRequest(runLease);
                 if (!hasCanvasGenerationRequestForRunningId(generationRequestsRef.current, nodeId)) setRunningNodeId((current) => (current === nodeId ? null : current));
@@ -3705,6 +3711,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                             ? appendResultSlotFailure(node, {
                                   id: failureId,
                                   errorDetails,
+                                  generationFailureCode: generationFailureCode(error),
                                   createdAt: new Date().toISOString(),
                                   sourceNodeId: nodeId,
                                   runId: options.runId,
@@ -3914,7 +3921,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
             const retryImages = retryReferenceImages || [];
 
             setRunningNodeId(node.id);
-            setNodes((prev) => prev.map((item) => (item.id === node.id ? { ...item, metadata: { ...item.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined } } : item)));
+            setNodes((prev) => prev.map((item) => (item.id === node.id ? { ...item, metadata: { ...item.metadata, status: NODE_STATUS_LOADING, errorDetails: undefined, generationFailureCode: undefined } } : item)));
             const lease = startGenerationRequest(node.id, sourceNode.id, node.id);
 
             try {

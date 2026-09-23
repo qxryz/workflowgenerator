@@ -61,6 +61,7 @@ export type AppendResultSlotSuccessInput = {
 export type AppendResultSlotFailureInput = {
     id: string;
     errorDetails: string;
+    generationFailureCode?: CanvasResultSlotFailureVersion["generationFailureCode"];
     createdAt?: string;
     sourceNodeId?: string;
     runId?: string;
@@ -94,6 +95,7 @@ export function createCanvasResultSlot(options: CreateCanvasResultSlotOptions): 
             storageKey: undefined,
             status: "idle",
             errorDetails: undefined,
+            generationFailureCode: undefined,
             role: "result-slot",
             advanceMode: options.advanceMode ?? "review",
             slotState: "empty",
@@ -146,6 +148,7 @@ export function setCanvasResultSlotState(node: CanvasNodeData, slotState: Canvas
             slotState,
             status,
             errorDetails: slotState === "error" ? errorDetails || slot.metadata.errorDetails || "生成失败" : undefined,
+            generationFailureCode: slotState === "error" ? slot.metadata.generationFailureCode : undefined,
         },
     };
 }
@@ -250,6 +253,7 @@ export function appendResultSlotFailure(node: CanvasNodeData, input: AppendResul
         status: "error",
         artifacts: [],
         errorDetails: input.errorDetails,
+        generationFailureCode: input.generationFailureCode,
         ...(input.createdAt ? { createdAt: input.createdAt } : {}),
         ...(input.sourceNodeId ? { sourceNodeId: input.sourceNodeId } : {}),
         ...(input.runId ? { runId: input.runId } : {}),
@@ -264,6 +268,7 @@ export function appendResultSlotFailure(node: CanvasNodeData, input: AppendResul
             slotState: "error",
             status: slot.metadata.currentResultVersionId ? "success" : "error",
             errorDetails: version.errorDetails,
+            generationFailureCode: version.generationFailureCode,
         },
     });
 }
@@ -312,7 +317,7 @@ export function deleteResultSlotVersion(node: CanvasNodeData, versionId: string)
         if (latestVersion?.status === "error") {
             return {
                 ...slot,
-                metadata: { ...slot.metadata, resultVersions: versions, status: "success", slotState: "error", errorDetails: latestVersion.errorDetails },
+                metadata: { ...slot.metadata, resultVersions: versions, status: "success", slotState: "error", errorDetails: latestVersion.errorDetails, generationFailureCode: latestVersion.generationFailureCode },
             };
         }
         const current = versions.find((version): version is CanvasResultSlotSuccessVersion => version.status === "success" && version.id === slot.metadata.currentResultVersionId);
@@ -423,6 +428,7 @@ function applySuccessfulVersion(slot: CanvasResultSlotNode, version: CanvasResul
             composerContent: undefined,
             status: "success",
             errorDetails: undefined,
+            generationFailureCode: undefined,
             slotState: "ready",
             currentResultVersionId: version.id,
         },
@@ -461,6 +467,7 @@ function clearResultSlotOutput(slot: CanvasResultSlotNode, failure?: CanvasResul
             slotState: failure ? "error" : "empty",
             status: failure ? "error" : "idle",
             errorDetails: failure?.errorDetails,
+            generationFailureCode: failure?.generationFailureCode,
         },
     };
 }

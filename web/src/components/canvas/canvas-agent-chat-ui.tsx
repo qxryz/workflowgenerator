@@ -99,6 +99,7 @@ export function AgentPendingToolCard({
     state = "pending",
     title = "确认下一步",
     approveText = "继续",
+    failureActionText,
     rejectText = "调整方案",
     errorText,
     summaryMeta,
@@ -119,6 +120,7 @@ export function AgentPendingToolCard({
     state?: "pending" | "running" | "failed";
     title?: string;
     approveText?: string;
+    failureActionText?: string;
     rejectText?: string;
     errorText?: string;
     summaryMeta?: string;
@@ -128,7 +130,7 @@ export function AgentPendingToolCard({
     onApprove?: () => void;
 }) {
     if (minimal) {
-        const approve = <Button size="small" type={danger ? "default" : "primary"} danger={danger} disabled={disabled} onClick={confirmationText ? undefined : onApprove}>{state === "failed" ? "重试" : approveText}</Button>;
+        const approve = <Button size="small" type={danger ? "default" : "primary"} danger={danger} disabled={disabled} onClick={confirmationText ? undefined : onApprove}>{state === "failed" ? failureActionText || "重试" : approveText}</Button>;
         return <section className="zodiac-enter min-w-0 border-l-2 py-1 pl-3" style={{ borderColor: theme.node.stroke, color: theme.node.text }}>
             <div className="flex items-center gap-2 text-xs font-medium"><ZodiacGlyph name={state === "failed" || danger ? "alert" : "check"} className="size-3.5 opacity-60" /><span>{state === "failed" ? "未完成" : state === "running" ? "执行中" : title}</span></div>
             <p className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs leading-5" style={{ color: theme.node.muted }}>{state === "failed" && errorText ? errorText : summary}{summaryMeta ? <span className="ml-2 opacity-60">{summaryMeta}</span> : null}</p>
@@ -199,7 +201,7 @@ export function AgentPendingToolCard({
                                     style={danger ? { background: "transparent" } : { borderColor: "rgba(22,163,74,.42)", color: "#16a34a", background: "transparent" }}
                                     onClick={confirmationText ? undefined : () => onApprove()}
                                 >
-                                    {state === "failed" ? "重新尝试" : approveText}
+                                    {state === "failed" ? failureActionText || "重新尝试" : approveText}
                                 </Button>
                             );
                             return confirmationText ? (

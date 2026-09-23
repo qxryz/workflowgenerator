@@ -46,7 +46,7 @@ test("image service and native workbench keep MiniMax generation and character-r
     // 服务端模型响应上限 16MB，base64 图片会超限；统一返回 URL 后由服务端下载入库。
     assert.match(imageServiceSource, /responseFormat: "url"/u);
     assert.match(imageServiceSource, /references\.length !== 1/u);
-    assert.match(imageServiceSource, /if \(mask\) throw new Error\("MiniMax image-01 不支持蒙版编辑"\)/u);
+    assert.match(imageServiceSource, /if \(mask\) throw new GenerationError\("MiniMax image-01 不支持蒙版编辑"\)/u);
     assert.match(imagePanelSource, /experience === "minimax-image"[\s\S]*?人物参考[\s\S]*?不支持蒙版/u);
     assert.match(imagePanelSource, /experience === "seedream-image" \|\| experience === "minimax-image"[\s\S]*?<CreatorSwitch label="添加水印"/u);
     assert.match(imagePageSource, /imageExperience === "minimax-image" \? 1/u);
