@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Button, Drawer, Popconfirm, Select } from "antd";
 import { Check } from "lucide-react";
 import { AgentPendingToolCard } from "@/components/canvas/canvas-agent-chat-ui";
@@ -7,12 +7,19 @@ import { canvasThemes } from "@/lib/canvas-theme";
 import { useThemeStore } from "@/stores/use-theme-store";
 import { executeHubTool, type HubExecutorContext } from "@/lib/agent/zodiac-hub-tools";
 import { executeZodiacStage, prepareZodiacStageRecovery, validateZodiacStageInput, zodiacStageRecoveryOutput } from "@/lib/agent/zodiac-stage-execution";
-import { zodiacPlanFrontier, type ZodiacPlanCommand, type ZodiacStagePlan } from "@/lib/agent/zodiac-stage-plan";
-import { listZodiacPlans, mutateZodiacPlan } from "@/services/server-storage";
+import { zodiacPlanFrontier, type ZodiacPlanCommand, type ZodiacPlanEvidence, type ZodiacStagePlan } from "@/lib/agent/zodiac-stage-plan";
+import { getZodiacPlan, listZodiacPlans, mutateZodiacPlan } from "@/services/server-storage";
 import { createZodiacToolDispatcher } from "@/lib/agent/zodiac-agent-policy";
 import { nativeTools } from "@/services/api/zodic";
 import { resolveZodiacExecutionSource } from "@/services/api/zodiac-transport";
 import { flushAppState } from "@/services/app-lifecycle";
+
+import { resolveZodiacPlanConfirmation } from "@/lib/agent/zodiac-plan-confirmation";
+
+export type ZodiacPlanActions = {
+    confirm: (text: string, messageId: string, otherPending: boolean, onConfirmed: () => Promise<void>) => Promise<string | null>;
+    deliverDocuments: (plan: ZodiacStagePlan, signal: AbortSignal) => Promise<ZodiacStagePlan>;
+};
 
 const itemLabels = { pending: "待执行", running: "执行中", succeeded: "已完成", failed: "未完成", interrupted: "待核对" };
 
@@ -22,6 +29,7 @@ export function ZodiacPlanPanel({
     createContext,
     onRunningChange,
     stopRef,
+    actionsRef,
     onContinue,
     onAdjust,
     conversationBusy = false,
@@ -32,6 +40,7 @@ export function ZodiacPlanPanel({
     conversationBusy?: boolean;
     onRunningChange: (running: boolean) => void;
     stopRef: { current: (() => void) | null };
+    actionsRef: { current: ZodiacPlanActions | null };
     onContinue: (planId: string, title: string) => void;
     onAdjust: (stageTitle: string) => void;
 }) {
@@ -43,6 +52,7 @@ export function ZodiacPlanPanel({
     const [error, setError] = useState("");
     const [expanded, setExpanded] = useState(false);
     const [recovery, setRecovery] = useState<{ itemId: string; nodeId?: string; options: Array<{ value: string; label: string }> } | null>(null);
+    const acting = useRef(false);
     const controller = useRef<AbortController | null>(null);
     const epoch = useRef(0);
     const currentScope = `${projectId}:${sessionId}`;
@@ -52,7 +62,10 @@ export function ZodiacPlanPanel({
         const token = epoch.current;
         try {
             const next = await listZodiacPlans(projectId);
-            if (token === epoch.current) setPlans(next);
+            if (token === epoch.current) setPlans(current => next.filter(plan => !plan.sessionId || plan.sessionId === sessionId).map(plan => {
+                const local = current.find(entry => entry.id === plan.id);
+                return local && local.revision > plan.revision ? local : plan;
+            }));
         } catch (reason) {
             if (token === epoch.current) setError(reason instanceof Error ? reason.message : "计划读取失败");
         }
@@ -79,69 +92,89 @@ export function ZodiacPlanPanel({
             window.removeEventListener("zodiac-plans-changed", changed);
         };
     }, [currentScope]);
-    const plan = plans.find((entry) => entry.id === selectedId) || plans.find((entry) => entry.sessionId === sessionId);
+    const plan = plans.find((entry) => entry.id === selectedId) || plans.find((entry) => entry.sessionId === sessionId) || plans.find(entry => !entry.sessionId);
     const frontier = plan ? zodiacPlanFrontier(plan) : undefined;
     const stage = frontier?.stage;
-    const update = (next: ZodiacStagePlan) => setPlans((current) => current.map((entry) => (entry.id === next.id ? next : entry)));
-    const act = async (input: ZodiacPlanCommand | (() => Promise<ZodiacPlanCommand>), execute = false) => {
-        if (!plan || busy || conversationBusy) return;
+    const update = (next: ZodiacStagePlan) => setPlans(current => current.some(entry => entry.id === next.id)
+        ? current.map(entry => entry.id === next.id && entry.revision <= next.revision ? next : entry)
+        : [...current, next]);
+    const act = async (input: ZodiacPlanCommand | (() => Promise<ZodiacPlanCommand>), execute = false, target = plan, options: { evidence?: ZodiacPlanEvidence; signal?: AbortSignal; internal?: boolean; propagate?: boolean } = {}): Promise<ZodiacStagePlan | undefined> => {
+        if (!target || acting.current || (conversationBusy && !options.internal)) {
+            if (options.propagate) throw new Error("当前任务尚未结束，请稍后继续。");
+            return;
+        }
+        if ((target.sessionId && target.sessionId !== sessionId) || target.projectId !== projectId) throw new Error("计划不属于当前会话。");
+        const plan = target;
+        acting.current = true;
         const originScope = currentScope;
         setBusy(true);
         setError("");
         try {
             const command = typeof input === "function" ? await input() : input;
             if (scopeRef.current !== originScope) return;
-            const reply = await mutateZodiacPlan({ planId: plan.id, expectedRevision: plan.revision, requestId: crypto.randomUUID(), command });
+            options.signal?.throwIfAborted();
+            const reply = await mutateZodiacPlan({ planId: plan.id, expectedRevision: plan.revision,
+                requestId: command.type === "begin_documents" ? `documents:${plan.revision}` : crypto.randomUUID(), command,
+                ...(command.type === "begin_documents" ? {} : { evidence: options.evidence || { source: "button", sessionId } }),
+            });
             if (scopeRef.current !== originScope) return;
             update(reply.plan);
             if (execute || command.type === "accept") setExpanded(false);
             setRecovery(null);
             if (execute && "stageId" in command) {
                 const abort = new AbortController();
+                const stop = () => abort.abort();
+                options.signal?.addEventListener("abort", stop, { once: true });
+                if (options.signal?.aborted) abort.abort();
                 controller.current = abort;
                 stopRef.current = () => abort.abort();
                 onRunningChange(true);
-                const approvedStage = reply.plan.stages.find((entry) => entry.id === command.stageId)!;
-                const context = createContext(abort.signal, plan.id, approvedStage.runtime.attemptId, plan.sessionId || sessionId);
-                const dispatcher = createZodiacToolDispatcher({
-                    context: {
-                        role: "executor",
-                        taskId: approvedStage.runtime.attemptId!,
-                        rootSessionId: plan.sessionId || sessionId,
-                        planId: plan.id,
+                try {
+                    const approvedStage = reply.plan.stages.find((entry) => entry.id === command.stageId)!;
+                    const context = createContext(abort.signal, plan.id, approvedStage.runtime.attemptId, plan.sessionId || sessionId);
+                    const dispatcher = createZodiacToolDispatcher({
+                        context: {
+                            role: "executor",
+                            taskId: approvedStage.runtime.attemptId!,
+                            rootSessionId: plan.sessionId || sessionId,
+                            planId: plan.id,
+                            stageId: command.stageId,
+                            source: await resolveZodiacExecutionSource(),
+                            signal: abort.signal,
+                            approvedTools: approvedStage.contract.workItems.map((item) => item.tool),
+                        },
+                        tools: nativeTools,
+                        execute: (request) => executeHubTool(request, context),
+                    });
+                    return await executeZodiacStage({
+                        plan: reply.plan,
                         stageId: command.stageId,
-                        source: await resolveZodiacExecutionSource(),
                         signal: abort.signal,
-                        approvedTools: approvedStage.contract.workItems.map((item) => item.tool),
-                    },
-                    tools: nativeTools,
-                    execute: (request) => executeHubTool(request, context),
-                });
-                await executeZodiacStage({
-                    plan: reply.plan,
-                    stageId: command.stageId,
-                    signal: abort.signal,
-                    mutate: mutateZodiacPlan,
-                    executeTool: async (request) => {
-                        const result = await dispatcher.dispatch(request);
-                        return result.ok ? { ok: true, result: result.result } : result;
-                    },
-                    validateInput: (output, sourceItem) => validateZodiacStageInput(output, sourceItem, context.getSnapshot().nodes),
-                    persistOutput: async (output) => {
-                        if (!context.getSnapshot().nodes.some((node) => node.id === output.nodeId)) throw new Error("结果尚未写入画布。");
-                        await flushAppState();
-                    },
-                    onPlan: (next) => {
-                        if (scopeRef.current === originScope) update(next);
-                    },
-                });
+                        mutate: mutateZodiacPlan,
+                        executeTool: async (request) => {
+                            const result = await dispatcher.dispatch(request);
+                            return result.ok ? { ok: true, result: result.result } : result;
+                        },
+                        validateInput: (output, sourceItem) => validateZodiacStageInput(output, sourceItem, context.getSnapshot().nodes),
+                        persistOutput: async (output) => {
+                            if (!context.getSnapshot().nodes.some((node) => node.id === output.nodeId)) throw new Error("结果尚未写入画布。");
+                            await flushAppState();
+                        },
+                        onPlan: (next) => {
+                            if (scopeRef.current === originScope) update(next);
+                        },
+                    });
+                } finally { options.signal?.removeEventListener("abort", stop); }
             }
+            return reply.plan;
         } catch (reason) {
             if (scopeRef.current === originScope) {
                 setError(reason instanceof Error ? reason.message : "操作未完成");
                 await refresh();
             }
+            if (options.propagate) throw reason;
         } finally {
+            acting.current = false;
             if (scopeRef.current === originScope) {
                 setBusy(false);
                 onRunningChange(false);
@@ -150,6 +183,32 @@ export function ZodiacPlanPanel({
             }
         }
     };
+    useImperativeHandle(actionsRef, () => ({
+        confirm: async (text, messageId, otherPending, onConfirmed) => {
+            const resolved = resolveZodiacPlanConfirmation(text, plans, sessionId, otherPending);
+            if (resolved.kind === "none") return null;
+            if (resolved.kind === "ambiguous") return t(resolved.message);
+            const latest = await getZodiacPlan(resolved.plan.id);
+            if (latest.revision !== resolved.plan.revision) {
+                await refresh();
+                return t("计划已更新，请查看最新内容后重新确认。");
+            }
+            // Persist the actual user message before it authorizes any stage work.
+            await onConfirmed();
+            const next = await act(resolved.command, resolved.command.type !== "accept", resolved.plan, {
+                evidence: { source: "chat", sessionId, messageId, text }, propagate: true,
+            });
+            if (!next) return "阶段状态已变化，请查看计划后继续。";
+            const stage = next.stages.find(stage => stage.id === resolved.command.stageId);
+            return t(resolved.command.type === "accept" ? "已确认阶段结果。" : stage?.runtime.status === "blocked"
+                ? "部分内容尚未完成，请查看计划中的结果。" : "本阶段内容已保存到画布。");
+        },
+        deliverDocuments: async (target, signal) => {
+            const stage = zodiacPlanFrontier(target)?.stage;
+            if (stage?.runtime.status !== "ready") return target;
+            return await act({ type: "begin_documents", stageId: stage.id }, true, target, { internal: true, signal, propagate: true }) || target;
+        },
+    }));
     if (!plan)
         return error ? (
             <div role="alert" className="px-4 py-2 text-xs text-red-600">
@@ -161,6 +220,9 @@ export function ZodiacPlanPanel({
     const executing = busy || stage?.runtime.status === "doing";
     const stageActions = stage ? (
         <div className="flex flex-wrap gap-2">
+            {stage.runtime.status === "ready" ? (
+                <Button type="primary" loading={busy} disabled={conversationBusy} onClick={() => void act({ type: "begin_documents", stageId: stage.id }, true)}>{t("保存文档")}</Button>
+            ) : null}
             {stage.runtime.status === "waiting_user" && stage.runtime.waitingReason === "plan_review" ? (
                 <Button type="primary" loading={busy} disabled={conversationBusy} onClick={() => void act({ type: "approve", stageId: stage.id }, true)}>
                     {t("确认并执行本阶段")}
@@ -187,6 +249,7 @@ export function ZodiacPlanPanel({
             ) : null}
         </div>
     ) : null;
+    const ready = stage?.runtime.status === "ready";
     const waitingApproval = stage?.runtime.status === "waiting_user" && stage.runtime.waitingReason === "plan_review";
     const waitingResult = stage?.runtime.status === "waiting_user" && stage.runtime.waitingReason === "result_review";
     return (
@@ -195,13 +258,13 @@ export function ZodiacPlanPanel({
                 <AgentPendingToolCard
                     theme={theme}
                     title={waitingResult ? "这一步的结果可以吗？" : frontier?.outline.title || plan.title}
-                    summary={executing ? `正在完成「${frontier?.outline.title}」` : waitingResult ? "内容已写入画布，请检查后继续。" : "确认后完成以下内容。"}
+                    summary={executing ? `正在完成「${frontier?.outline.title}」` : waitingResult ? "内容已写入画布，请检查后继续。" : ready ? "文档已准备，可保存到画布。" : "确认后完成以下内容。"}
                     summaryMeta={`${stage.contract.workItems.length} 项内容`}
                     state={executing ? "running" : stage.runtime.status === "blocked" ? "failed" : "pending"}
                     errorText={stage.runtime.blockedReason || error}
-                    approveText={waitingResult ? "结果通过" : waitingApproval ? "确认执行" : "查看详情"}
+                    approveText={ready ? "保存文档" : waitingResult ? "结果通过" : waitingApproval ? "确认执行" : "查看详情"}
                     rejectText="继续调整"
-                    onApprove={conversationBusy || busy ? undefined : () => (waitingApproval ? void act({ type: "approve", stageId: stage.id }, true) : waitingResult ? void act({ type: "accept", stageId: stage.id }) : setExpanded(true))}
+                    onApprove={conversationBusy || busy ? undefined : () => (ready ? void act({ type: "begin_documents", stageId: stage.id }, true) : waitingApproval ? void act({ type: "approve", stageId: stage.id }, true) : waitingResult ? void act({ type: "accept", stageId: stage.id }) : setExpanded(true))}
                     disabled={conversationBusy || busy}
                     onReject={conversationBusy || busy ? undefined : () => onAdjust(frontier?.outline.title || plan.title)}
                 >

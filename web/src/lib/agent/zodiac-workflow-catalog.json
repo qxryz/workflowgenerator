@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "sharedContract": "沿用已经确认的模型、数量、语言、画幅与引用版本。大纲的 workflowStageId 使用当前流程提供的阶段 ID；每次只编写当前阶段，未来阶段保留大纲。文档工作项提供完整正文，应用保存到画布后才算交付；不要重复写一份。新增文档通常只审核结果，媒体生成先审核具体模型、数量和输入，再审核结果。检查清单描述检查内容，不授予执行权限。已有成果优先复用，只重试失败项。没有后期能力时交付镜头与说明，不能声称已合成成片。",
+  "workflows": [
+    {
+      "id": "drama-series", "name": "剧情短片", "description": "剧本、角色场景、分镜与连续镜头",
+      "contract": "已有剧本先保留原文、角色关系和指定台词，用户未要求改编时不要重写。多集资料先确定本次集数与制作范围。角色、场景、分镜与镜头使用稳定名称和来源引用；每个镜头同时引用主角色资料及适用场景，前一镜头只能补充连续动作。用户指定不要字幕时不得把台词写成画面文字。",
+      "stages": [
+        { "id": "script", "title": "剧本与制作范围", "documentBeforeReview": false, "resultReview": true, "guidance": "读取完整来源，记录本次范围、必须保留的对白及允许改动。交付完整剧本或忠实的制作范围文档；不要用梗概代替已有正文。" },
+        { "id": "references", "title": "角色与场景资料", "documentBeforeReview": false, "resultReview": true, "guidance": "优先复用用户素材，分别记录身份、服饰、场景及风格用途。只有确实缺少的视觉素材才安排生成，具体模型、数量和参考写进合同。" },
+        { "id": "storyboard", "title": "分镜", "documentBeforeReview": false, "resultReview": true, "guidance": "交付完整镜头表：镜头编号、角色与场景、动作、机位、时长、原文对白、声音、输入引用及连续性要求。人物身份与服饰保留明确特征；检查镜头时长之和与制作范围。" },
+        { "id": "shots", "title": "镜头制作", "documentBeforeReview": true, "resultReview": true, "guidance": "每个工作项对应明确镜头，使用已经审核的提示词与素材版本。身份参考和首尾帧不能混用；没有真实结果节点时用 inputItemIds 表达依赖。失败镜头单独重试，保留已成功镜头。" },
+        { "id": "delivery", "title": "成果检查", "documentBeforeReview": false, "resultReview": false, "guidance": "依据真实回执汇总镜头、顺序、已检查项目及缺口。仅有元数据时不能声称核验人物一致或声音内容。交付可用素材与剪辑说明，未合成则明确交付为镜头素材。" }
+      ]
+    },
+    {
+      "id": "ad-tvc", "name": "广告视频", "description": "产品创意、文案、视觉素材与镜头制作",
+      "contract": "产品事实、外观和品牌文字以用户资料为准，不编造功效、价格或认证。沿用目标受众、时长和品牌约束；产品主参考、风格和构图分开标记。每个生成镜头都明确模型、数量、时长与输入，避免把已确认文案再改写一遍。",
+      "stages": [
+        { "id": "copy", "title": "创意与文案", "documentBeforeReview": false, "resultReview": true, "guidance": "读取产品资料，写完整文案和镜头说明，标明有来源的事实与待确认信息。" },
+        { "id": "references", "title": "产品与视觉参考", "documentBeforeReview": false, "resultReview": true, "guidance": "复用真实产品图与品牌素材，保留产品形状和文字；缺素材时只安排必要的生成项。" },
+        { "id": "shots", "title": "镜头制作", "documentBeforeReview": true, "resultReview": true, "guidance": "按已确认文案与镜头表制作，产品身份与风格参考分别绑定，保留成功镜头。" },
+        { "id": "delivery", "title": "成果检查", "documentBeforeReview": false, "resultReview": false, "guidance": "逐项列出实际素材、使用顺序与尚缺的后期步骤；不凭生成成功宣称品牌文字已准确。" }
+      ]
+    },
+    {
+      "id": "mv", "name": "音乐视频", "description": "根据已有音乐规划视觉与镜头",
+      "contract": "使用已有音乐或用户提供的节奏资料。文字歌词不等于听过音频，真实音乐时长决定时间轴。当前音乐生成和统一后期未接入，语音合成不能充当音乐。",
+      "stages": [
+        { "id": "concept", "title": "音乐与视觉方案", "documentBeforeReview": false, "resultReview": true, "guidance": "记录音乐来源、已知时长、段落与视觉方案；无法分析的节拍明确为待核对。" },
+        { "id": "references", "title": "风格及人物参考", "documentBeforeReview": false, "resultReview": true, "guidance": "绑定人物和风格主参考，只有缺失且必要的素材才生成。" },
+        { "id": "shots", "title": "镜头制作", "documentBeforeReview": true, "resultReview": true, "guidance": "按已核对的时间段制作镜头，稳定人物身份，保留已成功产物。" },
+        { "id": "delivery", "title": "成果检查", "documentBeforeReview": false, "resultReview": false, "guidance": "交付真实镜头清单与音乐对齐说明，未剪辑时不得称为完整 MV。" }
+      ]
+    },
+    {
+      "id": "custom", "name": "自定义创作", "description": "按任务依赖组织文档、图片、视频或语音",
+      "contract": "使用最少必要阶段。独立生成或单图编辑走直接操作；复杂任务分开保存完整文档、参考和生成工作项。",
+      "stages": [
+        { "id": "content", "title": "内容方案", "documentBeforeReview": false, "resultReview": true, "guidance": "写出完整内容，保留用户原文和指定语言，避免增加未要求的创作范围。" },
+        { "id": "production", "title": "素材制作", "documentBeforeReview": true, "resultReview": true, "guidance": "列出实际模型、参数、数量与用途，先确认再执行，重复尝试复用成功结果。" },
+        { "id": "delivery", "title": "成果检查", "documentBeforeReview": false, "resultReview": false, "guidance": "基于保存回执汇总成果和缺口，只声明真正完成的检查。" }
+      ]
+    }
+  ]
+}

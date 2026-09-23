@@ -16,6 +16,9 @@ use std::{
     time::{SystemTime, UNIX_EPOCH},
 };
 
+#[path = "zodiac_plan_review.rs"]
+mod review;
+
 type Result<T> = std::result::Result<T, Error>;
 #[derive(Debug)]
 struct Error(StatusCode, String);
@@ -153,6 +156,7 @@ fn validate_outline(outline: &Value) -> Result<()> {
         if text(entry, "title")?.len() > 240 {
             return Err(invalid("阶段标题过长"));
         }
+        if entry.get("workflowStageId").is_some() { id(entry, "workflowStageId")?; }
         if entry.get("omitted").is_some_and(|v| !v.is_boolean()) {
             return Err(invalid("omitted 必须是布尔值"));
         }
@@ -284,8 +288,8 @@ fn validate_draft(plan: &Value, draft: &Value) -> Result<()> {
 }
 fn new_stage(draft: &Value, old: Option<&Value>) -> Value {
     let mut items = serde_json::Map::new();
-    let same_context =
-        old.is_some_and(|old| old["contract"]["review"] == draft["contract"]["review"]);
+    // Review wording does not change an already saved creative result.
+    let same_context = old.is_some();
     let mut changed = HashSet::new();
     for item in draft["contract"]["workItems"].as_array().unwrap() {
         let key = item["id"].as_str().unwrap();
@@ -355,7 +359,7 @@ fn create(conn: &mut Connection, input: Value) -> Result<Value> {
     text(&input, "title")?;
     id(&input, "workflowId")?;
     validate_outline(&input["outline"])?;
-    let mut plan = json!({"version":1,"id":plan_id,"projectId":input["projectId"],"title":input["title"],"workflowId":input["workflowId"],"revision":1,"outline":input["outline"],"stages":[],"createdAt":now(),"updatedAt":now()});
+    let mut plan = json!({"version":2,"id":plan_id,"projectId":input["projectId"],"title":input["title"],"workflowId":input["workflowId"],"revision":1,"outline":input["outline"],"stages":[],"createdAt":now(),"updatedAt":now()});
     if let Some(session) = input.get("sessionId") {
         id(&input, "sessionId")?;
         plan["sessionId"] = session.clone();
@@ -369,10 +373,9 @@ fn create(conn: &mut Connection, input: Value) -> Result<Value> {
     if frontier(&plan).as_deref() != draft["id"].as_str() {
         return Err(invalid("必须先编写首个未略过阶段"));
     }
-    plan["stages"]
-        .as_array_mut()
-        .unwrap()
-        .push(new_stage(draft, None));
+    let mut stage = new_stage(draft, None);
+    review::initialize(&plan, draft, &mut stage)?;
+    plan["stages"].as_array_mut().unwrap().push(stage);
     let reply = persist(&tx, &plan, &request_id, &hash, None)?;
     tx.commit().map_err(db)?;
     Ok(reply)
@@ -440,6 +443,7 @@ fn validate_output(
         if !key.starts_with(&format!("{expected_type}:"))
             || node["metadata"]["storageKey"] != key
             || node["metadata"]["status"] != "success"
+            || node["metadata"]["currentResultVersionId"] != output["resultVersionId"]
         {
             return Err(invalid("生成产物尚未就绪或与回执不符"));
         }
@@ -458,7 +462,7 @@ fn mutate(conn: &mut Connection, input: Value, lane: &str) -> Result<Value> {
     let kind = text(command, "type")?;
     let allowed = match lane {
         "author" => ["write_stage", "replan"].as_slice(),
-        "execute" => ["claim_item", "record_item", "finish"].as_slice(),
+        "execute" => ["begin_documents", "claim_item", "record_item", "finish"].as_slice(),
         _ => ["approve", "accept", "retry", "cancel", "resolve_item"].as_slice(),
     };
     if !allowed.contains(&kind) {
@@ -481,6 +485,7 @@ fn mutate(conn: &mut Connection, input: Value, lane: &str) -> Result<Value> {
         }
         plan["plannerSessionId"] = json!(planner);
     }
+    review::evidence(&tx, &plan, &input, kind)?;
     let mut claim = None;
     if kind == "write_stage" || kind == "replan" {
         let current = frontier(&plan).ok_or_else(|| conflict("计划已完成，不能重写已接受阶段"))?;
@@ -551,7 +556,8 @@ fn mutate(conn: &mut Connection, input: Value, lane: &str) -> Result<Value> {
         }
         plan["retiredOutputs"] = json!(retired);
         let old = old.as_ref().filter(|old| old["id"] == draft["id"]);
-        let stage = new_stage(draft, old);
+        let mut stage = new_stage(draft, old);
+        review::initialize(&plan, draft, &mut stage)?;
         let stages = plan["stages"].as_array_mut().unwrap();
         if let Some(index) = stages.iter().position(|s| s["id"] == stage["id"]) {
             stages[index] = stage;
@@ -573,8 +579,13 @@ fn mutate(conn: &mut Connection, input: Value, lane: &str) -> Result<Value> {
         let status = before["runtime"]["status"].as_str().unwrap();
         let mut stage = before.clone();
         match kind {
-            "approve" => {
-                if status != "waiting_user" || before["runtime"]["waitingReason"] != "plan_review" {
+            "approve" | "begin_documents" => {
+                if kind == "begin_documents" {
+                    if status != "ready" || before["runtime"]["reviewPolicy"]["beforeExecution"] != false
+                        || !review::documents_only(&before) || review::policy(&plan, &before)?["beforeExecution"] != false {
+                        return Err(conflict("此阶段需要用户确认，不能自动执行"));
+                    }
+                } else if status != "waiting_user" || before["runtime"]["waitingReason"] != "plan_review" {
                     return Err(conflict("此阶段不在等待方案确认"));
                 }
                 stage["runtime"]["status"] = json!("doing");
@@ -776,7 +787,10 @@ fn mutate(conn: &mut Connection, input: Value, lane: &str) -> Result<Value> {
                 stage["runtime"]["status"] =
                     json!(if success { "waiting_user" } else { "blocked" });
                 if success {
-                    stage["runtime"]["waitingReason"] = json!("result_review");
+                    for item in stage["contract"]["workItems"].as_array().unwrap() {
+                        validate_output(&tx, text(&plan, "projectId")?, item, &stage["runtime"]["items"][text(item, "id")?]["output"])?;
+                    }
+                    review::complete(&mut stage);
                 } else {
                     stage["runtime"]["blockedReason"] =
                         json!("部分工作项失败或尚未执行，可重试未完成项");
@@ -791,12 +805,17 @@ fn mutate(conn: &mut Connection, input: Value, lane: &str) -> Result<Value> {
                 .values()
                 .all(|i| i["status"] == "succeeded")
         {
-            stage["runtime"]["status"] = json!("waiting_user");
-            stage["runtime"]["waitingReason"] = json!("result_review");
-            stage["runtime"]
-                .as_object_mut()
-                .unwrap()
-                .remove("blockedReason");
+            for item in stage["contract"]["workItems"].as_array().unwrap() {
+                validate_output(&tx, text(&plan, "projectId")?, item, &stage["runtime"]["items"][text(item, "id")?]["output"])?;
+            }
+            review::complete(&mut stage);
+        }
+        if ["approve", "accept", "retry"].contains(&kind) && input.get("evidence").is_some() {
+            let mut evidence = input["evidence"].clone();
+            evidence["action"] = json!(kind);
+            evidence["revision"] = json!(revision);
+            evidence["at"] = json!(now());
+            stage["runtime"]["lastConfirmation"] = evidence;
         }
         plan["stages"][index] = stage;
     }
@@ -839,7 +858,7 @@ fn import_plans(conn: &mut Connection, input: Value) -> Result<Value> {
         let random: String = tx
             .query_row("SELECT lower(hex(randomblob(16)))", [], |r| r.get(0))
             .map_err(db)?;
-        let mut plan = json!({"version":1,"id":format!("plan-{random}"),"originId":origin_id,"projectId":project_id,"title":source["title"],"workflowId":source["workflowId"],"revision":1,"outline":source["outline"],"stages":[],"createdAt":now(),"updatedAt":now(),"retiredOutputs":[]});
+        let mut plan = json!({"version":if source["version"] == 2 { 2 } else { 1 },"id":format!("plan-{random}"),"originId":origin_id,"projectId":project_id,"title":source["title"],"workflowId":source["workflowId"],"revision":1,"outline":source["outline"],"stages":[],"createdAt":now(),"updatedAt":now(),"retiredOutputs":[]});
         let stages = array(source, "stages")?;
         let mut unfinished = false;
         for saved in stages {
@@ -849,6 +868,9 @@ fn import_plans(conn: &mut Connection, input: Value) -> Result<Value> {
             let draft = json!({"id":saved["id"],"contract":saved["contract"]});
             validate_draft(&plan, &draft)?;
             let mut stage = new_stage(&draft, None);
+            review::initialize(&plan, &draft, &mut stage)?;
+            stage["runtime"]["status"] = json!("waiting_user");
+            stage["runtime"]["waitingReason"] = json!("plan_review");
             let saved_runtime = &saved["runtime"];
             let mut has_interrupted = false;
             for item in draft["contract"]["workItems"].as_array().unwrap() {
@@ -921,7 +943,7 @@ fn import_plans(conn: &mut Connection, input: Value) -> Result<Value> {
                         .unwrap()
                         .remove("waitingReason");
                 }
-                Some("waiting_user") => {
+                Some("ready" | "waiting_user") => {
                     unfinished = true;
                     if has_interrupted {
                         stage["runtime"]["status"] = json!("blocked");
@@ -1091,7 +1113,7 @@ mod tests {
         create(conn,json!({"id":"p","projectId":"project","sessionId":"session","title":"Project","workflowId":"custom","requestId":"create","outline":[{"id":"s1","title":"First"},{"id":"s2","title":"Second"}],"firstStage":draft("s1", &["i1","i2"])})).unwrap()["plan"].clone()
     }
     fn input(plan: &Value, request: &str, command: Value) -> Value {
-        json!({"planId":plan["id"],"expectedRevision":plan["revision"],"requestId":request,"command":command})
+        json!({"planId":plan["id"],"expectedRevision":plan["revision"],"requestId":request,"command":command,"evidence":{"source":"button","sessionId":"session"}})
     }
     #[test]
     fn legacy_plan_binds_a_planner_and_preserves_ownership() {
@@ -1570,4 +1592,130 @@ mod tests {
         assert_eq!(p["stages"][0]["runtime"]["status"], "waiting_user");
         assert!(p["stages"][0]["runtime"].get("blockedReason").is_none());
     }
+    fn workflow_plan(conn: &mut Connection, stage_key: &str) -> Value {
+        create(conn, json!({"id":"workflow","projectId":"project","sessionId":"session","title":"Story","workflowId":"drama-series",
+            "requestId":"create","outline":[{"id":"s1","title":"Draft","workflowStageId":stage_key}],
+            "firstStage":draft("s1", &["i1"])})).unwrap()["plan"].clone()
+    }
+    fn save_confirmation(conn: &Connection, text: &str) {
+        let session = json!({"id":"session","items":[{"id":"message","role":"user","text":text}]});
+        conn.execute("DELETE FROM kv_store WHERE namespace='zodiac-sessions-v1'", []).unwrap();
+        conn.execute("INSERT INTO kv_store VALUES('zodiac-sessions-v1','project',?1,'raw')", [session.to_string().into_bytes()]).unwrap();
+    }
+    fn chat(plan: &Value, text: &str, kind: &str) -> Value {
+        let mut input = input(plan, "chat", json!({"type":kind,"stageId":"s1"}));
+        input["evidence"] = json!({"source":"chat","sessionId":"session","messageId":"message","text":text});
+        input
+    }
+
+    #[test]
+    fn workflow_documents_save_before_review_and_delivery_finishes_without_a_second_gate() {
+        for (key, expected) in [("script", "waiting_user"), ("delivery", "done")] {
+            let mut conn = setup();
+            let mut plan = workflow_plan(&mut conn, key);
+            assert_eq!(plan["version"], 2);
+            assert_eq!(plan["stages"][0]["runtime"]["status"], "ready");
+            command(&mut conn, &mut plan, "begin", json!({"type":"begin_documents","stageId":"s1"}), "execute");
+            item(&mut conn, &mut plan, "i1", true);
+            finish(&mut conn, &mut plan);
+            assert_eq!(plan["stages"][0]["runtime"]["status"], expected);
+            if key == "script" {
+                save_confirmation(&conn, "结果通过");
+                plan = mutate(&mut conn, chat(&plan, "结果通过", "accept"), "review").unwrap()["plan"].clone();
+                assert_eq!(plan["stages"][0]["runtime"]["status"], "done");
+                assert_eq!(plan["stages"][0]["runtime"]["lastConfirmation"]["messageId"], "message");
+            }
+        }
+    }
+
+    #[test]
+    fn document_policy_cannot_authorize_media_or_overwriting_a_node() {
+        for args in [json!({"nodeId":"doc","content":"Document"}), json!({"prompt":"image","model":"test"})] {
+            let mut conn = setup();
+            let mut plan = workflow_plan(&mut conn, "delivery");
+            let mut stage = draft("s1", &["i1"]);
+            if args.get("prompt").is_some() { stage["contract"]["workItems"][0]["tool"] = json!("hub_generate_image"); }
+            stage["contract"]["workItems"][0]["args"] = args;
+            command(&mut conn, &mut plan, "rewrite", json!({"type":"write_stage","stage":stage}), "author");
+            assert_eq!(plan["stages"][0]["runtime"]["status"], "waiting_user");
+            assert!(mutate(&mut conn, input(&plan, "bypass", json!({"type":"begin_documents","stageId":"s1"})), "execute").is_err());
+            let mut forged = input(&plan, "approve", json!({"type":"approve","stageId":"s1"}));
+            forged.as_object_mut().unwrap().remove("evidence");
+            assert!(mutate(&mut conn, forged, "review").is_err());
+        }
+    }
+
+    #[test]
+    fn chat_confirmation_requires_a_saved_unambiguous_current_user_message() {
+        let mut conn = setup();
+        let plan = initial(&mut conn);
+        assert!(mutate(&mut conn, chat(&plan, "确认执行", "approve"), "review").is_err());
+        save_confirmation(&conn, "确认执行");
+        assert!(mutate(&mut conn, chat(&plan, "继续", "approve"), "review").is_err());
+        save_confirmation(&conn, "继续但先改成三张");
+        assert!(mutate(&mut conn, chat(&plan, "继续但先改成三张", "approve"), "review").is_err());
+        save_confirmation(&conn, "确认执行");
+        let mut wrong_session = chat(&plan, "确认执行", "approve");
+        wrong_session["evidence"]["sessionId"] = json!("other");
+        assert!(mutate(&mut conn, wrong_session, "review").is_err());
+        // Another pending plan makes a generic reply ambiguous on the server too.
+        let mut second = workflow_plan(&mut conn, "shots");
+        save_confirmation(&conn, "继续");
+        assert!(mutate(&mut conn, chat(&plan, "继续", "approve"), "review").is_err());
+        approve(&mut conn, &mut second);
+        let approved = mutate(&mut conn, chat(&plan, "继续", "approve"), "review").unwrap();
+        assert_eq!(approved["plan"]["stages"][0]["runtime"]["status"], "doing");
+        assert!(mutate(&mut conn, input(&plan, "stale", json!({"type":"approve","stageId":"s1"})), "review").is_err());
+    }
+
+    #[test]
+    fn changing_review_wording_reuses_successful_outputs_and_restores_never_auto_run() {
+        let mut conn = setup();
+        let mut plan = workflow_plan(&mut conn, "script");
+        command(&mut conn, &mut plan, "begin", json!({"type":"begin_documents","stageId":"s1"}), "execute");
+        item(&mut conn, &mut plan, "i1", true);
+        finish(&mut conn, &mut plan);
+        let mut stage = draft("s1", &["i1"]);
+        stage["contract"]["review"] = json!({"afterExecution":["Check exact dialogue"]});
+        command(&mut conn, &mut plan, "review-text", json!({"type":"write_stage","stage":stage}), "author");
+        assert_eq!(plan["stages"][0]["runtime"]["items"]["i1"]["status"], "succeeded");
+        let before = plan["stages"][0]["runtime"]["items"]["i1"]["operationId"].clone();
+        command(&mut conn, &mut plan, "second-begin", json!({"type":"begin_documents","stageId":"s1"}), "execute");
+        assert_eq!(plan["stages"][0]["runtime"]["items"]["i1"]["operationId"], before);
+        assert!(plan["stages"][0]["runtime"]["activeItemIds"].as_array().unwrap().is_empty());
+        let mut ready_conn = setup();
+        let ready = workflow_plan(&mut ready_conn, "script");
+        let restored = import_plans(&mut conn, json!({"projectId":"restored","plans":[ready]})).unwrap();
+        assert_eq!(restored[0]["stages"][0]["runtime"]["status"], "waiting_user");
+        assert_eq!(restored[0]["stages"][0]["runtime"]["waitingReason"], "plan_review");
+    }
+
+    #[test]
+    fn legacy_plans_keep_their_review_contract_when_authored_again() {
+        let mut conn = setup();
+        let mut plan = initial(&mut conn);
+        plan["version"] = json!(1);
+        plan["outline"][0]["workflowStageId"] = json!("content");
+        conn.execute("UPDATE zodiac_plans SET body=?1 WHERE id='p'", [plan.to_string()]).unwrap();
+        command(&mut conn, &mut plan, "legacy", json!({"type":"write_stage","stage":draft("s1", &["i1"])}), "author");
+        assert_eq!(plan["stages"][0]["runtime"]["waitingReason"], "plan_review");
+        assert!(plan["stages"][0]["runtime"].get("reviewPolicy").is_none());
+    }
+
+    #[test]
+    fn one_chat_message_cannot_approve_execution_and_also_accept_its_result() {
+        let mut conn = setup();
+        let mut plan = initial(&mut conn);
+        save_confirmation(&conn, "继续");
+        plan = mutate(&mut conn, chat(&plan, "继续", "approve"), "review").unwrap()["plan"].clone();
+        item(&mut conn, &mut plan, "i1", true);
+        item(&mut conn, &mut plan, "i2", true);
+        finish(&mut conn, &mut plan);
+        let mut request = chat(&plan, "继续", "accept");
+        request["requestId"] = json!("accept-with-old-message");
+        let error = mutate(&mut conn, request, "review").unwrap_err();
+        assert!(error.1.contains("已用于另一项操作"));
+        assert_eq!(read(&conn, "p").unwrap()["stages"][0]["runtime"]["waitingReason"], "result_review");
+    }
+
 }

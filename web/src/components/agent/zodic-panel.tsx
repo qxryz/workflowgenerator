@@ -13,7 +13,7 @@ import { Settings01Icon, SparklesIcon } from "hugeicons-react";
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
 import { ZodiacDecisionCard } from "@/components/agent/zodiac-decision-card";
 import { ZodiacWorkOrderDetail } from "@/components/agent/zodiac-work-order-detail";
-import { ZodiacPlanPanel } from "@/components/agent/zodiac-plan-panel";
+import { ZodiacPlanPanel, type ZodiacPlanActions } from "@/components/agent/zodiac-plan-panel";
 import { ZodiacWorkflowLedger } from "@/components/agent/zodiac-workflow-ledger";
 import { AgentChatComposer, AgentChatMessage, AgentPendingToolCard, type CanvasAgentChatAttachment, type CanvasAgentChatMessage } from "@/components/canvas/canvas-agent-chat-ui";
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -147,6 +147,8 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         if (!projectId) return;
         useAgentStore.getState().setWork(projectId, "agent", sending || stageRunning || !!approval);
     }, [projectId, sending, stageRunning, approval]);
+    const planActionsRef = useRef<ZodiacPlanActions | null>(null);
+    const confirmingPlanRef = useRef(false);
     const stageStopRef = useRef<(() => void) | null>(null);
     const controllerRef = useRef<AbortController | null>(null);
     const pendingStreamFlushRef = useRef<{ sessionKey: string; controller: AbortController; flushForSave: () => void } | null>(null);
@@ -436,7 +438,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         const text = (submittedDecision ? submittedText : prompt).trim();
         const turnAttachments = submittedDecision ? [] : attachments;
         const turnSkills = submittedDecision ? [] : attachedSkills;
-        if ((!text && !turnAttachments.length && !turnSkills.length) || sending || stageRunning || controllerRef.current) return;
+        if ((!text && !turnAttachments.length && !turnSkills.length) || sending || stageRunning || confirmingPlanRef.current || controllerRef.current) return;
         if (!submittedDecision && itemsRef.current.some((item) => item.decision?.status === "pending")) {
             message.info("先完成当前选择，再继续下一步");
             return;
@@ -456,6 +458,34 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             attachments: turnAttachments,
             skills: turnSkills.length ? turnSkills : undefined,
         };
+        if (!submittedDecision && !turnAttachments.length && !turnSkills.length && planActionsRef.current) {
+            confirmingPlanRef.current = true;
+            const scope = sessionEpochRef.current;
+            let appended = false;
+            const appendUser = async () => {
+                if (sessionEpochRef.current !== scope) throw new DOMException("Aborted", "AbortError");
+                if (!appended) {
+                    const next = [...itemsRef.current, user];
+                    itemsRef.current = next;
+                    setItems(next);
+                    setPrompt("");
+                    appended = true;
+                }
+                await saveZodiacSessionState(sessionStateWithItems(sessionRef.current, itemsRef.current));
+            };
+            try {
+                const result = await planActionsRef.current.confirm(text, user.id,
+                    itemsRef.current.some(item => item.decision?.status === "pending" || item.tool?.status === "pending"), appendUser);
+                if (result !== null) {
+                    await appendUser();
+                    setItems(current => [...current, { id: crypto.randomUUID(), role: "assistant", title: "Zodiac", text: result }]);
+                    return;
+                }
+            } catch (error) {
+                if (sessionEpochRef.current === scope) message.error(error instanceof Error ? error.message : "阶段操作未完成");
+                return;
+            } finally { confirmingPlanRef.current = false; }
+        }
         const requestUser = displayText ? { ...user, text } : user;
         const runId = crypto.randomUUID();
         const assistantId = crypto.randomUUID();
@@ -581,8 +611,24 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                         result = await mutateZodiacPlan({ planId: plan.id, expectedRevision: args.expectedRevision, requestId, ...(actor?.role === "planner" ? { plannerSessionId: actor.taskId } : {}), command: request.name === "hub_plan_patch_stage" ? { type: "write_stage", stage: await prepareStage(args.stage) } : { type: "replan", outline: args.outline as ZodiacStageOutline[], stage: await prepareStage(args.stage), reason: args.reason as string } });
                     }
                     structuredReply = true;
+                    const stageId = zodiacPlanFrontier(result.plan)?.stage?.id;
+                    if (planActionsRef.current) {
+                        result.plan = await planActionsRef.current.deliverDocuments(result.plan, toolSignal);
+                    }
+                    // All stage outputs, including complete documents, become available to the same Planner workspace.
+                    let workspaceWarning: string | undefined;
+                    try {
+                        await agentRequest("assets", { projectId: requestSessionKey, sessionId: sessionRef.current.id,
+                            assets: zodiacWorkspaceAssets(canvasContext.getSnapshot().nodes, canvasContext.getSnapshot().selectedNodeIds) }, toolSignal);
+                    } catch {
+                        workspaceWarning = "产物已保存；工作区副本更新未完成，可从画布读取，勿重复生成。";
+                    }
                     window.dispatchEvent(new CustomEvent("zodiac-plans-changed", {detail:{planId:result.plan.id}}));
-                    return { ok: true, result: { ...zodiacPlanContext(result.plan), status: "waiting_user" } };
+                    const stage = result.plan.stages.find(stage => stage.id === stageId);
+                    return { ok: true, result: { ...zodiacPlanContext(result.plan),
+                        status: stage?.runtime.status === "done" ? "stage_complete" : "waiting_user", workspaceWarning,
+                        outputs: stage ? Object.values(stage.runtime.items).flatMap(item => item.output ? [item.output] : []) : [],
+                    } };
                 } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "计划保存失败" }; }
             }
             try {
@@ -975,7 +1021,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                     </div>
                 )}
                 {approval ? <div className="mt-5" role="alertdialog" aria-label="工具审批"><AgentPendingToolCard title={zodiacToolLabel(approval.request.name)} summary={toolApprovalSummary(approval.request, canvasContext?.getSnapshot())} theme={theme} approveText="批准一次" rejectText="拒绝" onApprove={()=>approval.resolve(true)} onReject={()=>approval.resolve(false)} /></div> : null}
-                {canvasContext ? <ZodiacPlanPanel projectId={sessionKey} sessionId={sessionRef.current.id} createContext={createHubContext} onRunningChange={setStageRunning} stopRef={stageStopRef} conversationBusy={sending} onAdjust={title => setPrompt(`调整「${title}」：`)} onContinue={(planId, title) => void send(`继续已有计划「${title}」（planId: ${planId}），读取最新状态后规划下一阶段供我确认。`, "继续下一阶段")} /> : null}
+                {canvasContext ? <ZodiacPlanPanel actionsRef={planActionsRef} projectId={sessionKey} sessionId={sessionRef.current.id} createContext={createHubContext} onRunningChange={setStageRunning} stopRef={stageStopRef} conversationBusy={sending} onAdjust={title => setPrompt(`调整「${title}」：`)} onContinue={(planId, title) => void send(`继续已有计划「${title}」（planId: ${planId}），读取最新状态后规划下一阶段供我确认。`, "继续下一阶段")} /> : null}
             </div>
             {awayFromLatest ? <div className="flex justify-center py-1"><Button size="small" shape="round" icon={<ArrowDown className="size-3" />} onClick={scrollToLatest}>回到最新</Button></div> : null}
             {activeWorkflowRunId && !stageRunning ? (
@@ -1009,7 +1055,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 theme={theme}
                 onPromptChange={setPrompt}
                 onSubmit={send}
-                onStop={() => stageRunning ? stageStopRef.current?.() : controllerRef.current?.abort()}
+                onStop={() => { stageStopRef.current?.(); controllerRef.current?.abort(); }}
                 onAddFiles={addFiles}
                 onRemoveAttachment={(id) => setAttachments((current) => current.filter((item) => item.id !== id))}
                 skillChips={attachedSkills.map(({ id, name }) => ({ id, name }))}

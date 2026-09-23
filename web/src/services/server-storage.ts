@@ -368,7 +368,7 @@ export async function createZodiacPlan(input: import("@/lib/agent/zodiac-stage-p
 }
 export async function mutateZodiacPlan(input: import("@/lib/agent/zodiac-stage-plan").ZodiacPlanMutation) {
     const planner = ["write_stage", "replan"].includes(input.command.type);
-    const execution = ["claim_item", "record_item", "finish"].includes(input.command.type);
+    const execution = ["begin_documents", "claim_item", "record_item", "finish"].includes(input.command.type);
     return trackWrite(request<import("@/lib/agent/zodiac-stage-plan").ZodiacPlanReply>(`/api/zodiac/plans/${planner ? "author" : execution ? "execute" : "review"}`, input).then((reply) => { markMediaReferencesChanged(); return reply; }));
 }
 

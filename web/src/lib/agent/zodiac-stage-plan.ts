@@ -2,17 +2,18 @@
 export type ZodiacPlanTool = "hub_canvas_write_node" | "hub_generate_image" | "hub_generate_video" | "hub_generate_audio";
 export type ZodiacPlanWorkItem = { id: string; title: string; tool: ZodiacPlanTool; args: Record<string, unknown>; dependsOn?: string[]; inputItemIds?: string[] };
 export type ZodiacStageContract = { goal: string; workItems: ZodiacPlanWorkItem[]; review?: { beforeExecution?: string[]; afterExecution?: string[] } };
-export type ZodiacStageOutline = { id: string; title: string; omitted?: boolean };
+export type ZodiacStageOutline = { id: string; title: string; workflowStageId?: string; omitted?: boolean };
 export type ZodiacStageDraft = { id: string; contract: ZodiacStageContract };
 export type ZodiacPlanOutput = { nodeId: string; storageKey?: string; resultVersionId?: string };
 export type ZodiacPlanItemRuntime = { status: "pending" | "running" | "succeeded" | "failed" | "interrupted"; attemptId?: string; operationId?: string; output?: ZodiacPlanOutput; supersededOutputs: ZodiacPlanOutput[]; error?: string };
-export type ZodiacStageRuntime = { status: "waiting_user" | "doing" | "done" | "blocked"; waitingReason?: "plan_review" | "result_review"; attemptId?: string; activeItemIds?: string[]; items: Record<string, ZodiacPlanItemRuntime>; blockedReason?: string };
+export type ZodiacStageRuntime = { status: "ready" | "waiting_user" | "doing" | "done" | "blocked"; waitingReason?: "plan_review" | "result_review"; attemptId?: string; activeItemIds?: string[]; items: Record<string, ZodiacPlanItemRuntime>; reviewPolicy?: { workflowVersion: number; beforeExecution: boolean; afterExecution: boolean }; blockedReason?: string };
 export type ZodiacPlanStage = ZodiacStageDraft & { runtime: ZodiacStageRuntime };
-export type ZodiacStagePlan = { version: 1; id: string; originId?: string; projectId: string; sessionId?: string; plannerSessionId?: string; title: string; workflowId: string; revision: number; retiredOutputs?: ZodiacPlanOutput[]; outline: ZodiacStageOutline[]; stages: ZodiacPlanStage[]; createdAt: number; updatedAt: number };
+export type ZodiacStagePlan = { version: 1 | 2; id: string; originId?: string; projectId: string; sessionId?: string; plannerSessionId?: string; title: string; workflowId: string; revision: number; retiredOutputs?: ZodiacPlanOutput[]; outline: ZodiacStageOutline[]; stages: ZodiacPlanStage[]; createdAt: number; updatedAt: number };
 export type ZodiacPlanCreate = { id: string; projectId: string; sessionId?: string; plannerSessionId?: string; title: string; workflowId: string; outline: ZodiacStageOutline[]; firstStage: ZodiacStageDraft; requestId: string };
 export type ZodiacPlanCommand =
     | { type: "write_stage"; stage: ZodiacStageDraft }
     | { type: "replan"; outline: ZodiacStageOutline[]; stage: ZodiacStageDraft; reason: string }
+    | { type: "begin_documents"; stageId: string }
     | { type: "approve"; stageId: string }
     | { type: "accept"; stageId: string }
     | { type: "retry"; stageId: string; itemIds?: string[] }
@@ -21,7 +22,8 @@ export type ZodiacPlanCommand =
     | { type: "claim_item"; stageId: string; attemptId: string; itemId: string }
     | { type: "record_item"; stageId: string; attemptId: string; itemId: string; output?: ZodiacPlanOutput; error?: string }
     | { type: "finish"; stageId: string; attemptId: string };
-export type ZodiacPlanMutation = { planId: string; expectedRevision: number; requestId: string; command: ZodiacPlanCommand; plannerSessionId?: string };
+export type ZodiacPlanEvidence = { source: "button" | "chat"; sessionId: string; messageId?: string; text?: string };
+export type ZodiacPlanMutation = { planId: string; expectedRevision: number; requestId: string; command: ZodiacPlanCommand; evidence?: ZodiacPlanEvidence; plannerSessionId?: string };
 /** claim.shouldExecute is false on replay: an uncertain claim must never launch a second paid request. */
 export type ZodiacPlanReply = { plan: ZodiacStagePlan; replayed: boolean; claim?: { itemId: string; shouldExecute: boolean } };
 export function zodiacPlanFrontier(plan: ZodiacStagePlan) {

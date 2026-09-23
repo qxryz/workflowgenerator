@@ -1,0 +1,6 @@
+{
+  "continue": ["继续", "可以", "确认", "好的", "没问题", "continue", "ok", "yes"],
+  "approve": ["确认执行", "批准执行", "开始执行", "按计划执行", "approve", "execute plan"],
+  "accept": ["结果通过", "确认结果", "接受结果", "accept results"],
+  "retry": ["重试未完成项", "仅重试未完成项", "重试失败项", "retry failed items"]
+}

@@ -1,7 +1,7 @@
 const string = (description) => ({ type: "string", description });
 const outline = {
     type: "array", minItems: 1, maxItems: 30,
-    items: { type: "object", required: ["id", "title"], properties: { id: string("稳定阶段 ID"), title: string("阶段名称"), omitted: { type: "boolean", description: "仅重规划时可略过未执行的未来阶段" } } },
+    items: { type: "object", required: ["id", "title"], properties: { id: string("稳定阶段 ID"), title: string("阶段名称"), workflowStageId: string("workflow 返回的阶段 ID；使用其审核规则，省略沿用双重审核"), omitted: { type: "boolean", description: "仅重规划时可略过未执行的未来阶段" } } },
 };
 const stage = {
     type: "object", required: ["id", "contract"],
@@ -44,9 +44,9 @@ const revision = { type: "integer", minimum: 1, description: "刚从 hub_plan_ge
 export const ZODIAC_PLAN_TOOLS = [
     { name: "hub_plan_list", description: "列出当前画布的持久化阶段计划及进度。继续任务前先读取已有计划，避免重复创建。", parameters: { type: "object", properties: {} } },
     { name: "hub_plan_get", description: "默认读取计划摘要、Planner 会话和实际回执；items 分页读工作项，text 分页读完整正文。partial 结果不能作为完整合同覆盖阶段。只能推进第一个未完成阶段。", parameters: { type: "object", required: ["planId"], properties: { planId: string("已有计划 ID"), view: { type: "string", enum: ["summary", "items", "text"] }, stageId: string("省略读取当前阶段"), itemId: string("text 视图的工作项 ID"), field: string("text 视图正文字段：content / prompt / text"), offset: { type: "integer", minimum: 0 }, limit: { type: "integer", minimum: 1, description: "items 最多 10 项，text 最多 12000 字符" } } } },
-    { name: "hub_plan_write", description: "创建阶段计划：给出完整大纲，只具体编写第一阶段。显示原生计划卡并等待用户审核；成功不是已执行，不能随后自行生成。", parameters: { type: "object", required: ["title", "workflowId", "outline", "firstStage"], properties: {
+    { name: "hub_plan_write", description: "创建阶段计划：给出完整大纲，只具体编写第一阶段。应用按流程保存新增文档或显示审核卡；以回执状态为准，不得自行重复生成。", parameters: { type: "object", required: ["title", "workflowId", "outline", "firstStage"], properties: {
         id: string("可选的稳定计划 ID"), title: string("计划名称"), workflowId: string("workflow 工具提供的 ID，或 custom"), outline, firstStage: stage,
     } } },
-    { name: "hub_plan_patch_stage", description: "编写或修订当前未执行阶段。保留已完成前缀和稳定工作项 ID；不能修改正在执行阶段。显示审核卡后停止。", parameters: { type: "object", required: ["planId", "expectedRevision", "stage"], properties: { planId: string("计划 ID"), expectedRevision: revision, stage } } },
-    { name: "hub_plan_replan", description: "用户改变目标时，修订当前阶段及未来大纲，保留已完成阶段与产物。不能跳过当前执行或伪造成功。显示审核卡后停止。", parameters: { type: "object", required: ["planId", "expectedRevision", "outline", "stage", "reason"], properties: { planId: string("计划 ID"), expectedRevision: revision, outline, stage, reason: string("根据用户要求说明本次调整") } } },
+    { name: "hub_plan_patch_stage", description: "编写或修订当前未执行阶段。保留已完成前缀和稳定工作项 ID；不能修改正在执行阶段。按回执状态继续；waiting_user 时停止。", parameters: { type: "object", required: ["planId", "expectedRevision", "stage"], properties: { planId: string("计划 ID"), expectedRevision: revision, stage } } },
+    { name: "hub_plan_replan", description: "用户改变目标时，修订当前阶段及未来大纲，保留已完成阶段与产物。不能跳过当前执行或伪造成功。按回执状态继续；waiting_user 时停止。", parameters: { type: "object", required: ["planId", "expectedRevision", "outline", "stage", "reason"], properties: { planId: string("计划 ID"), expectedRevision: revision, outline, stage, reason: string("根据用户要求说明本次调整") } } },
 ];

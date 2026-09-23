@@ -10,6 +10,13 @@ export function normalizeAppLanguage(value: unknown): AppLanguage {
 }
 
 const englishMessages: Record<string, string> = {
+    "保存文档": "Save documents",
+    "文档已准备，可保存到画布。": "Documents are ready to save to the canvas.",
+    "有多个待确认的阶段，请在对应计划卡上确认。": "Several stages need confirmation. Use the matching plan card.",
+    "计划已更新，请查看最新内容后重新确认。": "The plan changed. Review it before confirming again.",
+    "已确认阶段结果。": "Stage results accepted.",
+    "本阶段内容已保存到画布。": "This stage's outputs are saved to the canvas.",
+    "部分内容尚未完成，请查看计划中的结果。": "Some items are incomplete. Check their results in the plan.",
     "采用已有结果": "Use an existing result",
     "选择已有结果": "Select an existing result",
     "暂无符合要求的结果": "No matching results",

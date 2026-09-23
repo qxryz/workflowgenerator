@@ -19,7 +19,8 @@ test("active plans gate direct root mutations and plan authoring waits for user 
     const tools = panel.slice(panel.indexOf("const applyToolRequest ="), panel.indexOf("const requestItems ="));
     assert.match(tools, /plan\.sessionId === sessionRef\.current\.id && zodiacPlanFrontier\(plan\)/);
     assert.ok(tools.indexOf("listZodiacPlans(requestSessionKey)") < tools.indexOf("executeHubTool(request"));
-    assert.match(tools, /status: "waiting_user"/);
+    assert.match(tools, /status: stage\?\.runtime.status === "done" \? "stage_complete" : "waiting_user"/);
+    assert.match(tools, /await planActionsRef.current.deliverDocuments/);
     assert.match(tools, /firstStage: await prepareStage/);
     assert.match(tools, /await pinZodiacStageReferences\(materializeZodiacStage/);
     assert.match(tools, /stage: await prepareStage/);

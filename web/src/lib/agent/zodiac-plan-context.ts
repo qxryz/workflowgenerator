@@ -8,7 +8,7 @@ export function zodiacPlanContext(plan: ZodiacStagePlan, args: Record<string, un
         plannerSessionId: plan.plannerSessionId, currentStageId: frontier?.outline.id,
         outline: plan.outline, view: "summary",
         stages: plan.stages.map(stage => ({ id: stage.id, goal: stage.contract.goal, review: stage.contract.review,
-            status: stage.runtime.status, waitingReason: stage.runtime.waitingReason, blockedReason: stage.runtime.blockedReason,
+            reviewPolicy: stage.runtime.reviewPolicy, status: stage.runtime.status, waitingReason: stage.runtime.waitingReason, blockedReason: stage.runtime.blockedReason,
             itemCount: stage.contract.workItems.length,
             counts: Object.fromEntries(["pending", "running", "succeeded", "failed", "interrupted"].map(status => [status, Object.values(stage.runtime.items).filter(item => item.status === status).length])),
         })),
