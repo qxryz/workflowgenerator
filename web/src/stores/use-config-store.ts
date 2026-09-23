@@ -8,7 +8,7 @@ import { normalizeAppLanguage, type AppLanguage } from "@/lib/i18n";
 import { defaultAdapterForVendor, legacyVendorForApiFormat, resolveAdapterForModel, type VendorId } from "@/lib/model-catalog";
 import { miniMaxBillingModeForAdapter } from "@/lib/model-adapters";
 import { getProviderDefinition, modelBelongsToProvider, type ProviderProtocol } from "@/lib/model-providers";
-import { DASH_SCOPE_BEIJING_BASE_URL, PRESET_CHANNEL_DEFAULTS, PRESET_CHANNEL_IDS, nextCustomChannelName, type BuiltInChannelPreset } from "@/lib/preset-channels";
+import { DASH_SCOPE_BEIJING_BASE_URL, PRESET_CHANNEL_DEFAULTS, PRESET_CHANNEL_IDS, isUntouchedLegacyFreeChannel, nextCustomChannelName, type BuiltInChannelPreset } from "@/lib/preset-channels";
 import { miniMaxCredentialError, normalizeMiniMaxVideoInputMode, type MiniMaxVideoInputMode } from "@/lib/minimax-contract";
 import {
     normalizeSeedance25Continuation,
@@ -126,7 +126,7 @@ export function createPresetChannel(preset: ChannelPreset): ModelChannel {
     return createModelChannel({
         ...defaults,
         preset,
-        models: defaults.models.map((model) => ({ ...model, provider: "openai" })),
+        models: defaults.models.map((model) => ({ ...model, provider: "agnes" })),
     });
 }
 
@@ -137,14 +137,14 @@ export function resetPresetChannel(channel: ModelChannel) {
 export const defaultConfig: AiConfig = {
     language: "zh-CN",
     channelMode: "local",
-    baseUrl: OPENAI_BASE_URL,
+    baseUrl: PRESET_CHANNEL_DEFAULTS.free.baseUrl,
     apiKey: "",
-    apiFormat: "openai",
+    apiFormat: "agnes",
     channels: [createPresetChannel("free"), createPresetChannel("voice")],
-    model: `${PRESET_CHANNEL_IDS.free}::gpt-image-2`,
-    imageModel: `${PRESET_CHANNEL_IDS.free}::gpt-image-2`,
-    videoModel: `${PRESET_CHANNEL_IDS.free}::sora-2`,
-    textModel: `${PRESET_CHANNEL_IDS.free}::gpt-5.5`,
+    model: `${PRESET_CHANNEL_IDS.free}::agnes-image-2.1-flash`,
+    imageModel: `${PRESET_CHANNEL_IDS.free}::agnes-image-2.1-flash`,
+    videoModel: `${PRESET_CHANNEL_IDS.free}::agnes-video-v2.0`,
+    textModel: `${PRESET_CHANNEL_IDS.free}::agnes-2.5-flash`,
     audioModel: `${PRESET_CHANNEL_IDS.voice}::qwen-audio-3.0-tts-flash`,
     audioVoice: "alloy",
     audioFormat: "mp3",
@@ -170,9 +170,9 @@ export const defaultConfig: AiConfig = {
     systemPrompt: "",
     reasoningEffort: "auto",
     models: [
-        `${PRESET_CHANNEL_IDS.free}::gpt-image-2`,
-        `${PRESET_CHANNEL_IDS.free}::sora-2`,
-        `${PRESET_CHANNEL_IDS.free}::gpt-5.5`,
+        `${PRESET_CHANNEL_IDS.free}::agnes-image-2.1-flash`,
+        `${PRESET_CHANNEL_IDS.free}::agnes-video-v2.0`,
+        `${PRESET_CHANNEL_IDS.free}::agnes-2.5-flash`,
         `${PRESET_CHANNEL_IDS.voice}::qwen-audio-3.0-tts-flash`,
         `${PRESET_CHANNEL_IDS.voice}::qwen3-tts-vc-2026-01-22`,
         `${PRESET_CHANNEL_IDS.voice}::qwen3-asr-flash`,
@@ -440,7 +440,9 @@ function normalizeChannels(config: AiConfig) {
     const legacyDefault = channels.find((channel) => channel.id === "default" && !channel.preset);
     const free = channels.find((channel) => channel.preset === "free" || channel.id === PRESET_CHANNEL_IDS.free) || legacyDefault;
     const voice = channels.find((channel) => channel.preset === "voice" || channel.id === PRESET_CHANNEL_IDS.voice);
-    const normalizedFree = free ? createModelChannel({ ...free, id: PRESET_CHANNEL_IDS.free, name: "免费", preset: "free" }) : createPresetChannel("free");
+    const normalizedFree = free && !isUntouchedLegacyFreeChannel(free)
+        ? createModelChannel({ ...free, id: PRESET_CHANNEL_IDS.free, name: "免费", preset: "free" })
+        : createPresetChannel("free");
     const normalizedVoice = voice ? createModelChannel({ ...voice, id: PRESET_CHANNEL_IDS.voice, name: "语音模型", preset: "voice" }) : createPresetChannel("voice");
     const presetIds = new Set([free?.id, voice?.id, PRESET_CHANNEL_IDS.free, PRESET_CHANNEL_IDS.voice].filter(Boolean));
     return [normalizedFree, normalizedVoice, ...channels.filter((channel) => !presetIds.has(channel.id) && !channel.preset)];

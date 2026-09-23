@@ -164,6 +164,7 @@ const englishMessages: Record<string, string> = {
     "不支持": "Not supported",
     "关闭的能力不会出现在推荐模型里；原生或脚本支持的能力可自由开关。": "Disabled capabilities are hidden from recommendations. Native and script-based capabilities can be toggled freely.",
     "接口地址": "Endpoint URL",
+    "获取 Key": "Get Key",
     "默认区域：华北 2（北京）": "Default region: China North 2 (Beijing)",
     "Token Plan Key 应以 sk-cp 开头": "Token Plan Key must start with sk-cp.",
     "按量计费 API Key 应以 sk-api 开头": "Pay-as-you-go API Key must start with sk-api.",

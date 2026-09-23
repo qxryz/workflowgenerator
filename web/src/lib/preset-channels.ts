@@ -7,15 +7,15 @@ export const PRESET_CHANNEL_DEFAULTS = {
     free: {
         id: PRESET_CHANNEL_IDS.free,
         name: "免费",
-        baseUrl: "https://api.openai.com",
+        baseUrl: "https://apihub.agnes-ai.com/v1",
         apiKey: "",
-        apiFormat: "openai" as const,
-        vendor: "openai",
-        adapter: "openai-compatible",
+        apiFormat: "agnes" as const,
+        vendor: "agnes",
+        adapter: "agnes",
         models: [
-            { name: "gpt-image-2", capability: "image" as const },
-            { name: "sora-2", capability: "video" as const },
-            { name: "gpt-5.5", capability: "text" as const },
+            { name: "agnes-image-2.1-flash", capability: "image" as const },
+            { name: "agnes-video-v2.0", capability: "video" as const },
+            { name: "agnes-2.5-flash", capability: "text" as const },
         ],
     },
     voice: {
@@ -33,6 +33,30 @@ export const PRESET_CHANNEL_DEFAULTS = {
         ],
     },
 } as const;
+
+/** Only replace the old, untouched free preset; preserve user credentials and edits. */
+export function isUntouchedLegacyFreeChannel(channel: {
+    baseUrl: string;
+    apiKey: string;
+    apiFormat: string;
+    vendor?: string;
+    adapter?: string;
+    capabilities?: Record<string, boolean>;
+    models: ReadonlyArray<{ name: string; capability: string; provider?: string; adapter?: string; script?: string }>;
+}) {
+    const oldModels = ["gpt-image-2", "sora-2", "gpt-5.5"];
+    return channel.baseUrl === "https://api.openai.com"
+        && !channel.apiKey
+        && channel.apiFormat === "openai"
+        && (!channel.vendor || channel.vendor === "openai")
+        && (!channel.adapter || channel.adapter === "openai-compatible")
+        && !Object.values(channel.capabilities || {}).length
+        && channel.models.length === oldModels.length
+        && channel.models.every((model, index) => model.name === oldModels[index]
+            && model.capability === ["image", "video", "text"][index]
+            && (!model.provider || model.provider === "openai")
+            && !model.adapter && !model.script);
+}
 
 export function nextCustomChannelName(channels: ReadonlyArray<{ name: string }>) {
     const used = new Set(channels.map((channel) => channel.name.match(/^渠道\s+(\d+)$/u)?.[1]).filter(Boolean).map(Number));

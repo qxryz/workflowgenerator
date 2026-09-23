@@ -187,20 +187,28 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                     <Input value={draft.baseUrl} onChange={(event) => patch({ baseUrl: event.target.value })} placeholder="https://api.example.com" />
                     {currentVendor === "qwen" ? <span className="mt-1 block text-xs text-stone-500">{t("默认区域：华北 2（北京）")}</span> : null}
                 </label>
-                <label className="block md:col-span-2">
-                    <span className="mb-1 block text-sm font-medium">{currentVendor === "minimax-token-plan" ? "Token Plan Key" : "API Key"}</span>
-                    <Input.Password
-                        status={minimaxCredentialError ? "error" : undefined}
-                        value={draft.apiKey}
-                        onChange={(event) => patch({ apiKey: event.target.value })}
-                        placeholder={currentVendor === "minimax-token-plan" ? "sk-cp-..." : currentVendor === "minimax-api" ? "sk-api-..." : "sk-..."}
-                    />
+                <div className="block md:col-span-2">
+                    <label htmlFor="channel-api-key" className="mb-1 block text-sm font-medium">{currentVendor === "minimax-token-plan" ? "Token Plan Key" : "API Key"}</label>
+                    <div className="flex items-center gap-2">
+                        <Input.Password
+                            id="channel-api-key"
+                            status={minimaxCredentialError ? "error" : undefined}
+                            value={draft.apiKey}
+                            onChange={(event) => patch({ apiKey: event.target.value })}
+                            placeholder={currentVendor === "minimax-token-plan" ? "sk-cp-..." : currentVendor === "minimax-api" ? "sk-api-..." : "sk-..."}
+                        />
+                        {draft.preset === "free" && currentVendor === "agnes" ? (
+                            <Button href="https://platform.agnes-ai.com/settings/apiKeys" target="_blank" rel="noopener noreferrer" className="shrink-0">
+                                {t("获取 Key")}
+                            </Button>
+                        ) : null}
+                    </div>
                     {miniMaxCredentialMode ? (
                         <span className={`mt-1 block text-xs ${minimaxCredentialError ? "text-red-500" : "text-stone-500"}`}>
                             {minimaxCredentialError || t(miniMaxCredentialMode === "token-plan" ? "Token Plan Key 应以 sk-cp 开头" : "按量计费 API Key 应以 sk-api 开头")}
                         </span>
                     ) : null}
-                </label>
+                </div>
             </div>
 
             <div className="mt-6">
