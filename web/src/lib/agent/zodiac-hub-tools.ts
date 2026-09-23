@@ -21,6 +21,7 @@ import type { CanvasAgentOp, CanvasAgentSnapshot } from "../canvas/canvas-agent-
 import type { WorkflowExecutionMode, WorkflowRunSnapshot } from "../canvas/workflow-execution.ts";
 import type { CanvasGenerationMode, CanvasNodeData } from "../../types/canvas.ts";
 import { pinZodiacReference, zodiacReferenceInstructions, zodiacVideoReferenceSettings, type ZodiacAssetReference } from "./zodiac-assets.ts";
+import { validateSeedreamSize } from "../model-providers.ts";
 
 /** 与 Zodiac transport 的工具结果同形；这里单独声明避免服务层反向依赖组件。 */
 export type HubToolOutcome = { ok: true; result: unknown } | { ok: false; error: string; requiresReconciliation?: true; nodeId?: string; actionNodeId?: string };
@@ -33,6 +34,8 @@ export type HubToolRequest = {
 };
 
 export type HubExecutorContext = {
+    /** Only the host's explicit stage execution button may enable execution. */
+    generationPolicy?: "prepare" | "execute";
     sessionId?: string;
     turnId?: string;
     taskId?: string;
@@ -135,7 +138,9 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
     }
 
     const actionId = `${mode}-action-${operation.id}`;
-    const slotId = `${mode}-result-${operation.id}`;
+    const ownedSlots = snapshot.nodes.filter(node => node.metadata?.role === "result-slot" && node.metadata.resultSlotSourceNodeId === actionId && node.type === mode);
+    if (ownedSlots.length > 1) return { ok: false, error: "这个生成步骤有多个结果槽，请先在画布中检查。" };
+    const slotId = ownedSlots[0]?.id || `${mode}-result-${operation.id}`;
     const existing = nodeById(context.getSnapshot(), actionId);
     if (existing && existing.metadata?.agentOperationFingerprint !== operation.fingerprint) throw new Error("operationId 已用于不同参数，请为新操作使用新的 ID");
     const ready = nodeById(context.getSnapshot(), slotId);
@@ -150,11 +155,14 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
         }
     }
     context.signal?.throwIfAborted();
-    const model = str(args.model) || context.defaultModels?.[mode];
+    const execute = context.generationPolicy === "execute";
+    // A model-supplied preference cannot replace the user's channel selection.
+    const model = execute ? str(args.model) || context.defaultModels?.[mode] : context.defaultModels?.[mode];
     const referenceSettings = mode === "video" ? zodiacVideoReferenceSettings(model || "", sourceReferences, snapshot.nodes) : {};
     const metadata: Record<string, unknown> = { generationMode: mode, prompt: zodiacReferenceInstructions(sourceReferences) + prompt, status: "idle", agentSourceReferences: sourceReferences, ...operation.metadata, ...referenceSettings };
     if (model) metadata.model = model;
     const size = str(args.size);
+    if (execute && mode === "image" && model) validateSeedreamSize(model, size);
     if (size) metadata.size = size;
     const count = num(args.count);
     if (count) metadata.count = count;
@@ -181,9 +189,13 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
         metadata[target] = args[field];
     }
 
+    const position = existing?.position || {
+        x: snapshot.nodes.length ? Math.max(...snapshot.nodes.map(node => node.position.x + node.width)) + 96 : 0,
+        y: referenceIds.length ? Math.min(...referenceIds.map(id => nodeById(snapshot, id)!.position.y)) : 0,
+    };
     const ops: CanvasAgentOp[] = [
-        { type: "add_node", id: actionId, nodeType: "config", title: prompt.slice(0, 40), metadata },
-        { type: "add_node", id: slotId, nodeType: SLOT_TYPE[mode], title: `${mode} 结果槽`, metadata: operation.metadata },
+        { type: "add_node", id: actionId, nodeType: "config", title: prompt.slice(0, 40), position, width: existing?.width || 340, metadata },
+        { type: "add_node", id: slotId, nodeType: SLOT_TYPE[mode], title: { image: "图片结果", video: "视频结果", audio: "音频结果", text: "文本结果" }[mode], position: ready?.position || { x: position.x + (existing?.width || 340) + 96, y: position.y }, metadata: { ...operation.metadata, role: "result-slot", resultSlotMode: mode, resultSlotSourceNodeId: actionId, advanceMode: "review", slotState: "empty", resultVersions: [], status: "idle" } },
         { type: "connect_nodes", fromNodeId: actionId, toNodeId: slotId },
         ...referenceIds.map((fromNodeId): CanvasAgentOp => ({ type: "connect_nodes", fromNodeId, toNodeId: actionId })),
     ];
@@ -195,6 +207,11 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
     } catch (error) {
         return { ok: false, error: `把生成动作加到画布时失败：${error instanceof Error ? error.message : String(error)}` };
     }
+
+    if (!execute) return { ok: true, result: {
+        status: "waiting_user", prepared: true, actionNodeId: actionId, nodeId: slotId,
+        message: "提示词与参考素材已加入画布。请检查模型和参数后点击运行。",
+    } };
 
     // 走运行器：与手动运行同一条链路（含产物落盘与结果槽推进）。失败要把原因原样带回去。
     let run: WorkflowRunSnapshot<unknown>;

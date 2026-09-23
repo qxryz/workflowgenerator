@@ -102,6 +102,8 @@ struct Start {
 struct Identity {
     project_id: String,
     session_id: String,
+    #[serde(default)]
+    turn_id: Option<String>,
 }
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -592,6 +594,7 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
     let result = async {
         valid_id(&input.turn_id)?;
         let identity = Identity {
+            turn_id: None,
             project_id: input.project_id.clone(),
             session_id: input.session_id.clone(),
         };
@@ -792,6 +795,10 @@ async fn snapshot(State(state): State<AppState>, Json(id): Json<Identity>) -> Re
 async fn abort(State(state): State<AppState>, Json(id): Json<Identity>) -> Response {
     let result = async {
         let r = find(&state, &id).await?;
+        let turn = r.turn.lock().await;
+        if id.turn_id.as_ref().is_some_and(|id| turn.as_ref().is_none_or(|(current, _)| current != id)) {
+            return Ok(json!({"stale":true}));
+        }
         r.bridge.waiting_user.store(true, Ordering::SeqCst);
         r.bridge.tickets.lock().await.clear();
         r.bridge.pending.lock().await.clear();
@@ -817,6 +824,7 @@ async fn tool_result(State(state): State<AppState>, Json(reply): Json<Reply>) ->
         let r = find(
             &state,
             &Identity {
+                turn_id: None,
                 project_id: reply.project_id,
                 session_id: reply.session_id,
             },
@@ -838,6 +846,7 @@ async fn permission(State(state): State<AppState>, Json(reply): Json<Reply>) -> 
         let r = find(
             &state,
             &Identity {
+                turn_id: None,
                 project_id: reply.project_id,
                 session_id: reply.session_id,
             },

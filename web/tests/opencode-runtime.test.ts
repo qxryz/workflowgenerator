@@ -152,3 +152,44 @@ test("SSE streams assistant text and reasoning without echoing user parts or dup
     assert.ok(text.every((value) => !value.includes("Do not echo")));
     assert.deepEqual(thoughts, ["Checking files."]);
 });
+
+test("tool narration is not concatenated into the final answer", async (t) => {
+    const original = globalThis.fetch;
+    t.after(() => { globalThis.fetch = original; });
+    globalThis.fetch = async url => {
+        if (String(url).endsWith("/events")) return new Response("");
+        if (String(url).endsWith("/start")) return Response.json({ sessionId: "ses_native" });
+        return Response.json({ ...completed, messages: [
+            { info: { id: "internal", role: "assistant", time: { completed: 1 } }, parts: [{ id: "internal-text", type: "text", text: "First inspect tools and internal node IDs." }, { id: "tool", type: "tool", tool: "wg_hub_canvas_get_node", state: { status: "completed" } }] },
+            { info: { id: "final", role: "assistant", time: { completed: 2 } }, parts: [{ id: "final-text", type: "text", text: "提示词已加入画布，请选择模型后运行。" }] },
+        ] });
+    };
+    assert.equal(await runZodiacTurn({ projectId: "p", sessionId: "s", text: "设计角色" }), "提示词已加入画布，请选择模型后运行。");
+});
+
+test("a decision ends cleanly and awaits turn-scoped cancellation before another answer can start", async (t) => {
+    const original = globalThis.fetch;
+    t.after(() => { globalThis.fetch = original; });
+    let aborted = false;
+    let toolReturned = false;
+    const statuses: string[] = [];
+    globalThis.fetch = async (url, init) => {
+        const path = String(url);
+        if (path.endsWith("/events")) return new Response("");
+        if (path.endsWith("/start")) return Response.json({ sessionId: "ses_native" });
+        if (path.endsWith("/tool-result")) { toolReturned = true; return Response.json({ ok: true }); }
+        if (path.endsWith("/abort")) {
+            assert.equal(JSON.parse(String(init?.body)).turnId, "decision-turn");
+            assert.equal(toolReturned, true);
+            await new Promise(resolve => setTimeout(resolve, 30));
+            aborted = true;
+            return Response.json({ ok: true });
+        }
+        return Response.json({ ...completed, status: { type: "busy" }, tools: [{ callId: "decision", name: "zodiac-ui", args: { question: "选择方向" }, context: { role: "orchestrator", taskId: "ses_native", nativeCallId: "n", rootSessionId: "s", turnId: "decision-turn" } }] });
+    };
+    const reply = await runZodiacTurn({ projectId: "p", sessionId: "s", turnId: "decision-turn", text: "设计角色", onActivity: event => statuses.push(event.label), onToolRequest: () => ({ ok: true, result: { decisionId: "d" } }) });
+    assert.equal(aborted, true);
+    assert.equal(reply, "请选择后继续。");
+    assert.equal(statuses.at(-1), "等待你确认");
+    assert.ok(!statuses.includes("已停止"));
+});

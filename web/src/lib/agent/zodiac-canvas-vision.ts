@@ -1,5 +1,11 @@
 import { redactZodiacContextText, selectZodiacCanvasImages, type ZodiacCanvasSnapshot } from "./zodiac-canvas-context.ts";
 import type { ZodicContentPart } from "../../services/api/zodic";
+import type { AiConfig } from "../../stores/use-config-store";
+
+export function zodiacVisionConfig(config: AiConfig): AiConfig {
+    if (!config.textModel?.trim()) throw new Error("请先选择聊天模型，再分析图片。");
+    return { ...config, model: config.textModel };
+}
 
 /** Only successfully read pixels are reported as visible to Zodiac. No media is stored in chat history. */
 export async function prepareZodiacCanvasVision(snapshot: ZodiacCanvasSnapshot, userText: string, loadImage: (image: { dataUrl?: string; storageKey?: string }) => Promise<string>) {

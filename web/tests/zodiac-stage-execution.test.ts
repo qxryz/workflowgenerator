@@ -110,7 +110,7 @@ test("an approved retry subset does not execute other pending work", async () =>
     assert.deepEqual(tools, ["hub_canvas_write_node"]);
 });
 
-test("plans freeze model and generation defaults before approval while retaining explicit choices", () => {
+test("plans freeze user-selected model defaults and ignore model suggestions from the assistant", () => {
     const config = { imageModel: "channel::image", videoModel: "channel::video", audioModel: "channel::qwen-audio-3.0-tts-flash", size: "16:9", canvasImageCount: "2", videoSeconds: "8", audioVoice: "alloy", audioSpeed: "1.2", audioFormat: "wav", audioInstructions: "温柔", imagePromptPrefix: "品牌", quality: "high", background: "transparent", imageWatermark: "false", imageOptimizePrompt: "true", vquality: "720", videoGenerateAudio: "true", videoWatermark: "false" } as AiConfig;
     const contract = { id: "media", contract: { goal: "生成素材", workItems: [
         { id: "image", title: "图片", tool: "hub_generate_image" as const, args: { prompt: "产品" } },
@@ -122,7 +122,7 @@ test("plans freeze model and generation defaults before approval while retaining
     config.size = "1:1";
     const [image, video, audio] = result.contract.workItems;
     assert.equal(image.args.model, "channel::image"); assert.equal(image.args.size, "16:9"); assert.equal(image.args.count, 2);
-    assert.equal(video.args.model, "selected::video"); assert.equal(video.args.seconds, 12); assert.equal(video.args.size, "9:16");
+    assert.equal(video.args.model, "channel::video"); assert.equal(video.args.seconds, 12); assert.equal(video.args.size, "9:16");
     assert.equal(audio.args.voice, "longanhuan_v3.6");
     assert.equal(audio.args.speed, 1.2); assert.equal(audio.args.format, "wav");
     assert.equal("model" in contract.contract.workItems[0].args, false);

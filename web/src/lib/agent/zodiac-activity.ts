@@ -9,6 +9,7 @@ export type ZodiacActivityEvent = {
 export type ZodiacActivity = ZodiacActivityEvent & { startedAt: number };
 export function updateZodiacActivity(items: ZodiacActivity[], event: ZodiacActivityEvent): ZodiacActivity[] {
     const old = items.find((item) => item.id === event.id);
+    if (old && old.kind === event.kind && old.status === event.status && old.label === event.label && old.detail === event.detail) return items;
     const next = { ...old, ...event, startedAt: old?.startedAt ?? event.at };
     return (old ? items.map((item) => (item.id === event.id ? next : item)) : [...items, next]).slice(-80);
 }
@@ -30,9 +31,9 @@ const labels: Record<string, string> = {
     hub_canvas_grep_text: "搜索文档",
     hub_canvas_write_node: "写入文档",
     hub_canvas_apply_text_edits: "修改文档",
-    hub_generate_image: "生成图片",
-    hub_generate_video: "生成视频",
-    hub_generate_audio: "生成语音",
+    hub_generate_image: "准备图片生成",
+    hub_generate_video: "准备视频生成",
+    hub_generate_audio: "准备语音合成",
     hub_analyse_media: "分析图片",
     hub_plugin_agent_describe: "读取插件能力",
     hub_plugin_agent_invoke: "操作插件",
@@ -42,6 +43,11 @@ const labels: Record<string, string> = {
     "zodiac-ui": "等待选择",
     "zodiac-ops": "准备画布方案",
 };
+export function zodiacActivityError(detail: string) {
+    let message = detail;
+    try { message = JSON.parse(detail).error || detail; } catch { /* Provider errors may be plain text. */ }
+    return String(message).replace(/\s*Request id:[\s\S]*/iu, "").slice(0, 220);
+}
 export const zodiacToolLabel = (name: string) => labels[name] || "处理工具请求";
 export const zodiacToolNeedsApproval = (name: string) =>
     [

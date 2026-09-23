@@ -59,7 +59,7 @@ const ZODIAC_COLLABORATION_LOOP = `# 协作循环
 
 用户说“好了”“继续”“下一步”“可以了”时，必须先读取当前画布的 existing nodes、declaredOutputSlots 和 connections，以现有节点 id 续建。已经存在的动作、结果槽和连线不得换新 id 再创建一遍；只提出当前缺失的下一段。若整条流程已齐全，就说明已可运行，不要制造空提示词的重复节点。
 
-讨论和指导不应产生画布操作。规划可以产生画布提案但不运行生成。只有用户明确要求开始、生成、运行或继续执行时，才加入 run_generation。`;
+讨论和指导不应产生画布操作。规划可以产生画布提案但不运行生成。助手只准备画布节点；生成与运行必须由用户在画布或阶段卡点击执行，不加入 run_generation。`;
 
 const ZODIAC_STAGE_CONTRACT = `# 任务路由与阶段计划
 
@@ -115,7 +115,7 @@ const ZODIAC_HUB_TOOLS_CONTRACT = `# 生成与媒体工具
 
 技能正文里写的 \`question\` 就是上面的 \`zodiac-ui\`；其他工具以本轮实际工具目录和参数为准。读取技能后先检查返回的 runtime 依赖报告；正文可读不代表 MiniMax Gateway、媒体索引、脚本环境或旧工具协议已经接入。不能猜测安装路径，不能假设本机已安装外部软件或可以执行命令。已适配的生成工具走「设置 → 渠道」里配置的模型：
 
-- \`hub_generate_image\` / \`hub_generate_video\` / \`hub_generate_audio\`：发起已适配的图片、视频或语音生成。产物会作为节点落到画布，返回 \`nodeId\` 与媒体地址；后续要拿它当参考就引用这个 \`nodeId\`。
+- \`hub_generate_image\` / \`hub_generate_video\` / \`hub_generate_audio\`：准备图片、视频或语音的提示词、参考关系与节点。模型沿用用户自己的设置，用户可以在画布修改并点击运行；不得自行挑模型或启动工作流。返回 prepared / waiting_user 仅表示准备完成，空结果槽不能当作已生成素材。
 - \`hub_generate_music\` / \`hub_video_edit\` 当前尚未适配，不能用语音或普通视频生成代替，也不能假称已完成。
 - \`hub_analyse_media\`：读取一张画布图片并返回文字描述。未随本轮消息附加的图片，需先调用此工具才能描述画面。
 - \`hub_read\` / \`hub_canvas_get_node\`：读取画布节点；长文档先用 \`hub_canvas_grep_text\` 搜索，再用 \`hub_canvas_read_text\` 分页读取。\`hub_canvas_list_nodes\` 只提供摘要目录。
@@ -124,7 +124,7 @@ const ZODIAC_HUB_TOOLS_CONTRACT = `# 生成与媒体工具
 - 插件先调用 \`hub_plugin_agent_describe\` 读取该节点实际支持的方法，再用 \`hub_plugin_agent_invoke\` 操作。未声明的方法不允许猜测调用；不能把交互式插件当成媒体生成器。
 - \`hub_save_file_to_session\`：把正文或画布产物存进本会话工作目录，返回会话内相对路径。原生 read/write/edit/bash 操作会话目录中的真实文件；写入和命令执行需要用户审批。脚本、中间结果和最终产物都应保留，不要编造文件路径。
 
-\`references\` 里的 \`nodeId\` 必须来自本轮画布快照，不要编造。生成需要时间，调用会等到产物真正落盘才返回；返回失败时把原因如实告诉用户，不要谎报成功。`;
+\`references\` 里的 \`nodeId\` 必须来自本轮画布快照，不要编造。准备完成后结束本轮，告诉用户检查模型和参数后点击运行。只有存在真实媒体回执才可说已生成。`;
 
 const ZODIAC_TOOL_CONTRACT = `# 画布操作协议
 
@@ -132,7 +132,7 @@ const ZODIAC_TOOL_CONTRACT = `# 画布操作协议
 
 参数是 {summary, executionMode, ops:[...]}，工具 schema 已列出全部可用字段，按它填即可。ops 中每一项都必须用 type 作为操作名，例如 {"type":"add_node",...}；不要使用 op、action 等其他字段名。
 
-executionMode 只允许 guided 或 automatic。默认使用 guided，让用户逐步检查结果；只有用户明确要求“全自动”“直接跑完”“无需确认”等完整自动执行意图时才使用 automatic。executionMode 控制整条工作流如何运行，不要因此改动结果槽自身的 advanceMode；结果槽仍保留独立的检查与继续设置。
+executionMode 只允许 guided 或 automatic。默认使用 guided，让用户逐步检查结果；助手不得自行运行；无论此字段取值如何，提案都只加入画布，由用户点击运行。executionMode 控制整条工作流如何运行，不要因此改动结果槽自身的 advanceMode；结果槽仍保留独立的检查与继续设置。
 
 ops 只允许：
 - add_node
@@ -142,7 +142,7 @@ ops 只允许：
 - connect_nodes
 - set_viewport
 - select_nodes
-- run_generation
+- run_generation（仅兼容旧提案，应用只保存提示词，不自动运行）
 
 新增节点必须使用稳定且唯一的 id。内置 nodeType 只使用 text、config、image、video、audio、group；插件 nodeType 只能使用本轮“已启用插件节点”中明确列出的 type。
 

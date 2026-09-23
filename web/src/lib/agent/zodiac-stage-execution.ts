@@ -133,7 +133,7 @@ export function materializeZodiacStage(stage: ZodiacStageDraft, config: AiConfig
             if (args[key] !== undefined && (!Array.isArray(args[key]) || args[key].some((reference) => !reference || typeof reference !== "object" || typeof reference.nodeId !== "string" || !reference.nodeId.trim()))) throw new Error(`「${item.title}」的引用必须使用有效节点。`);
         }
         const mode = item.tool === "hub_generate_image" ? "image" : item.tool === "hub_generate_video" ? "video" : "audio";
-        const model = typeof args.model === "string" && args.model.trim() ? args.model : config[`${mode}Model`];
+        const model = config[`${mode}Model`];
         if (!model?.trim()) throw new Error("请先选择对应的生成模型。");
         args.model = model;
         const defaults: Record<string, unknown> = {};

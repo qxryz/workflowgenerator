@@ -10,6 +10,8 @@ export function normalizeAppLanguage(value: unknown): AppLanguage {
 }
 
 const englishMessages: Record<string, string> = {
+    "查看错误": "View error",
+    "请先在阶段卡中检查模型和参数，再点击执行。": "Check the model and settings in the stage card, then click Run.",
     "保存文档": "Save documents",
     "文档已准备，可保存到画布。": "Documents are ready to save to the canvas.",
     "有多个待确认的阶段，请在对应计划卡上确认。": "Several stages need confirmation. Use the matching plan card.",

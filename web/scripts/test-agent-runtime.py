@@ -39,7 +39,7 @@ def request(origin, path, data):
 
 def main():
     with tempfile.TemporaryDirectory(prefix='wg-runtime-e2e-') as directory:
-        root = Path(directory)
+        root = Path(directory).resolve()
         work = root / 'workspace/workflows/project-a/sessions/session-a'
         seen_mcp = []
         approvals = []
@@ -79,19 +79,34 @@ def main():
                 elif 'RUN_CHILD' in latest:
                     steps = [('task', {'subagent_type': 'router', 'description': 'Read-only child', 'prompt': 'CHILD_PROMPT: return a direct route'})]
                     final = 'Child completed.'
+                elif 'BUDGET_PROBE' in latest:
+                    if 'FILE_CHILD' not in latest:
+                        steps = [('task', {'subagent_type': 'executor', 'description': 'Command limit check', 'prompt': 'FILE_CHILD BUDGET_PROBE'})]
+                    else:
+                        steps = [('bash', {'command': f'touch budget-{i}.txt', 'description': 'Command limit check'}) for i in range(9)]
+                    final = 'Command limit checked.'
+                elif 'DENY_PROBE' in latest and 'FILE_CHILD' not in latest:
+                    steps = [('task', {'subagent_type': 'executor', 'description': 'File approval check', 'prompt': 'FILE_CHILD DENY_PROBE'})]
+                    final = 'File approval checked.'
+                elif 'STOP_PROBE' in latest and 'FILE_CHILD' not in latest:
+                    steps = [('task', {'subagent_type': 'executor', 'description': 'File cancellation check', 'prompt': 'FILE_CHILD STOP_PROBE'})]
+                    final = 'File cancellation checked.'
                 elif 'DENY_PROBE' in latest:
                     steps = [('bash', {'command': 'touch denied.txt', 'description': 'Denial test'})]
                     final = 'Denied operation was not executed.'
                 elif 'STOP_PROBE' in latest:
                     steps = [('bash', {'command': 'sleep 10; touch should-not-exist.txt', 'description': 'Cancellation test'})]
                     final = 'Stopped.'
+                elif 'FILE_CHILD' not in latest:
+                    steps = [('task', {'subagent_type': 'executor', 'description': 'Create local text file', 'prompt': 'FILE_CHILD: write scripts/build.py and create outputs/result.txt'}),
+                             ('wg_hub_canvas_write_node', {'content': 'native-runtime-ok: 42', 'name': 'Runtime output'})]
+                    final = 'Script and canvas completed.'
                 else:
                     steps = [
                         ('read', {'filePath': str(work / 'skills/test-skill/SKILL.md')}),
                         ('write', {'filePath': str(work / 'scripts/build.py'), 'content': 'from pathlib import Path\nPath("outputs").mkdir(exist_ok=True)\nPath("outputs/result.txt").write_text("native-runtime-ok: 42")\nprint("native-runtime-ok: 42")\n'}),
                         ('bash', {'command': 'python3 scripts/build.py', 'description': 'Run generated script'}),
                         ('read', {'filePath': str(work / 'outputs/result.txt')}),
-                        ('wg_hub_canvas_write_node', {'content': 'native-runtime-ok: 42', 'name': 'Runtime output'}),
                     ]
                     final = 'Script and canvas completed.'
                 self.send_response(200)
@@ -218,10 +233,16 @@ def main():
             assert json.loads((work/'.zodiac/assets.json').read_text())['assets'][0]['path']==attachment['path']
             start('turn-2', 'RUN_CHILD')
             state = drive()
-            assert len(state['children']) == 1, 'Native child session missing'
+            assert any('Read-only child' in child.get('title', '') for child in state['children']), 'Native router session missing'
             assert seen_mcp == ['hub_canvas_write_node', 'hub_plan_get'], 'Child escalated its role'
             child_id = state['children'][0]['id']
-            start('turn-3', 'DENY_PROBE'); drive('deny')
+            start('turn-budget', 'BUDGET_PROBE'); drive()
+            assert all((work / f'budget-{i}.txt').exists() for i in range(8))
+            assert not (work / 'budget-8.txt').exists(), 'Command budget was bypassed'
+            # A delayed stop from an older turn must not cancel the next request.
+            start('turn-3', 'DENY_PROBE')
+            assert request(origin, '/api/agent/abort', {**identity, 'turnId': 'turn-budget'}) == {'stale': True}
+            drive('deny')
             assert not (work / 'denied.txt').exists()
             start('turn-4', 'STOP_PROBE'); drive('stop')
             # Stop closes native command execution; waiting past the write would expose a leak.
@@ -231,7 +252,7 @@ def main():
             server = boot()
             assert start('turn-5', 'DENY_PROBE')['sessionId'] == native, 'Restart replaced the native session'
             state = drive('deny')
-            assert state['children'][0]['id'] == child_id, 'Child history was lost'
+            assert any(child['id'] == child_id for child in state['children']), 'Child history was lost'
             other = {'projectId': 'project-b', 'sessionId': 'session-a'}
             assert start('turn-isolation', 'DENY_PROBE', other)['sessionId'] != native
             drive('deny', other)
@@ -245,6 +266,14 @@ def main():
                 assert any('transport verified' in part.get('text', '') for message in state['messages'] for part in message['parts'])
             print('PASS: files/scripts + approvals + authenticated child roles + denied role forgery + versioned document/media handoff + attachments + import/export + cancellation + restart + workflow isolation + MiniMax/Gemini transports')
         except Exception:
+            import sqlite3
+            for database in root.rglob('opencode.db'):
+                connection = sqlite3.connect('file:' + str(database) + '?mode=ro', uri=True)
+                for (raw,) in connection.execute('select data from part'):
+                    part = json.loads(raw)
+                    if part.get('type') == 'tool' and part.get('state', {}).get('status') == 'error':
+                        print('Tool failure:', part.get('tool'), part['state'].get('error'), flush=True)
+                connection.close()
             for diagnostic in root.rglob('opencode.log'):
                 lines = [line for line in diagnostic.read_text(errors='replace').splitlines() if 'level=ERROR' in line or 'level=WARN' in line]
                 if lines: print('\n'.join(lines[-6:])[:5000], flush=True)

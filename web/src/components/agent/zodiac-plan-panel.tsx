@@ -13,6 +13,7 @@ import { createZodiacToolDispatcher } from "@/lib/agent/zodiac-agent-policy";
 import { nativeTools } from "@/services/api/zodic";
 import { resolveZodiacExecutionSource } from "@/services/api/zodiac-transport";
 import { flushAppState } from "@/services/app-lifecycle";
+import { useConfigStore, selectableModelsByCapability, modelOptionLabel } from "@/stores/use-config-store";
 
 import { resolveZodiacPlanConfirmation } from "@/lib/agent/zodiac-plan-confirmation";
 
@@ -46,6 +47,7 @@ export function ZodiacPlanPanel({
 }) {
     const { t } = useAppTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
+    const config = useConfigStore((state) => state.config);
     const [plans, setPlans] = useState<ZodiacStagePlan[]>([]);
     const [selectedId, setSelectedId] = useState("");
     const [busy, setBusy] = useState(false);
@@ -131,7 +133,7 @@ export function ZodiacPlanPanel({
                 onRunningChange(true);
                 try {
                     const approvedStage = reply.plan.stages.find((entry) => entry.id === command.stageId)!;
-                    const context = createContext(abort.signal, plan.id, approvedStage.runtime.attemptId, plan.sessionId || sessionId);
+                    const context = { ...createContext(abort.signal, plan.id, approvedStage.runtime.attemptId, plan.sessionId || sessionId), generationPolicy: "execute" as const };
                     const dispatcher = createZodiacToolDispatcher({
                         context: {
                             role: "executor",
@@ -188,6 +190,10 @@ export function ZodiacPlanPanel({
             const resolved = resolveZodiacPlanConfirmation(text, plans, sessionId, otherPending);
             if (resolved.kind === "none") return null;
             if (resolved.kind === "ambiguous") return t(resolved.message);
+            if (resolved.command.type !== "accept") {
+                await onConfirmed();
+                return t("请先在阶段卡中检查模型和参数，再点击执行。");
+            }
             const latest = await getZodiacPlan(resolved.plan.id);
             if (latest.revision !== resolved.plan.revision) {
                 await refresh();
@@ -209,6 +215,12 @@ export function ZodiacPlanPanel({
             return await act({ type: "begin_documents", stageId: stage.id }, true, target, { internal: true, signal, propagate: true }) || target;
         },
     }));
+    const modelSelect = (item: import("@/lib/agent/zodiac-stage-plan").ZodiacPlanWorkItem) => stage && typeof item.args.model === "string" ? (
+        <Select aria-label={`${item.title} · ${t("模型")}`} size="small" className="w-full min-w-44"
+            value={item.args.model} disabled={busy || conversationBusy || !(stage.runtime.status === "waiting_user" && stage.runtime.waitingReason === "plan_review")}
+            options={selectableModelsByCapability(config, item.tool === "hub_generate_image" ? "image" : item.tool === "hub_generate_video" ? "video" : "audio").map(value => ({ value, label: modelOptionLabel(config, value) }))}
+            onChange={model => void act({ type: "write_stage", stage: { id: stage.id, contract: { ...stage.contract, workItems: stage.contract.workItems.map(entry => entry.id === item.id ? { ...entry, args: { ...entry.args, model } } : entry) } } })} />
+    ) : null;
     if (!plan)
         return error ? (
             <div role="alert" className="px-4 py-2 text-xs text-red-600">
@@ -277,11 +289,11 @@ export function ZodiacPlanPanel({
                                 <div className="min-w-0">
                                     <p className="font-medium">{item.title}</p>
                                     {typeof item.args.model === "string" ? (
-                                        <p style={{ color: theme.node.muted }}>
-                                            {item.args.model.split("::").at(-1)}
+                                        <div style={{ color: theme.node.muted }}>
+                                            {modelSelect(item)}
                                             {item.args.count ? ` · ${item.args.count} 项` : ""}
                                             {item.args.seconds ? ` · ${item.args.seconds} 秒` : ""}
-                                        </p>
+                                        </div>
                                     ) : null}
                                 </div>
                             </li>
@@ -394,6 +406,7 @@ export function ZodiacPlanPanel({
                                                     {t(itemLabels[state?.status || "pending"])}
                                                 </span>
                                             </div>
+                                            {modelSelect(item)}
                                             {parameters.length ? (
                                                 <p className="mt-1 text-xs leading-5" style={{ color: theme.node.muted }}>
                                                     {parameters.join(" · ")}

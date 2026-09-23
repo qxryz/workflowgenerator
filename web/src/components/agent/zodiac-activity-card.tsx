@@ -1,10 +1,12 @@
 import { useEffect, useState } from "react";
 import { Check, ChevronDown, CircleAlert, LoaderCircle, Pause, Sparkles } from "lucide-react";
-import type { ZodiacActivity } from "@/lib/agent/zodiac-activity";
+import { zodiacActivityError, type ZodiacActivity } from "@/lib/agent/zodiac-activity";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import type { ZodiacRun } from "@/lib/agent/zodiac-run-events";
 import { canvasThemes } from "@/lib/canvas-theme";
 
 export function ZodiacActivityCard({ run, activities = [], theme }: { run: ZodiacRun; activities?: ZodiacActivity[]; theme: (typeof canvasThemes)[keyof typeof canvasThemes] }) {
+    const { t } = useAppTranslation();
     const running = run.status === "running";
     const [now, setNow] = useState(Date.now());
     const [open, setOpen] = useState(false);
@@ -29,7 +31,7 @@ export function ZodiacActivityCard({ run, activities = [], theme }: { run: Zodia
                 <ChevronDown className={`size-3 transition-transform ${open ? "rotate-180" : ""}`} />
             </button>
             {open ? (
-                <ol className="mt-3 space-y-2 border-l pl-3" style={{ borderColor: theme.node.stroke }}>
+                <ol className="thin-scrollbar mt-3 max-h-72 space-y-2 overflow-y-auto border-l pl-3" style={{ borderColor: theme.node.stroke }}>
                     {activities.map((item) => (
                         <li key={item.id} className="text-xs">
                             <div className="flex items-center gap-2">
@@ -45,7 +47,7 @@ export function ZodiacActivityCard({ run, activities = [], theme }: { run: Zodia
                                 <span>{item.label}</span>
                                 <span className="ml-auto opacity-50">{item.status === "done" ? "完成" : item.status === "error" ? "未完成" : item.status === "waiting" && running ? "待批准" : running ? "进行中" : "已结束"}</span>
                             </div>
-                            {item.detail ? <p className="mt-1 break-words leading-5 text-red-500">{item.detail}</p> : null}
+                            {item.detail ? <details className="mt-1 break-words leading-5 text-red-500"><summary className="cursor-pointer">{t("查看错误")}</summary><p>{zodiacActivityError(item.detail)}</p></details> : null}
                         </li>
                     ))}
                 </ol>

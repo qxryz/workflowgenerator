@@ -9,7 +9,7 @@ import { buildImageReferencePromptText } from "@/lib/image-reference-prompt";
 import { imageToDataUrl as readImageDataUrl } from "@/services/image-storage";
 import { requireReferenceImageDataUrl } from "@/lib/media-reference-validation";
 import { fetchModelList, postModelJson, proxyModelPost, type ServerModelListPayload } from "@/services/server-storage";
-import { arkImageGenerationParameters, imageOutputParameters } from "@/lib/model-providers";
+import { arkImageGenerationParameters, imageOutputParameters, resolveSeedreamRequestSize } from "@/lib/model-providers";
 import { assertMiniMaxCredentialMatches, buildMiniMaxEndpoint, buildMiniMaxImageRequest, parseMiniMaxImageResponse, type MiniMaxBillingMode } from "@/lib/minimax-contract";
 import type { ReferenceImage } from "@/types/image";
 import { requestMiniMaxTextReply } from "./minimax-text";
@@ -196,7 +196,9 @@ function resolveRequestSize(quality: string | undefined, size: string) {
     throw new Error("图像尺寸格式不支持，请使用 auto、9:16 或 1024x1024");
 }
 
-function resolveArkRequestSize(quality: string | undefined, size: string) {
+function resolveArkRequestSize(quality: string | undefined, size: string, model: string) {
+    const seedream = resolveSeedreamRequestSize(model, quality, size);
+    if (seedream) return seedream;
     const explicit = resolveRequestSize(quality, size);
     if (explicit) return explicit;
     if (quality === "low") return "1K";
@@ -782,7 +784,7 @@ export async function requestGeneration(config: AiConfig, prompt: string, option
         }
     }
     const quality = normalizeQuality(config.quality);
-    const requestSize = requestConfig.apiFormat === "ark" ? resolveArkRequestSize(quality, config.size) : resolveRequestSize(quality, config.size);
+    const requestSize = requestConfig.apiFormat === "ark" ? resolveArkRequestSize(quality, config.size, requestConfig.model) : resolveRequestSize(quality, config.size);
     const background = normalizeBackground(config.background);
     const outputParameters = imageOutputParameters(requestConfig.apiFormat, requestConfig.model);
     try {
@@ -814,7 +816,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
     if (script) {
         if (mask) throw new Error("当前图片调用脚本不支持蒙版编辑，请切换支持蒙版的模型或移除蒙版");
         const quality = normalizeQuality(config.quality);
-        const requestSize = requestConfig.apiFormat === "ark" ? resolveArkRequestSize(quality, config.size) : resolveRequestSize(quality, config.size);
+        const requestSize = requestConfig.apiFormat === "ark" ? resolveArkRequestSize(quality, config.size, requestConfig.model) : resolveRequestSize(quality, config.size);
         const background = normalizeBackground(config.background);
         const refs = await Promise.all(references.map((image) => imageToDataUrl(image)));
         try {
@@ -898,7 +900,7 @@ export async function requestEdit(config: AiConfig, prompt: string, references: 
     if (requestConfig.apiFormat === "ark" || requestConfig.apiFormat === "agnes") {
         if (mask) throw new Error("蒙版编辑暂不支持该模型，请使用其他渠道");
         const quality = normalizeQuality(config.quality);
-        const requestSize = resolveRequestSize(quality, config.size);
+        const requestSize = requestConfig.apiFormat === "ark" ? resolveArkRequestSize(quality, config.size, requestConfig.model) : resolveRequestSize(quality, config.size);
         const background = normalizeBackground(config.background);
         const refs = await Promise.all(references.map((image) => imageToDataUrl(image)));
         const outputParameters = imageOutputParameters(requestConfig.apiFormat, requestConfig.model);

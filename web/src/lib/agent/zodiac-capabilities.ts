@@ -1,5 +1,6 @@
 import type { AiConfig } from "@/stores/use-config-store";
 import { resolveChannelModelAdapter } from "../model-catalog.ts";
+import { seedreamImageContract } from "../model-providers.ts";
 import { adapterCapabilitySupport, isMiniMaxAdapter } from "../model-adapters.ts";
 import { AGNES_VIDEO_CONTRACT } from "../agnes-contract.ts";
 import { isMiniMaxHailuoModel, MINIMAX_H3_REFERENCE_LIMITS, MINIMAX_H3_DURATION_SECONDS, MINIMAX_VIDEO_INPUT_MODES, MINIMAX_VIDEO_RATIOS, MINIMAX_VIDEO_RESOLUTIONS, MINIMAX_HAILUO_DURATIONS, MINIMAX_HAILUO_RESOLUTIONS } from "../minimax-contract.ts";
@@ -40,7 +41,7 @@ export function buildZodiacCapabilities(config: AiConfig) {
                 return { id: `${channel.id}::${model.name}`, name: model.name, capability: model.capability,
                     configured: !!channel.apiKey.trim() && !!channel.baseUrl.trim(), adapter,
                     support: adapterCapabilitySupport(adapter, model.capability),
-                    contract: model.capability === "video" ? videoContract(adapter, model.name) : null,
+                    contract: model.capability === "video" ? videoContract(adapter, model.name) : model.capability === "image" && adapter === "ark-media" ? seedreamImageContract(model.name) : null,
                 };
             })),
         contractSource: "installed_adapter",

@@ -789,7 +789,8 @@ function normalizeAddedNodes(ops: CanvasAgentOp[], reservedIds = new Set<string>
         if (op.type !== "add_node") return op;
         const metadata = op.metadata || {};
         const inferredMode = generationModeFrom(`${op.title || ""} ${metadata.prompt || ""} ${metadata.composerContent || ""}`);
-        const resultSlotMode = resultSlotModeFrom(op.title || "");
+        const resultSlotMode = metadata.role === "result-slot" && isGenerationMode(metadata.resultSlotMode)
+            ? metadata.resultSlotMode : resultSlotModeFrom(op.title || "");
         const nodeType = resultSlotMode ? OUTPUT_NODE_TYPE[resultSlotMode] : op.nodeType;
         const requestedId = op.id || stableNodeId(nodeType || "text", op.title, index);
         const mayReuseKnownId = Boolean(op.id && reusableKnownIds.has(op.id) && !proposalIds.has(op.id));

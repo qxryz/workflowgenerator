@@ -327,13 +327,13 @@ export const HUB_TOOL_DEFINITIONS = {
             required: ["prompt"],
             properties: {
                 prompt: text(20000, "生图提示词，直接用技能里写好的成稿"),
-                model: text(200, "模型名；不填就用应用「设置 → 渠道」里的默认图片模型"),
-                size: text(40, "尺寸，如 1024x1024 / 1536x1024"),
+                model: text(200, "由用户在画布选择，助手不应指定"),
+                size: text(40, "画幅比例，如 1:1 / 16:9；实际像素需符合用户所选模型"),
                 count: { type: "integer", minimum: 1, maximum: 10, description: "生成张数；不填按模型的默认数量" },
                 references: hubReferenceList,
             },
         },
-        description: `${HUB_DESCRIPTION_PREFIX}生成图片。在浏览器执行（走应用渠道与服务端代理），产物存到服务端媒体并作为图片节点落到当前画布，返回节点 id 与媒体地址，供后续 hub_analyse_media 或引用使用。`,
+        description: `${HUB_DESCRIPTION_PREFIX}准备图片生成节点、提示词与参考连线，由用户检查模型后在画布点击运行。返回 prepared / waiting_user 及空结果槽；不可称图片已生成。`,
     },
     hub_generate_video: {
         parameters: {
@@ -341,7 +341,7 @@ export const HUB_TOOL_DEFINITIONS = {
             required: ["prompt"],
             properties: {
                 prompt: text(20000, "视频提示词，直接用技能里写好的成稿（含时间码分镜、动效术语与 SFX）"),
-                model: text(200, "模型名；不填就用应用里的默认视频模型"),
+                model: text(200, "由用户在画布选择，助手不应指定"),
                 seconds: { type: "number", minimum: 1, description: "时长（秒）；不填按模型默认" },
                 size: text(40, "分辨率或画幅，如 1280x720 / 9:16"),
                 references: hubReferenceList,
@@ -349,7 +349,7 @@ export const HUB_TOOL_DEFINITIONS = {
                 audioReferences: { type: "array", maxItems: 10, items: hubReference, description: "参考音频（部分模型不支持）" },
             },
         },
-        description: `${HUB_DESCRIPTION_PREFIX}生成视频。在浏览器执行，产物存到服务端媒体并作为视频节点落到当前画布。模型不接受的能力（如参考视频）会返回明确失败，不会静默降级。`,
+        description: `${HUB_DESCRIPTION_PREFIX}准备视频生成节点、提示词与参考连线，由用户检查模型后点击运行。返回 prepared / waiting_user，不发起生成。`,
     },
     hub_generate_audio: {
         parameters: {
@@ -358,12 +358,12 @@ export const HUB_TOOL_DEFINITIONS = {
             properties: {
                 text: text(20000, "要合成的文本"),
                 voice: text(120, "音色 id；不填用默认音色"),
-                model: text(200, "模型名；不填用应用里的默认音频模型"),
+                model: text(200, "由用户在画布选择，助手不应指定"),
                 speed: { type: "number", description: "语速" },
                 instructions: text(4000, "风格 / 情绪指令"),
             },
         },
-        description: `${HUB_DESCRIPTION_PREFIX}语音合成。在浏览器执行，产物存到服务端媒体并作为音频节点落到当前画布。`,
+        description: `${HUB_DESCRIPTION_PREFIX}准备语音合成节点，由用户选择模型和音色后点击运行。返回 prepared / waiting_user，不发起合成。`,
     },
     hub_generate_music: {
         parameters: {

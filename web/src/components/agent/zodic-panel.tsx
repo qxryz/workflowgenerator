@@ -1,3 +1,4 @@
+import { prepareZodiacManualOps } from "@/lib/agent/zodiac-manual-workflow";
 import { zodiacPlanContext } from "@/lib/agent/zodiac-plan-context";
 import { pinZodiacStageReferences } from "@/lib/agent/zodiac-stage-execution";
 import { zodiacWorkspaceAssets } from "@/lib/agent/zodiac-assets";
@@ -18,7 +19,7 @@ import { ZodiacWorkflowLedger } from "@/components/agent/zodiac-workflow-ledger"
 import { AgentChatComposer, AgentChatMessage, AgentPendingToolCard, type CanvasAgentChatAttachment, type CanvasAgentChatMessage } from "@/components/canvas/canvas-agent-chat-ui";
 import { canvasThemes } from "@/lib/canvas-theme";
 import { composeZodiacSystemPrompt, type ZodiacCanvasSnapshot } from "@/lib/agent/zodiac-harness";
-import { prepareZodiacCanvasVision } from "@/lib/agent/zodiac-canvas-vision";
+import { prepareZodiacCanvasVision, zodiacVisionConfig } from "@/lib/agent/zodiac-canvas-vision";
 import { imageToDataUrl, resolveImageUrl } from "@/services/image-storage";
 import { resolveMediaUrl } from "@/services/file-storage";
 import { createZodiacRun, finishZodiacRun, interruptZodiacRun, markZodiacRunApplying, markZodiacRunPlanning, settleZodiacRun, shouldShowZodiacRun, type ZodiacRun } from "@/lib/agent/zodiac-run-events";
@@ -416,7 +417,8 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             saveSessionFile: input => agentRequest("file", { projectId: canvasContext.projectId, sessionId: ownerSessionId, ...input }, signal),
             analyseImage: async ({ dataUrl, question }) => {
                 const messages: AiTextMessage[] = [{ role: "user", content: [{ type: "text", text: question || "描述这张图片：比例、主体、版式、文字层级、色调。只描述看到的，不要推测用途。" }, { type: "image_url", image_url: { url: dataUrl } }] }];
-                return requestImageQuestion(effectiveConfig, messages, () => undefined, { signal });
+                // config.model belongs to the last canvas generator, not the chat model.
+                return requestImageQuestion(zodiacVisionConfig(effectiveConfig), messages, () => undefined, { signal });
             },
             readImageDataUrl: async (nodeId) => {
                 const node = canvasContext.getSnapshot().nodes.find((item) => item.id === nodeId);
@@ -531,13 +533,14 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         const pendingStream = { sessionKey: requestSessionKey, controller, flushForSave: () => flushStream(true) };
         pendingStreamFlushRef.current = pendingStream;
         let structuredReply = false;
+        let imageAnalysisError: string | undefined;
         const onActivity = (event: ZodiacActivityEvent) => {
             if (!isCurrentRequest()) return;
             setItems(current => current.map(item => item.id === runId ? { ...item, activity: updateZodiacActivity(item.activity || [], event) } : item));
         };
         const applyToolRequest = async (request: ZodiacToolRequest, actor?: ZodiacRoleContext): Promise<ZodiacToolResult> => {
             const toolSignal = actor?.signal || controller.signal;
-            if (zodiacToolNeedsApproval(request.name)) {
+            if (zodiacToolNeedsApproval(request.name) && !request.name.startsWith("hub_generate_")) {
                 onActivity({ id: `${actor?.taskId}:${request.callId}`, kind: "approval", status: "waiting", label: `确认${zodiacToolLabel(request.name)}`, at: Date.now() });
                 const approved = await askToolApproval(request, toolSignal);
                 toolSignal.throwIfAborted();
@@ -578,7 +581,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 if (!saved.nodes.some(node => node.id === id)) return { ok: false, error: "产物尚未保存到画布。" };
                 return { ok: true, result: { nodeId: id, path: args.path, storageKey: file.storageKey } };
             }
-            if (request.name === "hub_list_capabilities") return { ok: true, result: buildZodiacCapabilities(config) };
+            if (request.name === "hub_list_capabilities") return { ok: true, result: { ...buildZodiacCapabilities(config), currentRole: actor?.role || "orchestrator", generationMode: "prepare_only", note: "能力清单描述应用支持；当前角色只能调用实际提供的工具。生成节点由用户选择模型后运行。" } };
             if (request.name === "workflow") {
                 try { return { ok: true, result: readZodiacWorkflow(request.args) }; }
                 catch (error) { return { ok: false, error: error instanceof Error ? error.message : "工作流读取失败" }; }
@@ -666,7 +669,10 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             // Hub 技能调用的工具：执行体在 zodiac-hub-tools，这里只把它接到当前画布与内核通道上。
             if (HUB_TOOL_EXECUTION_NAMES.includes(request.name)) {
                 if (!canvasContext) return { ok: false, error: "当前没有打开的画布，无法执行生成或读取节点。" };
+                if (request.name === "hub_analyse_media" && imageAnalysisError) return { ok: false, error: `本轮图片分析通道不可用：${imageAnalysisError}。请说明无法读取画面，不要再次调用。` };
                 const result = await executeHubTool(request, { ...createHubContext(toolSignal, sessionRef.current.id, actor?.turnId || requestUser.id), taskId: actor?.taskId });
+                if (!result.ok && request.name === "hub_analyse_media" && result.error.startsWith("分析画面失败")) imageAnalysisError = result.error;
+                if (result.ok && (result.result as { status?: string })?.status === "waiting_user") structuredReply = true;
                 if (result.ok && (request.name.startsWith("hub_generate_") || ["hub_canvas_write_node", "hub_canvas_apply_text_edits"].includes(request.name))) {
                     try {
                         await agentRequest("assets", { projectId: requestSessionKey, sessionId: sessionRef.current.id, assets: zodiacWorkspaceAssets(canvasContext.getSnapshot().nodes, canvasContext.getSnapshot().selectedNodeIds) }, toolSignal);
@@ -856,7 +862,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                     );
                     try {
                         let committedWorkOrder = target.workOrder;
-                        const appliedSnapshot = await canvasContext.applyOps(target.resolvedOps || target.ops, target.id, target.executionMode, {
+                        const appliedSnapshot = await canvasContext.applyOps(prepareZodiacManualOps(target.resolvedOps || target.ops, { image: config.imageModel, video: config.videoModel, audio: config.audioModel, text: config.textModel }), target.id, "guided", {
                             resumeExistingStructure: Boolean(target.resolvedOps?.length),
                             onStructureCommitted: async (resolvedOps) => {
                                 committedWorkOrder = buildZodiacWorkOrder(resolvedOps, canvasContext.getSnapshot(), target.summary);
@@ -1471,7 +1477,7 @@ function attemptTool(ops: CanvasAgentOp[], request: string, summary?: string, pr
     if (!proposal.ops.length) {
         return { ok: false, reason: proposal.reason || "这套画布操作没有可执行的步骤。请读取当前画布后重新整理一份完整操作。" };
     }
-    const reconciledOps = reconcileZodiacContinuationOps(proposal.ops, request, snapshot?.nodes, snapshot?.connections);
+    const reconciledOps = prepareZodiacManualOps(reconcileZodiacContinuationOps(proposal.ops, request, snapshot?.nodes, snapshot?.connections));
     if (!reconciledOps.length) return { ok: false, reason: "这些步骤已经都在画布上了，没有需要新增的内容。若要改造现有流程，请用 update_node 修改，而不是重复创建。" };
     const proposalChanged = reconciledOps.length !== proposal.ops.length;
     const resolvedSummary = summarizeZodiacProposalEffects(reconciledOps, snapshot, proposalChanged ? undefined : summary);

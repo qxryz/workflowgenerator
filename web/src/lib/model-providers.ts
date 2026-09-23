@@ -218,7 +218,49 @@ export function supportsArkPromptOptimization(modelName: string) {
     return /(?:^|-)seedream-4-0(?:-|$)/iu.test(modelName.trim());
 }
 
+/** https://docs.volcengine.com/docs/ark/image-generation-api */
+export function seedreamImageContract(modelName: string) {
+    if (/seedream[-.]4[-.]5|seedream[-.]5[-.]0-lite/iu.test(modelName)) return { minPixels: 3686400, maxPixels: 16777216, maxRatio: 16 };
+    if (/seedream[-.]4[-.]0/iu.test(modelName)) return { minPixels: 921600, maxPixels: 16777216, maxRatio: 16 };
+    return null;
+}
+
+export function validateSeedreamSize(modelName: string, size?: string) {
+    const contract = seedreamImageContract(modelName);
+    if (!contract || !size) return;
+    const dimensions = /^(\d+)x(\d+)$/iu.exec(size);
+    if (!dimensions) {
+        if (size === "1K" && contract.minPixels > 1048576) throw new Error("当前 Seedream 模型不支持 1K，请选择 2K 或更高尺寸。");
+        return;
+    }
+    const width = Number(dimensions[1]), height = Number(dimensions[2]);
+    if (width * height < contract.minPixels || width * height > contract.maxPixels || Math.max(width / height, height / width) > contract.maxRatio) {
+        throw new Error(`当前 Seedream 模型不支持 ${size}。请调整尺寸，总像素需在 ${contract.minPixels}–${contract.maxPixels} 之间，宽高比不超过 16:1。`);
+    }
+}
+
+export function resolveSeedreamRequestSize(modelName: string, quality: string | undefined, size: string): string | undefined {
+    const contract = seedreamImageContract(modelName);
+    if (!contract) return undefined;
+    const value = size.trim();
+    if (/^\d+x\d+$/iu.test(value) || /^[1234]K$/u.test(value)) {
+        validateSeedreamSize(modelName, value);
+        return value;
+    }
+    const tier = quality === "low" ? "1K" : quality === "high" ? "4K" : "2K";
+    validateSeedreamSize(modelName, tier);
+    if (!value || value.toLowerCase() === "auto") return tier;
+    const ratio = /^(\d+(?:\.\d+)?):(\d+(?:\.\d+)?)$/u.exec(value);
+    if (!ratio || Number(ratio[1]) <= 0 || Number(ratio[2]) <= 0) throw new Error("请使用有效画幅或像素尺寸，例如 16:9 或 2048x2048。");
+    const aspect = Number(ratio[1]) / Number(ratio[2]);
+    const pixels = (tier === "4K" ? 4096 : tier === "1K" ? 1024 : 2048) ** 2;
+    const result = `${Math.floor(Math.sqrt(pixels * aspect))}x${Math.floor(Math.sqrt(pixels / aspect))}`;
+    validateSeedreamSize(modelName, result);
+    return result;
+}
+
 export function arkImageGenerationParameters(modelName: string, size: string | undefined, count: number, watermark: boolean, optimizePrompt: boolean) {
+    validateSeedreamSize(modelName, size);
     const multiple = count > 1;
     return {
         ...(size ? { size } : {}),

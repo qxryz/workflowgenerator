@@ -31,6 +31,7 @@ function context(overrides = {}) {
     const state = { snapshot: snapshot() };
     const base = {
         calls,
+        generationPolicy: "execute",
         sessionId: "session-1",
         turnId: "turn-1",
         resolveMediaUrl: async (node) => `/media/media/${encodeURIComponent(node.metadata.storageKey)}`,
@@ -47,7 +48,7 @@ function context(overrides = {}) {
             const action = state.snapshot.nodes.find((node) => node.id === actionId);
             const slotId = state.snapshot.connections.find((edge) => edge.fromNodeId === actionId)?.toNodeId;
             const slot = state.snapshot.nodes.find((node) => node.id === slotId && node.type === action?.metadata?.generationMode);
-            if (slot) slot.metadata = { ...slot.metadata, status: "success", storageKey: "media/out-1.png" };
+            if (slot) slot.metadata = { ...slot.metadata, status: "success", slotState: "ready", storageKey: "media/out-1.png" };
             return { status: "completed", nodes: [] };
         },
         saveSessionFile: async ({ path, content, storageKey }) => ({ path, bytes: content ? content.length : storageKey.length }),
@@ -487,4 +488,52 @@ test("预览URL查询失败保留真实已保存产物回执且重试不再生�
     assert.equal(first.result.storageKey, "media/out-1.png");
     assert.equal(retry.result.nodeId, first.result.nodeId);
     assert.equal(ctx.calls.ran.length, 1);
+});
+
+test("conversation generation prepares durable slots using the user's model without submitting a request", async () => {
+    const ctx = context({ generationPolicy: undefined, defaultModels: { image: "user::chosen" } });
+    const request = { callId: "manual", name: "hub_generate_image", args: { prompt: "圆润小牛", model: "agent::suggestion", references: [{ nodeId: "poster-1", role: "style" }] } };
+    const result = await executeHubTool(request, ctx);
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(result.result.status, "waiting_user");
+    assert.equal(result.result.prepared, true);
+    assert.equal(result.result.storageKey, undefined);
+    assert.equal(ctx.calls.ran.length, 0);
+    const action = ctx.getSnapshot().nodes.find(node => node.id === result.result.actionNodeId);
+    const slot = ctx.getSnapshot().nodes.find(node => node.id === result.result.nodeId);
+    assert.equal(action.metadata.model, "user::chosen");
+    assert.equal(slot.metadata.role, "result-slot");
+    assert.equal(slot.metadata.resultSlotSourceNodeId, action.id);
+    assert.ok(action.position.x >= 320 + 96);
+    assert.ok(slot.position.x >= action.position.x + action.width + 96);
+    assert.equal(slot.position.y, action.position.y);
+    const replay = await executeHubTool(request, ctx);
+    assert.equal(replay.ok, true);
+    assert.equal(ctx.calls.applied.length, 1);
+    assert.equal(ctx.calls.ran.length, 0);
+});
+
+test("real proposal normalization preserves the generation receipt's declared slot identity", async () => {
+    const normalized = await build({ entryPoints: [path.resolve("src/pages/canvas/hooks/agent-bridge-apply-boundary.ts")], bundle: true, write: false, platform: "node", format: "esm", alias: { "@": path.resolve("src") } });
+    const { resolveAgentApplyPlan } = await import(`data:text/javascript;base64,${Buffer.from(normalized.outputFiles[0].text).toString("base64")}`);
+    const ctx = context();
+    const apply = ctx.applyOps;
+    ctx.applyOps = ops => apply(resolveAgentApplyPlan(ops, ctx.getSnapshot()).ops);
+    const result = await executeHubTool({ callId: "actual-bridge", name: "hub_generate_image", args: { prompt: "小牛", references: [{ nodeId: "poster-1" }] } }, ctx);
+    assert.equal(result.ok, true, JSON.stringify(result));
+    assert.equal(result.result.storageKey, "media/out-1.png");
+    const slots = ctx.getSnapshot().nodes.filter(node => node.metadata?.resultSlotSourceNodeId === result.result.actionNodeId);
+    assert.equal(slots.length, 1);
+    assert.equal(slots[0].id, result.result.nodeId);
+    assert.equal(ctx.calls.ran.length, 1);
+});
+
+test("an invalid Seedream size is rejected before creating nodes or submitting generation", async () => {
+    const ctx = context();
+    const outcome = await executeHubTool({ callId: "small", name: "hub_generate_image", args: { prompt: "小牛", model: "channel::doubao-seedream-5-0-lite-260128", size: "1024x1024" } }, ctx);
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.error, /3686400/);
+    assert.equal(outcome.requiresReconciliation, undefined);
+    assert.equal(ctx.calls.applied.length, 0);
+    assert.equal(ctx.calls.ran.length, 0);
 });

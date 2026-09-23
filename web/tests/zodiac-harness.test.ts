@@ -27,7 +27,7 @@ test("the harness distinguishes declared outputs from exploratory results", () =
     assert.match(prompt, /调用 `zodiac-ops` 工具/);
     assert.match(prompt, /参数是 \{summary, executionMode, ops:\[\.\.\.\]\}/);
     assert.match(prompt, /不要在正文里输出 JSON 代码块/);
-    assert.match(prompt, /只有用户明确要求“全自动”“直接跑完”“无需确认”/);
+    assert.match(prompt, /提案都只加入画布，由用户点击运行/);
     assert.match(prompt, /不要因此改动结果槽自身的 advanceMode/);
 });
 
@@ -56,7 +56,7 @@ test("the harness tells the model that skills' question is zodiac-ui and lists t
     }
     // 没看过就不能说看过；生成失败不许谎报成功。
     assert.match(prompt, /未随本轮消息附加的图片，需先调用此工具才能描述画面/);
-    assert.match(prompt, /不要谎报成功/);
+    assert.match(prompt, /只有存在真实媒体回执才可说已生成/);
 });
 
 test("the harness exposes only active create-menu plugin catalog fields and marks the director desk as non-generative", () => {

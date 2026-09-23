@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { prepareZodiacCanvasVision, textOnlyZodiacVisionSnapshot } from "../src/lib/agent/zodiac-canvas-vision.ts";
+import { prepareZodiacCanvasVision, textOnlyZodiacVisionSnapshot, zodiacVisionConfig } from "../src/lib/agent/zodiac-canvas-vision.ts";
 
 test("canvas pixels are attached with stable identities; failed reads never claim visual access", async () => {
     const nodes = ["a", "b", "bad"].map((id) => ({ id, type: "image", title: id, position: { x: 0, y: 0 }, metadata: { storageKey: `image:${id}` } }));
@@ -42,4 +42,12 @@ test("the text-only pi transport preserves truthful attached-image metadata", as
     assert.deepEqual(textOnly.visualContext?.attachedNodeIds, ["a"]);
     assert.deepEqual(textOnly.visualContext?.unavailableNodeIds, []);
     assert.deepEqual(result.snapshot.visualContext?.attachedNodeIds, ["a"], "原快照保持不变");
+});
+
+
+test("vision uses the user's chat model instead of the canvas image generator", () => {
+    const config = { model: "images::doubao-seedream-4-5-251128", textModel: "chat::MiniMax-M3", imageModel: "images::doubao-seedream-4-5-251128" } as any;
+    assert.equal(zodiacVisionConfig(config).model, "chat::MiniMax-M3");
+    assert.equal(config.model, "images::doubao-seedream-4-5-251128");
+    assert.throws(() => zodiacVisionConfig({ ...config, textModel: "" }), /选择聊天模型/);
 });

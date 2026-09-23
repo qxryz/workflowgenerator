@@ -58,6 +58,8 @@ pub(super) struct Attestation {
     call_id: String,
     name: String,
     args: Value,
+    #[serde(default)]
+    native: bool,
 }
 
 impl Authority {
@@ -81,7 +83,7 @@ impl Authority {
         }
         if !rooted { return Err("子任务不属于当前会话".into()); }
         let messages = self.get(&format!("/session/{}/message", input.session_id)).await?;
-        let tool_name = format!("wg_{}", input.name);
+        let tool_name = if input.native { input.name.clone() } else { format!("wg_{}", input.name) };
         let info = messages.as_array().into_iter().flatten().rev()
             .find(|m| m["info"]["role"] == "assistant" && m["parts"].as_array().is_some_and(|parts|
                 parts.iter().any(|part| part["type"] == "tool" && part["callID"] == input.call_id && part["tool"] == tool_name
@@ -89,7 +91,14 @@ impl Authority {
             .map(|m| &m["info"]).ok_or("原生任务没有对应的待执行工具调用")?;
         let native_role = info["agent"].as_str().ok_or("原生任务缺少角色")?;
         let role = if native_role == "zodiac" { "orchestrator" } else { native_role };
-        if (input.session_id == self.native_root) != (role == "orchestrator") || !allows(role, &input.name) {
+        let allowed = if input.native {
+            match input.name.as_str() {
+                "bash" | "write" | "edit" => role == "executor",
+                "task" => role == "orchestrator",
+                _ => false,
+            }
+        } else { allows(role, &input.name) };
+        if (input.session_id == self.native_root) != (role == "orchestrator") || !allowed {
             return Err(format!("当前角色不允许调用工具「{}」", input.name));
         }
         Ok(json!({"role":role,"taskId":input.session_id,"nativeCallId":input.call_id,"nativeMessageId":info["id"],
@@ -106,6 +115,16 @@ pub(super) async fn attest(State(bridge): State<Arc<Bridge>>, headers: HeaderMap
         let ticket = secret()?;
         let mut tickets = bridge.tickets.lock().await;
         tickets.retain(|_, entry| entry.created.elapsed() < Duration::from_secs(3600));
+        if input.native {
+            let key = format!("native:{}:{}:{}", authority.turn_id, input.session_id, input.call_id);
+            if tickets.contains_key(&key) { return Ok(json!({"ok":true})); }
+            let limit = if input.name == "task" { 4 } else if input.name == "bash" { 8 } else { 12 };
+            let count = tickets.iter().filter(|(key, entry)| key.starts_with("native:")
+                && entry.actor["turnId"] == authority.turn_id && entry.name == input.name).count();
+            if count >= limit { return Err("本轮文件或子任务操作已达上限。请交付已有结果并说明未完成项；不要寻找替代工具继续尝试。".into()); }
+            tickets.insert(key, Ticket { name: input.name, args: input.args, actor, created: Instant::now() });
+            return Ok(json!({"ok":true}));
+        }
         if tickets.len() >= 256 { return Err("待确认的工具请求过多".into()); }
         tickets.insert(ticket.clone(), Ticket { name: input.name, args: input.args, actor, created: Instant::now() });
         Ok::<_, String>(json!({"ticket":ticket}))

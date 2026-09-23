@@ -53,8 +53,8 @@ export function registeredZodiacTools(tools: readonly ZodiacToolDefinition[] = n
 
 /** Persistent native sessions own execution. React observes output and handles app tools. */
 export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<string> {
-    const identity = { projectId: options.projectId!, sessionId: options.sessionId };
     const turnId = options.turnId || crypto.randomUUID();
+    const identity = { projectId: options.projectId!, sessionId: options.sessionId, turnId };
     const messages = options.messages || [];
     const content = (value: (typeof messages)[number]["content"]) =>
         typeof value === "string"
@@ -93,15 +93,18 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
     let lastText = "";
     let started = false;
     let waitingForUser = false;
+    let waitingMessage = "";
+    let stopTask: Promise<unknown> | undefined;
     let runtimeError: string | undefined;
     let idleWithoutReply = 0;
     let eventTask: Promise<void> | undefined;
     const eventController = new AbortController();
     const assistantIds = new Set<string>();
-    const streamedParts = new Map<string, { type: string; text: string }>();
+    const streamedParts = new Map<string, { type: string; text: string; messageId: string }>();
+    let latestAssistantId = "";
     const emitParts = () => {
         const text = [...streamedParts.values()]
-            .filter((part) => part.type === "text")
+            .filter((part) => part.type === "text" && part.messageId === latestAssistantId)
             .map((part) => part.text)
             .filter(Boolean)
             .join("\n\n");
@@ -116,7 +119,8 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
         reasoning.set(id, text);
     };
     const stop = () => {
-        if (started) void agentRequest("abort", identity).catch(() => undefined);
+        if (started) stopTask ??= agentRequest("abort", identity).catch(() => undefined);
+        return stopTask;
     };
     options.signal?.addEventListener("abort", stop, { once: true });
     options.onActivity?.({ id: "runtime", kind: "model", status: "running", label: "思考中", at: Date.now() });
@@ -140,9 +144,9 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
             const properties = event.properties;
             const part = properties?.part;
             if (event.type === "session.error" && properties?.sessionID === nativeSession) runtimeError = properties.error?.data?.message || "Agent 执行失败";
-            if (event.type === "message.updated" && properties?.info?.sessionID === nativeSession && properties.info.role === "assistant") assistantIds.add(properties.info.id);
+            if (event.type === "message.updated" && properties?.info?.sessionID === nativeSession && properties.info.role === "assistant") { assistantIds.add(properties.info.id); latestAssistantId = properties.info.id; }
             if (event.type === "message.part.updated" && part?.sessionID === nativeSession && assistantIds.has(part.messageID) && ["text", "reasoning"].includes(part.type)) {
-                streamedParts.set(part.id, { type: part.type, text: part.text || "" });
+                streamedParts.set(part.id, { type: part.type, text: part.text || "", messageId: part.messageID });
                 if (part.type === "reasoning") emitReasoning(part.id, part.text || "");
                 else emitParts();
             } else if (event.type === "message.part.delta" && properties?.sessionID === nativeSession && properties.field === "text") {
@@ -157,8 +161,9 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
             if (runtimeError) throw new Error(runtimeError);
             const state = await agentRequest<RuntimeSnapshot>("state", identity, options.signal);
             const assistants = state.messages.filter((m) => m.info.role === "assistant");
-            finalText = assistants
-                .flatMap((m) => m.parts.filter((p) => p.type === "text").map((p) => p.text || ""))
+            latestAssistantId = assistants.at(-1)?.info.id || latestAssistantId;
+            finalText = (assistants.at(-1)?.parts || [])
+                .filter((p) => p.type === "text").map((p) => p.text || "")
                 .filter(Boolean)
                 .join("\n\n");
             for (const message of assistants) {
@@ -166,7 +171,7 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
                 for (const part of message.parts)
                     if (part.type === "text" || part.type === "reasoning") {
                         const current = streamedParts.get(part.id);
-                        if (!current || !current.text.startsWith(part.text || "")) streamedParts.set(part.id, { type: part.type, text: part.text || "" });
+                        if (!current || !current.text.startsWith(part.text || "")) streamedParts.set(part.id, { type: part.type, text: part.text || "", messageId: message.info.id });
                     }
             }
             emitParts();
@@ -182,7 +187,7 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
                             id: part.callID || part.id,
                             kind: "tool",
                             status,
-                            label: part.state.title || zodiacToolLabel((part.tool || "").replace(/^wg_/, "")),
+                            label: zodiacToolLabel((part.tool || "").replace(/^wg_/, "")),
                             ...(part.state.error ? { detail: part.state.error } : {}),
                             at: Date.now(),
                         });
@@ -229,8 +234,18 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
                 } catch (error) {
                     result = { ok: false, error: error instanceof Error ? error.message : "工具执行失败" };
                 }
-                if (result.ok && (["zodiac-ui", "zodiac-ops"].includes(request.name) || (result.result as any)?.status === "waiting_user" || (result.result as any)?.waitingForUser === true)) waitingForUser = true;
+                if (result.ok && (["zodiac-ui", "zodiac-ops"].includes(request.name) || (result.result as any)?.status === "waiting_user" || (result.result as any)?.waitingForUser === true)) {
+                    waitingForUser = true;
+                    waitingMessage = (result.result as any)?.message || (request.name === "zodiac-ui" ? "请选择后继续。" : "内容已准备，请查看后继续。");
+                }
                 await agentRequest("tool-result", { ...identity, id: request.callId, result }, options.signal);
+            }
+            if (waitingForUser) {
+                // End a decision turn before the model can start another tool or hang behind the fence.
+                await stop();
+                options.signal?.throwIfAborted();
+                options.onActivity?.({ id: "runtime", kind: "model", status: "done", label: "等待你确认", at: Date.now() });
+                return waitingMessage;
             }
             const last = assistants.at(-1);
             idleWithoutReply = !last?.info.time?.completed && (!state.status || state.status.type === "idle") && !state.tools.length && !state.permissions.length ? idleWithoutReply + 1 : 0;
@@ -241,12 +256,13 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
         options.onActivity?.({ id: "runtime", kind: "model", status: "done", label: "已完成", at: Date.now() });
         return finalText;
     } catch (error) {
-        stop();
+        await stop();
         options.onActivity?.({ id: "runtime", kind: "model", status: "error", label: options.signal?.aborted ? "已停止" : "执行失败", at: Date.now() });
         throw error;
     } finally {
         eventController.abort();
         await eventTask;
+        await stopTask;
         options.signal?.removeEventListener("abort", stop);
     }
 }
