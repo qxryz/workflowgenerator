@@ -6,6 +6,8 @@
 
 本地 AI 创作工作台，提供无限画布、Zodiac 对话、媒体生成、Skills 和提示词管理。
 
+[![在线体验](https://img.shields.io/badge/在线体验-打开网站-2563eb?style=for-the-badge)](https://workflow.zhouzhou.dev)
+
 ## 桌面端
 
 基于 Tauri 2、React 与 Rust。画布、对话和素材保存在本机，模型使用“设置 → 渠道”中的配置。
