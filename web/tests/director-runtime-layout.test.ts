@@ -24,8 +24,8 @@ test("Director runtime keeps the upstream charcoal editor theme", () => {
     assert.doesNotMatch(styles, /--wg-paper/u);
     assert.match(styles, /:root\[data-theme="dark"\][\s\S]*?--bg-rgb:\s*9 9 9/u);
     assert.match(styles, /html,[\s\S]*?#root\s*\{[\s\S]*?background:\s*#090909/u);
-    assert.match(styles, /--director-host-surface-rgb:\s*238 237 231/u);
-    assert.match(styles, /\.left-sidebar,\s*\.right-sidebar,\s*\.director-sidebar\s*\{[\s\S]*?--bg-rgb:\s*var\(--director-host-surface-rgb\)[\s\S]*?url\("\/backgrounds\/zodiac-sanctum\.png"\)/u);
+    assert.match(styles, /--director-host-surface-rgb:\s*239 238 232/u);
+    assert.match(styles, /\.left-sidebar,\s*\.right-sidebar,\s*\.director-sidebar\s*\{[\s\S]*?--bg-rgb:\s*var\(--director-host-surface-rgb\)[\s\S]*?background-color:\s*rgb\(var\(--bg-rgb\)\)/u);
     assert.match(styles, /\.object-tree-panel\s*\{[\s\S]*?background:\s*transparent/u);
     assert.match(styles, /\.right-inspector\s*\{[\s\S]*?background:\s*transparent/u);
     assert.match(styles, /\.viewport-toolbar,\s*\.viewport-toolbar-menu,[\s\S]*?--surface-rgb:\s*var\(--director-host-surface-rgb\)[\s\S]*?--text-rgb:\s*var\(--director-host-text-rgb\)[\s\S]*?--accent-rgb:\s*var\(--director-host-accent-rgb\)/u);
@@ -61,11 +61,11 @@ test("compact Director header keeps project actions reachable", () => {
     assert.match(directorAppSource, /<h1 className="top-bar-title">3D 导演台<\/h1>/u);
     assert.doesNotMatch(directorAppSource, /top-bar-subtitle|top-bar-brand-icon|规划分镜、整理素材与镜头输出/u);
     assert.doesNotMatch(directorPageSource, /<header className=/u);
-    assert.match(styles, /--director-host-surface:\s*#eeede7/u);
-    assert.match(styles, /:root\[data-host-theme="dark"\]\s*\{[\s\S]*?--director-host-surface:\s*#151716/u);
-    assert.match(styles, /\.top-bar\s*\{[\s\S]*?min-height:\s*68px[\s\S]*?background:\s*var\(--director-host-surface\)/u);
-    assert.match(styles, /\.top-bar::before\s*\{[\s\S]*?url\("\/backgrounds\/zodiac-sanctum\.png"\)/u);
-    assert.match(styles, /\.top-bar\s*\{[\s\S]*?border-bottom:\s*1px dashed/u);
+    assert.match(styles, /--director-host-surface:\s*#efeee8/u);
+    assert.match(styles, /:root\[data-host-theme="dark"\]\s*\{[\s\S]*?--director-host-surface:\s*#171918/u);
+    assert.match(styles, /\.top-bar\s*\{[^}]*?min-height:\s*80px/u);
+    assert.match(styles, /\.top-bar\s*\{[^}]*?background:\s*var\(--director-host-surface\)/u);
+    assert.match(styles, /\.top-bar\s*\{[\s\S]*?border-bottom:\s*1px solid/u);
     assert.doesNotMatch(styles, /\.top-bar-subtitle|\.top-bar-brand-icon/u);
     assert.match(directorAppSource, /<ProjectMenu \/>/u);
     assert.match(styles, /@media \(max-width: 920px\)[\s\S]*?\.top-bar-actions\s*\{[\s\S]*?display:\s*flex/u);

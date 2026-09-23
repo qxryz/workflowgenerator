@@ -4443,7 +4443,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
     return (
         <main className="flex h-full min-h-0 overflow-hidden" style={{ background: theme.canvas.background, color: theme.node.text }}>
             <CanvasSidePanel nodes={nodes} selectedNodeIds={selectedNodeIds} onFocusNode={focusNode} onPreviewNode={setPreviewNodeId} onInsertAsset={handleAssetInsert} />
-            <section className="relative min-w-0 flex-1 overflow-hidden">
+            <section className="wg-canvas-viewport relative min-w-0 flex-1 overflow-hidden">
                 <CanvasTopBar
                     title={currentProjectTitle || "未命名画布"}
                     titleDraft={titleDraft}

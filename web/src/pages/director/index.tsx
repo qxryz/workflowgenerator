@@ -376,7 +376,7 @@ export default function DirectorPage() {
     };
 
     return (
-        <main className="wg-paper-surface flex h-full min-w-0 flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
+        <main className="flex h-full min-w-0 flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
             <section className="relative min-h-0 flex-1 overflow-hidden bg-[color:var(--wg-panel)]" aria-label="导演台工作区">
                 <iframe
                     key={frameKey}

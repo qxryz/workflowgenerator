@@ -89,7 +89,7 @@ export default function AboutAuthorPage() {
     };
 
     return (
-        <div className="wg-library-page wg-paper-surface flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
+        <div className="wg-library-page flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
             <header className="wg-library-header">
                 <div className="wg-library-header-inner">
                     <div className="min-w-0">

@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useLayoutEffect, useState, type ReactNode } from "react";
 import { useLocation } from "react-router-dom";
+import "@/styles/workspace-interface.css";
 
 import { AppTopNav } from "@/components/layout/app-top-nav";
 import { useAppTranslation } from "@/hooks/use-app-translation";
@@ -50,7 +51,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
     }, [hash, isWorkflow, pathname, search]);
 
     return (
-        <div className="flex h-dvh flex-col overflow-hidden bg-background text-foreground">
+        <div className="wg-workspace flex h-dvh flex-col overflow-hidden bg-background text-foreground">
             <a href="#main-content" className="fixed left-4 top-3 z-50 -translate-y-20 rounded-lg bg-[color:var(--wg-home-accent)] px-4 py-2 text-sm font-semibold text-[color:var(--wg-home-accent-text)] transition focus:translate-y-0">
                 {t("跳到主要内容")}
             </a>
@@ -58,7 +59,7 @@ export default function UserLayout({ children }: { children: ReactNode }) {
                 <div className="flex min-w-0 flex-1 flex-col overflow-hidden">
                     <AppTopNav />
                     <div className="flex min-h-0 flex-1 overflow-hidden">
-                        <div id="main-content" tabIndex={-1} className={cn("min-w-0 flex-1 overflow-hidden outline-none", !isHome && !projectOpen && "wg-celestial-shell")}>
+                        <div id="main-content" tabIndex={-1} className={cn("min-w-0 flex-1 overflow-hidden outline-none", !isHome && !projectOpen && "wg-workspace-content")}>
                             <div className="h-full min-h-0" style={{ display: projectOpen ? "none" : undefined }}>
                                 {children}
                             </div>

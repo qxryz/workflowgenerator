@@ -84,11 +84,11 @@ export default function CanvasPage() {
     if (hydrated && (mode === "new" || mode === "recent")) return <main className="flex h-full items-center justify-center bg-[color:var(--wg-surface)] text-sm text-[#637083] dark:text-[#aeb7c5]">{t("正在打开工作区...")}</main>;
 
     return (
-        <main className="wg-paper-surface flex h-full min-w-0 flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
-            <header className="flex min-h-[68px] shrink-0 items-center gap-4 border-b border-dashed border-[color:var(--wg-pencil-soft)] px-5 lg:px-7">
+        <main className="wg-library-page flex h-full min-w-0 flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
+            <header className="wg-page-header shrink-0">
                 <div className="min-w-0">
                     <h1 className="wg-sketch-title text-[21px] font-semibold">{t("工作流")}</h1>
-                    <p className="wg-ascii-label mt-0.5 text-[9px] tabular-nums text-[color:var(--wg-home-muted-strong)]">PROJECTS / {String(projects.length).padStart(2, "0")}</p>
+                    <p className="wg-library-meta">{t("{count} 个工作流", { count: projects.length })}</p>
                 </div>
 
                 <label className="ml-auto hidden h-9 w-[min(28vw,300px)] items-center gap-2 rounded-[9px] border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] px-3 text-[color:var(--wg-home-muted)] focus-within:border-[color:var(--wg-home-accent)] focus-within:ring-2 focus-within:ring-[color:var(--wg-home-accent)]/10 sm:flex">
@@ -97,6 +97,7 @@ export default function CanvasPage() {
                         value={query}
                         onChange={(event) => setQuery(event.target.value)}
                         placeholder={t("搜索工作流")}
+                        aria-label={t("搜索工作流")}
                         className="min-w-0 flex-1 bg-transparent text-[12px] text-[color:var(--wg-home-text)] outline-none placeholder:text-[color:var(--wg-home-muted-strong)]"
                     />
                 </label>
@@ -125,7 +126,7 @@ export default function CanvasPage() {
                     </div>
             </header>
 
-            <div className="min-h-0 flex-1 overflow-auto px-4 py-4 lg:px-6 lg:py-5">
+            <div className="wg-library-content min-h-0 flex-1 overflow-auto">
                 {!hydrated ? (
                     <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4" role="status" aria-label={t("正在读取工作流")}>
                         {[0, 1, 2, 3].map((item) => <div key={item} className="aspect-[16/13] animate-pulse rounded-[12px] bg-[color:var(--wg-home-hover)]" />)}

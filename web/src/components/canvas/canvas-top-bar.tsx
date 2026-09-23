@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
-import { Add01Icon, Delete02Icon, Download01Icon, Folder01Icon, Home01Icon, Menu01Icon, Redo02Icon, SidebarLeftIcon, SidebarRightIcon, Undo02Icon, Upload01Icon } from "hugeicons-react";
+
 import { Button, Dropdown, Modal, Tooltip } from "antd";
-import { Eye, Play, Square, Zap } from "lucide-react";
+import { Eye, Play, Square, Zap, Plus, Trash2, Download, Folder, Home, Menu, Redo2, PanelLeftClose, PanelLeftOpen, Undo2, Upload } from "lucide-react";
 
 import { UserStatusActions } from "@/components/layout/user-status-actions";
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
@@ -84,37 +84,38 @@ export function CanvasTopBar({
 
     return (
         <>
-            <div className="pointer-events-none absolute left-3 right-3 top-3 z-50 flex h-12 items-center justify-between gap-3">
-                <div className="wg-sketch-panel pointer-events-auto flex min-w-0 items-center gap-2 px-2 backdrop-blur-xl" style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border }}>
+            <div className="wg-canvas-topbar">
+                <div className="wg-control-surface wg-canvas-title pointer-events-auto">
                     <Tooltip title={t(sidePanelOpen ? "收起面板" : "展开面板")}>
-                        <button type="button" onClick={toggleSidePanel} aria-label={t(sidePanelOpen ? "收起面板" : "展开面板")} className="wg-sketch-button-quiet grid size-8 place-items-center" style={{ color: theme.node.text }}>
-                            {sidePanelOpen ? <SidebarLeftIcon className="size-4" strokeWidth={1.8} /> : <SidebarRightIcon className="size-4" strokeWidth={1.8} />}
+                        <button type="button" onClick={toggleSidePanel} aria-label={t(sidePanelOpen ? "收起面板" : "展开面板")} className="wg-icon-button">
+                            {sidePanelOpen ? <PanelLeftClose className="size-4" strokeWidth={1.8} /> : <PanelLeftOpen className="size-4" strokeWidth={1.8} />}
                         </button>
                     </Tooltip>
                     <Dropdown
                         trigger={["click"]}
+                        classNames={{ root: "wg-canvas-menu" }}
                         menu={{
                             items: [
-                                { key: "home", icon: <Home01Icon className="size-4" />, label: t("主页"), onClick: onHome },
-                                { key: "projects", icon: <Folder01Icon className="size-4" />, label: t("我的画布"), onClick: onProjects },
+                                { key: "home", icon: <Home className="size-4" />, label: t("主页"), onClick: onHome },
+                                { key: "projects", icon: <Folder className="size-4" />, label: t("我的画布"), onClick: onProjects },
                                 { type: "divider" },
-                                { key: "new", icon: <Add01Icon className="size-4" />, label: t("新建画布"), onClick: onCreateProject },
-                                { key: "delete", danger: true, icon: <Delete02Icon className="size-4" />, label: t("删除当前画布"), onClick: onDeleteProject },
+                                { key: "new", icon: <Plus className="size-4" />, label: t("新建画布"), onClick: onCreateProject },
+                                { key: "delete", danger: true, icon: <Trash2 className="size-4" />, label: t("删除当前画布"), onClick: onDeleteProject },
                                 { type: "divider" },
-                                { key: "import", icon: <Upload01Icon className="size-4" />, label: t("导入资产"), onClick: onImportImage },
-                                { key: "export", icon: <Download01Icon className="size-4" />, label: t("导出当前画布"), onClick: onExportProject },
+                                { key: "import", icon: <Upload className="size-4" />, label: t("导入资产"), onClick: onImportImage },
+                                { key: "export", icon: <Download className="size-4" />, label: t("导出当前画布"), onClick: onExportProject },
                                 { type: "divider" },
-                                { key: "undo", disabled: !canUndo, icon: <Undo02Icon className="size-4" />, label: <MenuLabel text="撤销" shortcut="⌘ Z" />, onClick: onUndo },
-                                { key: "redo", disabled: !canRedo, icon: <Redo02Icon className="size-4" />, label: <MenuLabel text="重做" shortcut="⌘ ⇧ Z / ⌘ Y" />, onClick: onRedo },
+                                { key: "undo", disabled: !canUndo, icon: <Undo2 className="size-4" />, label: <MenuLabel text="撤销" shortcut="⌘ Z" />, onClick: onUndo },
+                                { key: "redo", disabled: !canRedo, icon: <Redo2 className="size-4" />, label: <MenuLabel text="重做" shortcut="⌘ ⇧ Z / ⌘ Y" />, onClick: onRedo },
                             ],
                         }}
                     >
-                        <button type="button" className="wg-sketch-button-quiet grid size-8 place-items-center" style={{ color: theme.node.text }} aria-label={t("打开画布菜单")}>
-                            <Menu01Icon className="size-4" strokeWidth={1.8} />
+                        <button type="button" className="wg-icon-button" aria-label={t("打开画布菜单")}>
+                            <Menu className="size-4" strokeWidth={1.8} />
                         </button>
                     </Dropdown>
 
-                    <div ref={titleRef} className="flex min-w-0 items-center gap-2">
+                    <div ref={titleRef} className="flex min-w-0 items-center">
                         {isTitleEditing ? (
                             <input
                                 autoFocus
@@ -125,11 +126,12 @@ export function CanvasTopBar({
                                     if (event.key === "Enter") onFinishTitleEditing();
                                     if (event.key === "Escape") onCancelTitleEditing();
                                 }}
-                                className="max-w-[280px] bg-transparent p-0 text-left text-lg font-semibold tracking-normal outline-none"
+                                aria-label={t("画布名称")}
+                                className="wg-canvas-title-name w-full bg-transparent outline-none"
                                 style={{ color: theme.node.text }}
                             />
                         ) : (
-                            <button type="button" className="wg-sketch-button-quiet max-w-[280px] truncate px-1.5 py-1 text-left text-[15px] font-semibold tracking-[-.025em]" onDoubleClick={onStartTitleEditing} title={t("双击修改画布名称")}>
+                            <button type="button" className="wg-text-button wg-canvas-title-name truncate" onDoubleClick={onStartTitleEditing} title={t("双击修改画布名称")}>
                                 {title}
                             </button>
                         )}
@@ -137,11 +139,7 @@ export function CanvasTopBar({
                 </div>
 
                 {workflowActionCount > 0 ? (
-                    <div
-                        className="wg-sketch-panel pointer-events-auto absolute left-1/2 flex -translate-x-1/2 items-center gap-1 p-1 backdrop-blur-xl"
-                        style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border }}
-                        aria-label={t("工作流运行")}
-                    >
+                    <div className="wg-control-surface wg-canvas-run-controls pointer-events-auto" aria-label={t("工作流运行")}>
                         {workflowStatus === "running" ? (
                             <Button danger type="text" size="small" className="!h-8 !rounded-xl" icon={<Square className="size-3.5 fill-current" />} onClick={onStopWorkflow}>
                                 {t("停止")}
@@ -163,18 +161,13 @@ export function CanvasTopBar({
                     </div>
                 ) : null}
 
-                <div className="wg-sketch-panel pointer-events-auto flex items-center gap-1.5 px-1.5 py-1 backdrop-blur-xl" style={{ background: theme.toolbar.panel, borderColor: theme.toolbar.border }}>
+                <div className="wg-control-surface wg-canvas-utilities pointer-events-auto">
                     <UserStatusActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
-                    <span className="h-6 w-px" style={{ background: theme.toolbar.border }} />
-                    <Button
-                        type="text"
-                        className="!h-8 !rounded-xl !px-3 !font-semibold"
-                        style={{ background: agentOpen ? "var(--wg-home-accent)" : theme.toolbar.activeBg, color: agentOpen ? "var(--wg-home-accent-text)" : theme.toolbar.activeText }}
-                        icon={<ZodiacAvatar className="size-5 border-0 shadow-none" />}
-                        onClick={onToggleAgent}
-                    >
-                        Zodiac
-                    </Button>
+                    <span className="wg-control-divider" />
+                    <button type="button" className="wg-text-button wg-zodiac-trigger" data-active={agentOpen || undefined} aria-label="Zodiac" aria-pressed={agentOpen} onClick={onToggleAgent}>
+                        <ZodiacAvatar className="size-5 border-0 shadow-none" />
+                        <span>Zodiac</span>
+                    </button>
                 </div>
             </div>
             <Modal title={t("快捷键")} open={shortcutsOpen} onCancel={() => setShortcutsOpen(false)} footer={null} centered>

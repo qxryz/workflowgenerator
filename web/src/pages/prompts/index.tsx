@@ -68,12 +68,12 @@ export default function PromptsPage() {
     };
 
     return (
-        <div className="wg-library-page wg-paper-surface flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
+        <div className="wg-library-page flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
             <header className="wg-library-header">
                 <div className="wg-library-header-inner">
                     <div className="min-w-0">
                         <h1 className="wg-sketch-title shrink-0 text-[21px] font-semibold">{t("提示词中心")}</h1>
-                        <p className="wg-library-meta mt-0.5">PROMPTS / {query.isLoading ? "--" : String(totalPrompts).padStart(2, "0")}</p>
+                        <p className="wg-library-meta mt-0.5">{query.isLoading ? t("加载中") : t("{count} 个提示词", { count: totalPrompts })}</p>
                     </div>
                     <label className="wg-library-search w-full md:ml-auto md:max-w-md">
                         <Search className="size-4 shrink-0" />

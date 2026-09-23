@@ -50,8 +50,6 @@
 }
 
 :root {
-    --wg-font-ui: "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Kaiti SC", "STKaiti", "KaiTi", sans-serif;
-    --wg-font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, "Kaiti SC", "STKaiti", "KaiTi", monospace;
     --radius: 0.66rem;
     --border: oklch(0.75 0.008 110);
     --ring: oklch(0.52 0.16 258);
@@ -110,6 +108,8 @@
     --wg-home-stage: #e4e3dd;
     --wg-home-ghost: rgba(37, 40, 36, 0.052);
     --wg-home-floating: rgba(245, 244, 238, 0.88);
+    --wg-font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
+    --wg-font-mono: ui-monospace, "SFMono-Regular", Menlo, Monaco, Consolas, monospace;
 }
 
 .dark {
@@ -185,8 +185,6 @@
         @apply bg-background text-foreground antialiased;
         font-family: var(--wg-font-ui);
         font-feature-settings: "ss01", "cv02", "cv03";
-        background-image: repeating-linear-gradient(0deg, transparent 0 5px, var(--wg-pencil-faint) 5px 5.45px), repeating-linear-gradient(91deg, transparent 0 13px, color-mix(in srgb, var(--wg-pencil-faint) 52%, transparent) 13px 13.35px);
-        background-size: 100% 100%;
     }
     button,
     [role="button"] {
@@ -194,7 +192,7 @@
     }
     button:focus-visible,
     [role="button"]:focus-visible {
-        outline: 2px dashed var(--wg-home-accent);
+        outline: 2px solid var(--wg-home-accent);
         outline-offset: 3px;
     }
     textarea {
@@ -225,33 +223,30 @@
 /* Shared application controls. Ant Design remains the interaction primitive, while
    these rules make all states belong to the same product system. */
 .ant-btn {
-    border-radius: 8px 11px 9px 12px !important;
     border-color: var(--wg-pencil-soft) !important;
-    box-shadow: 1px 2px 0 color-mix(in srgb, var(--wg-pencil) 13%, transparent) !important;
-    font-weight: 600;
     transition:
         transform 160ms cubic-bezier(0.16, 1, 0.3, 1),
         background 160ms ease,
         border-color 160ms ease,
         color 160ms ease !important;
+    border-radius: 7px !important;
+    box-shadow: none !important;
+    font-weight: 500;
 }
 
 .ant-btn:not(:disabled):active {
-    transform: translate(1px, 2px) rotate(0.15deg);
     box-shadow: none !important;
+    transform: scale(0.98);
 }
 
-.ant-btn-primary {
-    border-color: var(--wg-home-accent) !important;
-    background: var(--wg-home-accent) !important;
-    color: var(--wg-home-accent-text) !important;
-    box-shadow: 2px 3px 0 color-mix(in srgb, var(--wg-pencil) 32%, transparent) !important;
+.ant-btn-primary:not(.ant-btn-dangerous):not(:disabled) {
+    border-color: transparent !important;
+    background: var(--wg-home-text) !important;
+    color: var(--wg-panel) !important;
 }
 
-.ant-btn-primary:not(:disabled):hover {
-    border-color: var(--wg-home-accent) !important;
-    background: var(--wg-home-accent) !important;
-    filter: brightness(1.08);
+.ant-btn-primary:not(.ant-btn-dangerous):not(:disabled):hover {
+    filter: brightness(1.12);
 }
 
 .ant-btn-circle {
@@ -262,9 +257,9 @@
 .ant-input-affix-wrapper,
 .ant-input-number,
 .ant-select-selector {
-    border-radius: 8px 11px 9px 10px !important;
     border-color: var(--wg-pencil-soft) !important;
     box-shadow: none !important;
+    border-radius: 7px !important;
 }
 
 .ant-input-affix-wrapper:focus-within,
@@ -279,12 +274,11 @@
 .ant-drawer .ant-drawer-content,
 .ant-dropdown .ant-dropdown-menu {
     border: 1px solid var(--wg-pencil-soft);
-    border-radius: 14px 18px 15px 17px;
-    background-image: repeating-linear-gradient(-13deg, transparent 0 19px, var(--wg-pencil-faint) 19px 19.4px);
-    box-shadow: 3px 4px 0 color-mix(in srgb, var(--wg-pencil) 14%, transparent);
+    border-radius: 12px;
+    box-shadow: 0 12px 40px #00000012;
 }
 
-.dark .ant-btn:not(.ant-btn-primary),
+.dark .ant-btn-default:not(.ant-btn-dangerous):not(:disabled),
 .dark .ant-input-affix-wrapper,
 .dark .ant-input,
 .dark .ant-input-number,
@@ -297,155 +291,67 @@
     color: var(--wg-home-text) !important;
 }
 
+.ant-btn-text,
+.ant-btn-link {
+    border-color: transparent !important;
+    box-shadow: none !important;
+}
+
 .wg-inline-input.ant-input {
     height: 30px;
     border-radius: 9px !important;
     padding-inline: 8px;
 }
 
-.wg-playful-nav {
-    color: var(--wg-playful-mint);
-}
-
-.wg-playful-nav:hover,
-.wg-playful-nav[aria-expanded="true"],
-.wg-playful-nav.wg-hatched {
-    border-color: var(--wg-playful-mint-line);
-    background-color: var(--wg-playful-mint-soft);
-    color: var(--wg-playful-mint);
-}
-
-.wg-playful-nav:focus-visible {
-    outline-color: var(--wg-playful-mint);
-}
-
-.wg-playful-nav.wg-hatched::after {
-    background-color: var(--wg-playful-mint);
-}
-
 @layer utilities {
-    .wg-home-original {
-        isolation: isolate;
-        background: #f4f6f8;
-        color: #111827;
-    }
-
-    .wg-home-original::before {
-        background-image: linear-gradient(90deg, color-mix(in srgb, #f4f6f8 18%, transparent) 0%, color-mix(in srgb, #f4f6f8 58%, transparent) 42%, color-mix(in srgb, #f4f6f8 12%, transparent) 100%), url("/backgrounds/zodiac-sanctum.png");
-        background-position: center;
-        background-repeat: no-repeat;
-        background-size: cover;
-        content: "";
-        inset: 0;
-        opacity: 0.78;
-        pointer-events: none;
-        position: absolute;
-        z-index: 0;
-    }
-
-    .dark .wg-home-original {
-        background: #0b0e14;
-        color: #f4f7fb;
-    }
-
-    .dark .wg-home-original::before {
-        filter: invert(0.92) grayscale(1) contrast(0.9) brightness(1.08);
-        mix-blend-mode: screen;
-        opacity: 0.28;
-    }
-
-    .wg-celestial-shell {
-        isolation: isolate;
-        position: relative;
-        background: var(--wg-surface);
-    }
-
-    .wg-celestial-shell::before {
-        background-image:
-            linear-gradient(90deg, color-mix(in srgb, var(--wg-surface) 86%, transparent) 0%, color-mix(in srgb, var(--wg-surface) 26%, transparent) 45%, color-mix(in srgb, var(--wg-surface) 8%, transparent) 100%), url("/backgrounds/zodiac-sanctum.png");
-        background-position: center, center;
-        background-repeat: no-repeat;
-        background-size: cover, cover;
-        content: "";
-        inset: 0;
-        opacity: 0.3;
-        pointer-events: none;
-        position: absolute;
-        z-index: -1;
-    }
-
-    .dark .wg-celestial-shell::before {
-        filter: invert(0.92) grayscale(1) contrast(0.88) brightness(1.15);
-        mix-blend-mode: screen;
-        opacity: 0.25;
-    }
-
-    .wg-celestial-shell .bg-card,
-    .wg-celestial-shell .ant-card {
-        background: color-mix(in srgb, var(--wg-panel) 88%, transparent) !important;
-        backdrop-filter: blur(2px);
-    }
-
-    .dark .wg-celestial-shell .bg-card,
-    .dark .wg-celestial-shell .ant-card {
-        background: color-mix(in srgb, var(--wg-panel) 82%, transparent) !important;
-    }
-
-    .wg-paper-surface {
-        background-image: repeating-linear-gradient(0deg, transparent 0 7px, var(--wg-pencil-faint) 7px 7.35px), repeating-linear-gradient(91deg, transparent 0 17px, color-mix(in srgb, var(--wg-pencil-faint) 55%, transparent) 17px 17.3px);
-    }
-
     .wg-sketch-panel {
         border: 1px solid var(--wg-pencil-soft);
-        border-radius: 13px 17px 14px 16px;
-        box-shadow:
-            2px 3px 0 color-mix(in srgb, var(--wg-pencil) 13%, transparent),
-            inset 0 0 0 1px color-mix(in srgb, var(--wg-paper) 70%, transparent);
+        border-radius: 10px;
     }
 
     .wg-sketch-button {
         border: 1px solid var(--wg-pencil-soft);
-        border-radius: 8px 11px 9px 12px;
-        box-shadow: 2px 3px 0 color-mix(in srgb, var(--wg-pencil) 25%, transparent);
+        border-radius: 7px;
         transition:
-            transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
-            box-shadow 150ms ease,
-            filter 150ms ease;
+            background 160ms ease,
+            transform 160ms ease;
     }
 
     .wg-sketch-button:hover {
-        transform: translateY(-1px) rotate(-0.18deg);
+        background: var(--wg-home-hover);
     }
 
     .wg-sketch-button:active {
-        box-shadow: none;
-        transform: translate(1px, 2px) rotate(0.15deg);
+        transform: scale(0.98);
     }
 
     .wg-sketch-button-primary {
-        border-color: color-mix(in srgb, var(--wg-pencil) 55%, var(--wg-home-accent));
-        background: var(--wg-home-accent);
-        color: var(--wg-home-accent-text);
+        border-color: transparent;
+        background: var(--wg-home-text);
+        color: var(--wg-panel);
+    }
+
+    .wg-sketch-button-primary:hover {
+        background: var(--wg-home-text);
+        opacity: 0.85;
     }
 
     .wg-sketch-button-quiet {
         border: 1px solid transparent;
-        border-radius: 8px 11px 9px 10px;
         transition:
             transform 150ms cubic-bezier(0.16, 1, 0.3, 1),
             background 150ms ease,
             border-color 150ms ease,
             color 150ms ease;
+        border-radius: 7px;
     }
 
     .wg-sketch-button-quiet:hover {
-        border-color: var(--wg-pencil-soft);
         background: var(--wg-home-hover);
-        transform: rotate(-0.15deg);
     }
 
     .wg-sketch-button-quiet:active {
-        transform: translateY(1px) rotate(0.12deg);
+        transform: scale(0.98);
     }
 
     .wg-ascii-label {
@@ -456,18 +362,13 @@
 
     .wg-sketch-title {
         font-family: var(--wg-font-ui);
-        text-shadow: 1px 1px 0 color-mix(in srgb, var(--wg-pencil) 12%, transparent);
-    }
-
-    .wg-hatched {
-        background-image: repeating-linear-gradient(-22deg, transparent 0 5px, color-mix(in srgb, var(--wg-pencil) 9%, transparent) 5px 6px);
     }
 
     .wg-panel-shell {
         border: 1px solid var(--wg-pencil-soft);
-        border-radius: 14px 18px 15px 17px;
         background: var(--wg-panel);
-        box-shadow: 2px 3px 0 color-mix(in srgb, var(--wg-pencil) 13%, transparent);
+        border-radius: 12px;
+        box-shadow: 0 8px 30px #00000012;
     }
 
     .dark .wg-panel-shell {
@@ -1006,16 +907,6 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 
 /* Image, video, and audio creation workbenches */
 .wg-media-workbench {
-    --wg-studio-canvas: #f3eee7;
-    --wg-studio-surface: #faf6f0;
-    --wg-studio-raised: #fffaf4;
-    --wg-studio-line: #d8ccbf;
-    --wg-studio-line-strong: #b18e6f;
-    --wg-studio-accent: #a17859;
-    --wg-studio-accent-strong: #70472f;
-    --wg-studio-accent-soft: #eadccd;
-    --wg-studio-text: #28231f;
-    --wg-studio-muted: #756d66;
     container-name: media-workbench;
     container-type: inline-size;
     display: flex;
@@ -1023,34 +914,30 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     min-height: 0;
     flex-direction: column;
     overflow: hidden;
-    background: radial-gradient(circle at 18% -10%, rgba(255, 255, 255, 0.7), transparent 28%), var(--wg-studio-canvas);
     color: var(--wg-studio-text);
-}
-
-.dark .wg-media-workbench {
-    --wg-studio-canvas: #1b1917;
-    --wg-studio-surface: #24211e;
-    --wg-studio-raised: #2b2723;
-    --wg-studio-line: #4b433b;
-    --wg-studio-line-strong: #b98f6d;
-    --wg-studio-accent: #c39a78;
-    --wg-studio-accent-strong: #e2ba98;
-    --wg-studio-accent-soft: #48372a;
-    --wg-studio-text: #f0e9e1;
-    --wg-studio-muted: #b9ada2;
+    --wg-studio-canvas: var(--wg-home-bg);
+    --wg-studio-surface: var(--wg-panel);
+    --wg-studio-raised: var(--wg-panel);
+    --wg-studio-line: var(--wg-home-line);
+    --wg-studio-line-strong: var(--wg-home-line-strong);
+    --wg-studio-accent: var(--wg-home-accent);
+    --wg-studio-accent-strong: var(--wg-home-text);
+    --wg-studio-accent-soft: var(--wg-home-hover);
+    --wg-studio-text: var(--wg-home-text);
+    --wg-studio-muted: var(--wg-home-muted);
+    background: var(--wg-home-bg);
 }
 
 .wg-media-workbench-topbar {
     position: relative;
     display: flex;
-    height: 64px;
-    min-height: 64px;
     align-items: center;
     gap: 20px;
     border-bottom: 1px solid var(--wg-studio-line);
-    padding: 0 18px;
-    background: color-mix(in srgb, var(--wg-studio-surface) 92%, transparent);
-    backdrop-filter: blur(14px);
+    height: 80px;
+    min-height: 80px;
+    padding: 0 24px;
+    background: transparent;
 }
 
 .wg-media-workbench-switch {
@@ -1060,10 +947,9 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     transform: translateX(-50%);
     align-items: center;
     gap: 3px;
-    border: 1px solid var(--wg-studio-line);
-    border-radius: 999px;
     padding: 3px;
-    background: color-mix(in srgb, var(--wg-studio-canvas) 78%, transparent);
+    border: 0;
+    background: transparent;
 }
 
 .wg-media-workbench-switch-item {
@@ -1071,12 +957,12 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     height: 32px;
     align-items: center;
     gap: 6px;
-    border-radius: 999px;
     padding: 0 13px;
     color: var(--wg-studio-muted);
     font-size: 12px;
-    font-weight: 600;
     transition: 150ms ease;
+    border-radius: 7px;
+    font-weight: 500;
 }
 
 .wg-media-workbench-switch-item:hover {
@@ -1084,9 +970,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 }
 
 .wg-media-workbench-switch-item.is-active {
-    background: var(--wg-studio-raised);
-    color: var(--wg-studio-accent-strong);
-    box-shadow: 0 1px 4px rgba(72, 52, 37, 0.12);
+    background: var(--wg-home-hover);
+    color: var(--wg-home-text);
 }
 
 .wg-media-workbench-icon-button {
@@ -1109,9 +994,9 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     min-height: 0;
     flex: 1;
     grid-template-columns: minmax(250px, 0.72fr) minmax(500px, 1.55fr) minmax(350px, 1fr);
-    gap: 12px;
     overflow: hidden;
-    padding: 12px;
+    gap: 16px;
+    padding: 24px;
 }
 
 .wg-media-workbench-pane {
@@ -1119,9 +1004,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     min-height: 0;
     overflow: hidden;
     border: 1px solid var(--wg-studio-line);
-    border-radius: 16px;
     background: var(--wg-studio-surface);
-    box-shadow: 0 8px 28px rgba(67, 48, 32, 0.035);
+    border-radius: 10px;
 }
 
 .wg-media-workbench-creation,
@@ -1152,7 +1036,6 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 .wg-media-history-card.is-active {
     border-color: var(--wg-studio-accent-strong);
     background: var(--wg-studio-accent-soft);
-    box-shadow: inset 3px 0 0 var(--wg-studio-accent-strong);
 }
 
 .wg-media-history-thumb {
@@ -1275,29 +1158,28 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     align-items: center;
     justify-content: center;
     margin-top: 12px;
-    border: 1px dashed var(--wg-studio-line-strong);
     border-radius: 13px;
-    background: radial-gradient(circle, color-mix(in srgb, var(--wg-studio-line) 45%, transparent) 1px, transparent 1.2px), color-mix(in srgb, var(--wg-studio-raised) 66%, transparent);
     background-size: 18px 18px;
     text-align: center;
+    border: 0;
+    background: transparent;
 }
 
 .wg-media-result-empty-icon {
     display: grid;
-    width: 56px;
-    height: 56px;
     place-items: center;
-    border: 1px solid var(--wg-studio-line);
     border-radius: 16px;
-    background: var(--wg-studio-raised);
-    color: var(--wg-studio-accent);
-    box-shadow: 0 8px 24px rgba(76, 52, 34, 0.07);
+    width: 40px;
+    height: 40px;
+    border: 0;
+    background: transparent;
+    color: var(--wg-home-muted);
 }
 
 .wg-media-result-empty h3 {
     margin: 16px 0 0;
-    font-size: 15px;
-    font-weight: 650;
+    font-size: 14px;
+    font-weight: 500;
 }
 
 .wg-media-result-empty p {
@@ -1779,40 +1661,10 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 
 .wg-media-workbench .ant-btn {
     border-color: var(--wg-studio-line);
-    border-radius: 9px;
-    background: var(--wg-studio-raised);
-    color: var(--wg-studio-text);
-    box-shadow: none;
-}
-
-.wg-media-workbench .ant-btn:hover:not(:disabled) {
-    border-color: var(--wg-studio-line-strong) !important;
-    color: var(--wg-studio-accent-strong) !important;
-}
-
-.wg-media-workbench .ant-btn-primary,
-.wg-media-generate-footer .ant-btn-primary {
-    height: 52px;
-    border-color: var(--wg-studio-accent-strong) !important;
-    background: var(--wg-studio-accent-strong) !important;
-    color: #fffaf4 !important;
-    font-weight: 650;
 }
 
 .wg-media-workbench-drawer .ant-drawer-content {
     background: var(--wg-panel);
-}
-
-.wg-media-workbench-drawer .ant-btn-primary {
-    border-color: #70472f !important;
-    background: #70472f !important;
-    color: #fffaf4 !important;
-}
-
-.dark .wg-media-workbench-drawer .ant-btn-primary {
-    border-color: #b98f6d !important;
-    background: #b98f6d !important;
-    color: #1f1b18 !important;
 }
 
 .wg-media-workbench .ant-select-selector,
@@ -1825,6 +1677,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 @container media-workbench (max-width: 1180px) {
     .wg-media-workbench-grid {
         grid-template-columns: minmax(0, 1fr) minmax(330px, 380px);
+        gap: 16px;
+        padding: 24px;
     }
 
     .wg-media-workbench-history {
@@ -1839,6 +1693,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 @container media-workbench (max-width: 860px) {
     .wg-media-workbench-grid {
         grid-template-columns: minmax(0, 1fr);
+        gap: 16px;
+        padding: 24px;
     }
 
     .wg-media-workbench-inspector {
@@ -1855,29 +1711,13 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 }
 
 @container media-workbench (max-width: 620px) {
-    .wg-media-workbench-topbar {
-        height: 56px;
-        min-height: 56px;
-        gap: 8px;
-        padding: 0 10px;
-    }
-
     .wg-media-workbench-topbar > div:first-child {
         display: none;
     }
 
-    .wg-media-workbench-switch {
-        position: static;
-        transform: none;
-    }
-
     .wg-media-workbench-grid {
-        gap: 8px;
-        padding: 8px;
-    }
-
-    .wg-media-workbench-pane {
-        border-radius: 13px;
+        gap: 16px;
+        padding: 24px;
     }
 
     .wg-media-workbench-result-stage,
@@ -1897,6 +1737,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 
     .wg-media-result-empty {
         min-height: 280px;
+        border: 0;
+        background: transparent;
     }
 
     .wg-media-composer-heading,
@@ -1951,6 +1793,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 
     .wg-media-result-empty {
         min-height: 260px;
+        border: 0;
+        background: transparent;
     }
 }
 
@@ -1988,37 +1832,39 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 /* Pages listed in the global navigation share the workflow/session shell. */
 .wg-library-page {
     color: var(--wg-home-text);
+    background: var(--wg-home-bg);
 }
 
 .wg-library-header {
-    height: 68px;
-    min-height: 68px;
     flex: 0 0 auto;
-    border-bottom: 1px dashed var(--wg-pencil-soft);
     background: transparent;
+    height: auto;
+    min-height: 80px;
+    border-bottom: 1px solid var(--wg-home-line);
 }
 
 .wg-library-header-inner {
     display: flex;
-    height: 68px;
     align-items: center;
-    gap: 16px;
-    padding: 0 20px;
+    height: auto;
+    min-height: 79px;
+    gap: 24px;
+    padding: 16px 24px;
 }
 
 .wg-library-meta {
     overflow: hidden;
     color: var(--wg-home-muted-strong);
-    font-family: var(--wg-font-mono);
-    font-size: 9px;
-    letter-spacing: 0.075em;
     text-overflow: ellipsis;
-    text-transform: uppercase;
     white-space: nowrap;
+    font-family: inherit;
+    font-size: 11px;
+    letter-spacing: 0;
+    text-transform: none;
 }
 
 .wg-library-content {
-    padding: 16px;
+    padding: 24px;
 }
 
 .wg-library-filter {
@@ -2028,17 +1874,17 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 
 .wg-library-search {
     display: flex;
-    height: 36px;
     align-items: center;
     gap: 8px;
     border: 1px solid var(--wg-home-line);
-    border-radius: 9px;
-    background: var(--wg-panel);
     padding-inline: 12px;
     color: var(--wg-home-muted);
     transition:
         border-color 150ms ease,
         box-shadow 150ms ease;
+    height: 34px;
+    background: transparent;
+    border-radius: 8px;
 }
 
 .wg-library-search:focus-within {
@@ -2066,9 +1912,9 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 
 .wg-library-page .ant-card {
     border-color: var(--wg-home-line);
-    border-radius: 12px;
     background: var(--wg-panel);
     box-shadow: none;
+    border-radius: 10px;
 }
 
 .wg-library-page .ant-card .ant-card-cover {
@@ -2100,7 +1946,6 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 .wg-library-header .ant-btn,
 .wg-library-header .ant-input-affix-wrapper {
     height: 36px;
-    border-radius: 9px !important;
     font-size: 12px;
 }
 
@@ -2140,137 +1985,20 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     color: var(--wg-home-muted);
 }
 
-.wg-library-page .ant-btn-primary {
-    border-color: var(--wg-home-accent);
-    background: var(--wg-home-accent);
-    color: var(--wg-home-accent-text);
-}
-
-/* The model directory keeps its information layout, while sharing the same paper and blue interaction language. */
-.wg-reference-page > .flex.min-h-0 {
-    background: transparent;
-}
-
-.wg-reference-page aside {
-    border-color: var(--wg-pencil-soft) !important;
-    background: color-mix(in srgb, var(--wg-panel) 84%, transparent) !important;
-}
-
-.wg-reference-page section[aria-labelledby="endpoint-title"] {
-    border-color: var(--wg-pencil-soft) !important;
-    background: transparent !important;
-}
-
-.wg-reference-page aside button:hover {
-    background: var(--wg-home-hover) !important;
-}
-
-.wg-reference-page aside button[aria-current="page"] {
-    border-color: var(--wg-home-accent) !important;
-    background: color-mix(in srgb, var(--wg-home-accent) 14%, transparent) !important;
-    color: var(--wg-home-accent) !important;
-}
-
-.wg-reference-page code {
-    border-color: var(--wg-home-line);
-}
-
-.wg-reference-page .text-\[\#117c8e\],
-.wg-reference-page .text-\[\#0d6b7a\] {
-    color: var(--wg-home-accent) !important;
-}
-
-.wg-reference-page .bg-\[\#117c8e\] {
-    background: var(--wg-home-accent) !important;
-}
-
-.wg-reference-page .border-\[\#117c8e\],
-.wg-reference-page .border-\[\#117c8e\]\/40 {
-    border-color: var(--wg-home-accent) !important;
-}
-
-.wg-reference-page .bg-\[\#eaf5f6\],
-.wg-reference-page .bg-\[\#edf5f6\],
-.wg-reference-page .bg-\[\#f3f8f8\],
-.wg-reference-page .hover\:bg-\[\#edf5f6\]:hover,
-.wg-reference-page .hover\:bg-\[\#f0f4f5\]:hover {
-    background: var(--wg-home-hover) !important;
-}
-
-/* Media workbenches keep their three-column tools but use the same paper system. */
-.wg-media-workbench,
-.dark .wg-media-workbench {
-    --wg-studio-canvas: var(--wg-surface);
-    --wg-studio-surface: var(--wg-panel);
-    --wg-studio-raised: var(--wg-paper);
-    --wg-studio-line: var(--wg-home-line);
-    --wg-studio-line-strong: var(--wg-home-line-strong);
-    --wg-studio-accent: var(--wg-home-accent);
-    --wg-studio-accent-strong: var(--wg-home-accent);
-    --wg-studio-accent-soft: color-mix(in srgb, var(--wg-home-accent) 12%, var(--wg-panel));
-    --wg-studio-text: var(--wg-home-text);
-    --wg-studio-muted: var(--wg-home-muted);
-    background: transparent;
-}
-
-.wg-media-workbench-topbar {
-    height: 68px;
-    min-height: 68px;
-    border-bottom: 1px dashed var(--wg-pencil-soft);
-    background: transparent;
-    backdrop-filter: none;
-}
-
-.wg-media-workbench-pane {
-    border-color: var(--wg-home-line);
-    border-radius: 12px;
-    background: color-mix(in srgb, var(--wg-panel) 88%, transparent);
-    backdrop-filter: blur(2px);
-    box-shadow: none;
-}
-
-.wg-media-workbench-switch {
-    border-color: var(--wg-home-line);
-    background: var(--wg-panel);
-}
-
-.wg-media-workbench-switch-item.is-active {
-    background: var(--wg-home-hover);
-    color: var(--wg-home-accent);
-    box-shadow: none;
-}
-
-.wg-media-workbench .ant-btn-primary,
-.wg-media-workbench-drawer .ant-btn-primary,
-.dark .wg-media-workbench-drawer .ant-btn-primary {
-    border-color: var(--wg-home-accent) !important;
-    background: var(--wg-home-accent) !important;
-    color: var(--wg-home-accent-text) !important;
-}
-
-@media (min-width: 1024px) {
-    .wg-library-header-inner {
-        padding-inline: 28px;
-    }
-
-    .wg-library-content {
-        padding: 20px 24px;
-    }
-}
-
 @media (max-width: 767px) {
     .wg-library-header {
         height: auto;
-        min-height: 68px;
+        min-height: 80px;
+        border-bottom: 1px solid var(--wg-home-line);
     }
 
     .wg-library-header-inner {
-        height: auto;
-        min-height: 68px;
         align-items: stretch;
         flex-direction: column;
-        gap: 8px;
-        padding-block: 12px;
+        height: auto;
+        min-height: 79px;
+        gap: 12px;
+        padding: 16px;
     }
 
     .wg-library-header-inner > .ml-auto,
@@ -2303,8 +2031,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
 @media (max-width: 620px) {
     .wg-media-workbench-grid {
         grid-template-columns: minmax(0, 1fr);
-        gap: 8px;
-        padding: 8px;
+        gap: 16px;
+        padding: 24px;
     }
 
     .wg-media-workbench-history,
@@ -2325,4 +2053,8 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     .wg-media-history-trigger {
         display: block;
     }
+}
+
+.wg-media-generate-footer .ant-btn-primary {
+    height: 42px;
 }

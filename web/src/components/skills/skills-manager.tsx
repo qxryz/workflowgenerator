@@ -247,14 +247,14 @@ export function SkillsManager() {
             : "暂时没有官方 Skills";
 
     return (
-        <div className="wg-library-page wg-paper-surface flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
+        <div className="wg-library-page flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
             <input ref={importRef} hidden type="file" accept=".md,.markdown,.json,text/markdown,application/json" onChange={(event) => void importSkill(event.target.files?.[0])} />
             <header className="wg-library-header">
                 <div className="wg-library-header-inner">
                     <div className="min-w-0">
                         <h1 className="wg-sketch-title shrink-0 text-[21px] font-semibold">Skills</h1>
                         <p className="wg-library-meta mt-0.5">
-                            SKILLS / {String(viewItems.length).padStart(2, "0")} · {t("{installed} 个已安装 · {enabled} 个已启用", { installed: skills.length, enabled: enabledCount })}
+                            {t("{installed} 个已安装 · {enabled} 个已启用", { installed: skills.length, enabled: enabledCount })}
                         </p>
                     </div>
                     <div className="wg-library-actions flex min-w-0 flex-1 items-center gap-2 md:ml-auto md:justify-end">

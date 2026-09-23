@@ -1746,8 +1746,8 @@ function VideoResultStage({
                 <div className="wg-media-result-empty-icon">
                     <VideoIcon className="size-7" strokeWidth={1.6} />
                 </div>
-                <h3>{t("让一个镜头动起来")}</h3>
-                <p>{t("描述动作、镜头和氛围，生成结果会显示在这里")}</p>
+                <h3>{t("暂无视频")}</h3>
+                <p>{t("填写提示词后生成视频")}</p>
             </div>
         );
     }

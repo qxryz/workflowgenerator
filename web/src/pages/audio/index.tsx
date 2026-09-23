@@ -818,8 +818,8 @@ function AudioResult({
                 <div className="wg-media-result-empty-icon">
                     <WandSparkles className="size-7" strokeWidth={1.6} />
                 </div>
-                <h3>{t("从一个声音想法开始")}</h3>
-                <p>{t("选择任务并填写内容，生成结果会显示在这里")}</p>
+                <h3>{t("暂无音频")}</h3>
+                <p>{t("选择任务并填写内容后生成音频")}</p>
             </div>
         );
     if (result.status === "失败")

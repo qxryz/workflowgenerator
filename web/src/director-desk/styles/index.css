@@ -13,8 +13,6 @@
   --accent-hover-rgb: 37 99 235;
   --overlay-rgb: 15 23 42;
   --ui-shadow-panel: 0 14px 34px rgba(15, 23, 42, 0.18);
-  --director-host-surface: #eeede7;
-  --director-host-surface-rgb: 238 237 231;
   --director-host-panel: #f7f6f0;
   --director-host-panel-rgb: 247 246 240;
   --director-host-text: #252824;
@@ -33,13 +31,15 @@
   --right-sidebar-width: 300px;
   --left-sidebar-content-width: 180px;
   --right-sidebar-content-width: 260px;
-  font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   background: rgb(var(--bg-rgb));
   color: rgb(var(--text-rgb));
+  --director-host-surface: #efeee8;
+  --director-host-surface-rgb: 239 238 232;
+  font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", "PingFang SC", "Microsoft YaHei", sans-serif;
 }
 
 :root[data-theme="dark"],
@@ -61,8 +61,6 @@
 }
 
 :root[data-host-theme="dark"] {
-  --director-host-surface: #151716;
-  --director-host-surface-rgb: 21 23 22;
   --director-host-panel: #1d201e;
   --director-host-panel-rgb: 29 32 30;
   --director-host-text: #e9e7df;
@@ -77,6 +75,8 @@
   --director-host-accent: #8caaea;
   --director-host-accent-rgb: 140 170 234;
   --director-host-border-rgb: 228 226 218;
+  --director-host-surface: #171918;
+  --director-host-surface-rgb: 23 25 24;
 }
 
 * {
@@ -160,47 +160,26 @@ textarea:focus-visible {
   z-index: 100;
   isolation: isolate;
   display: grid;
-  grid-template-columns: var(--left-sidebar-width) minmax(0, 1fr) var(--right-sidebar-width);
   align-items: center;
   gap: 0;
-  min-height: 68px;
-  padding: 0 20px;
   border: 0;
   overflow: visible;
-  border-bottom: 1px dashed var(--director-host-divider);
   background: var(--director-host-surface);
   color: var(--director-host-text);
-  font-family: "PingFang SC", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-}
-
-.top-bar::before {
-  position: absolute;
-  z-index: 0;
-  background-image:
-    linear-gradient(90deg, color-mix(in srgb, var(--director-host-surface) 86%, transparent) 0%, color-mix(in srgb, var(--director-host-surface) 26%, transparent) 45%, color-mix(in srgb, var(--director-host-surface) 8%, transparent) 100%),
-    url("/backgrounds/zodiac-sanctum.png");
-  background-position: center top, center top;
-  background-repeat: no-repeat;
-  background-size: 100vw 100vh, 100vw 100vh;
-  content: "";
-  inset: 0;
-  opacity: 0.3;
-  pointer-events: none;
-}
-
-:root[data-host-theme="dark"] .top-bar::before {
-  filter: invert(0.92) grayscale(1) contrast(0.88) brightness(1.15);
-  mix-blend-mode: screen;
-  opacity: 0.25;
+  grid-template-columns: minmax(140px, 1fr) auto minmax(140px, 1fr);
+  min-height: 80px;
+  padding: 0 24px;
+  border-bottom: 1px solid var(--director-host-line);
+  font-family: inherit;
 }
 
 .top-bar-title {
   margin: 0;
-  font-family: "SF Pro Display", "SF Pro Text", "Helvetica Neue", "Kaiti SC", "STKaiti", "KaiTi", sans-serif;
-  font-size: 21px;
   font-weight: 600;
   line-height: 24px;
-  letter-spacing: normal;
+  font-family: inherit;
+  font-size: 18px;
+  letter-spacing: -0.02em;
 }
 
 .top-bar-left,
@@ -229,31 +208,35 @@ textarea:focus-visible {
 .top-bar-action-button {
   display: grid;
   place-items: center;
-  width: 36px;
-  height: 36px;
-  border: 1px solid var(--director-host-line);
-  border-radius: 10px;
   color: var(--director-host-muted);
-  background: color-mix(in srgb, var(--director-host-panel) 62%, transparent);
   transition:
     border-color 0.18s ease,
     background-color 0.18s ease,
     color 0.18s ease;
+  width: 32px;
+  height: 32px;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
 }
 
 .top-bar-action-button:hover {
-  border-color: color-mix(in srgb, var(--director-host-accent) 42%, transparent);
-  background: var(--director-host-panel);
-  color: var(--director-host-accent);
+  background: var(--director-host-hover);
+  color: var(--director-host-text);
 }
 
 .top-bar .mode-toggle {
   border-color: var(--director-host-line);
-  background: color-mix(in srgb, var(--director-host-panel) 72%, transparent);
+  border: 0;
+  background: transparent;
+  box-shadow: none;
 }
 
 .top-bar .mode-toggle-button {
   color: var(--director-host-muted);
+  border-radius: 7px;
+  border: 0;
+  box-shadow: none;
 }
 
 .top-bar .mode-toggle-button:hover {
@@ -262,9 +245,9 @@ textarea:focus-visible {
 }
 
 .top-bar .mode-toggle-button[aria-pressed="true"] {
-  border-color: color-mix(in srgb, var(--director-host-accent) 32%, transparent);
-  color: var(--director-host-accent);
-  background: color-mix(in srgb, var(--director-host-accent) 11%, transparent);
+  background: var(--director-host-hover);
+  color: var(--director-host-text);
+  box-shadow: none;
 }
 
 .top-bar .director-project-menu-trigger {
@@ -508,13 +491,6 @@ textarea:focus-visible {
   padding-right: 0;
   color: rgb(var(--text-rgb));
   background-color: rgb(var(--bg-rgb));
-  background-image:
-    linear-gradient(rgb(var(--bg-rgb) / 0.86), rgb(var(--bg-rgb) / 0.86)),
-    url("/backgrounds/zodiac-sanctum.png");
-  background-attachment: fixed, fixed;
-  background-position: center top, center top;
-  background-repeat: no-repeat, no-repeat;
-  background-size: 100vw 100vh, 100vw 100vh;
 }
 
 .left-sidebar {
@@ -706,7 +682,7 @@ textarea:focus-visible {
   border-radius: 0;
   background: transparent;
   box-shadow: none;
-  font-family: "PingFang SC", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: inherit;
 }
 
 .right-sidebar .right-inspector {
@@ -2090,7 +2066,8 @@ textarea:focus-visible {
 .viewport-toolbar-submenu,
 .viewport-toolbar-crowd-panel,
 .viewport-aspect-panel,
-.model-library-panel {
+.model-library-panel,
+.director-compact-panel-switch {
   --surface-rgb: var(--director-host-surface-rgb);
   --surface-hover-rgb: var(--director-host-hover-rgb);
   --panel-rgb: var(--director-host-panel-rgb);
@@ -2106,7 +2083,7 @@ textarea:focus-visible {
 .viewport-toolbar {
   position: absolute;
   left: 50%;
-  bottom: 40px;
+  bottom: 24px;
   z-index: 10;
   transform: translateX(-50%);
   width: max-content;
@@ -2116,11 +2093,11 @@ textarea:focus-visible {
   align-items: center;
   gap: 4px;
   justify-content: center;
-  padding: 4px;
+  padding: 5px;
   border: 1px solid rgb(var(--border-rgb) / 0.24);
-  border-radius: 999px;
+  border-radius: 12px;
   background: rgb(var(--surface-rgb) / 0.97);
-  box-shadow: 0 10px 28px rgb(0 0 0 / 0.22);
+  box-shadow: 0 4px 16px rgb(0 0 0 / 0.1);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   overflow: visible;
@@ -2131,10 +2108,10 @@ textarea:focus-visible {
   display: grid;
   place-items: center;
   flex: 0 0 auto;
-  width: 36px;
-  height: 36px;
+  width: 32px;
+  height: 32px;
   border: 0;
-  border-radius: 999px;
+  border-radius: 7px;
   padding: 0;
   color: rgb(var(--text-muted-rgb));
   background: transparent;
@@ -2147,9 +2124,15 @@ textarea:focus-visible {
 
 .viewport-toolbar-button.ui-icon-button.is-active,
 .viewport-toolbar-button.ui-icon-button[aria-pressed="true"] {
-  color: rgb(var(--accent-rgb));
-  background: rgb(var(--accent-rgb) / 0.16);
-  box-shadow: inset 0 0 0 1px rgb(var(--accent-rgb) / 0.28);
+  color: rgb(var(--text-rgb));
+  background: rgb(var(--text-rgb) / 0.08);
+  box-shadow: none;
+}
+
+.viewport-toolbar-button svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 1.6;
 }
 
 .viewport-toolbar-menu-wrap {
@@ -2510,13 +2493,21 @@ textarea:focus-visible {
   backdrop-filter: blur(22px);
   -webkit-backdrop-filter: blur(22px);
   -webkit-mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
-  -webkit-mask-size: 100% 100%, var(--viewport-aspect-frame-width) var(--viewport-aspect-frame-height);
-  -webkit-mask-position: 0 0, var(--viewport-aspect-frame-left) var(--viewport-aspect-frame-top);
+  -webkit-mask-size:
+    100% 100%,
+    var(--viewport-aspect-frame-width) var(--viewport-aspect-frame-height);
+  -webkit-mask-position:
+    0 0,
+    var(--viewport-aspect-frame-left) var(--viewport-aspect-frame-top);
   -webkit-mask-repeat: no-repeat;
   -webkit-mask-composite: xor;
   mask-image: linear-gradient(#000 0 0), linear-gradient(#000 0 0);
-  mask-size: 100% 100%, var(--viewport-aspect-frame-width) var(--viewport-aspect-frame-height);
-  mask-position: 0 0, var(--viewport-aspect-frame-left) var(--viewport-aspect-frame-top);
+  mask-size:
+    100% 100%,
+    var(--viewport-aspect-frame-width) var(--viewport-aspect-frame-height);
+  mask-position:
+    0 0,
+    var(--viewport-aspect-frame-left) var(--viewport-aspect-frame-top);
   mask-repeat: no-repeat;
   mask-composite: exclude;
 }
@@ -2974,9 +2965,7 @@ textarea:focus-visible {
   display: grid;
   gap: 6px;
   padding: 14px;
-  background:
-    linear-gradient(180deg, rgb(var(--accent-rgb) / 0.18), transparent),
-    rgb(var(--surface-rgb) / 0.52);
+  background: linear-gradient(180deg, rgb(var(--accent-rgb) / 0.18), transparent), rgb(var(--surface-rgb) / 0.52);
 }
 
 .camera-preview-card strong {
@@ -3217,7 +3206,7 @@ textarea:focus-visible {
   border-radius: 8px;
   padding: 0 12px;
   color: rgb(var(--text-muted-rgb));
-  font-family: "PingFang SC", "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-family: inherit;
   font-size: 12px;
   font-weight: 600;
   line-height: 17px;
@@ -3534,9 +3523,7 @@ textarea:focus-visible {
   border-radius: 16px;
   color: rgb(var(--text-rgb));
   text-align: center;
-  background:
-    linear-gradient(180deg, rgb(255 200 87 / 0.16), transparent),
-    rgb(var(--panel-rgb) / 0.92);
+  background: linear-gradient(180deg, rgb(255 200 87 / 0.16), transparent), rgb(var(--panel-rgb) / 0.92);
   box-shadow: 0 18px 42px rgb(var(--overlay-rgb) / 0.34);
 }
 
@@ -3559,10 +3546,6 @@ textarea:focus-visible {
 }
 
 @media (max-width: 1180px) {
-  .top-bar {
-    grid-template-columns: var(--left-sidebar-width) minmax(0, 1fr) var(--right-sidebar-width);
-  }
-
   .director-shell-fullbleed {
     grid-template-columns: minmax(0, 1fr);
   }
@@ -3636,9 +3619,9 @@ textarea:focus-visible {
   }
 
   .director-compact-panel-switch button[aria-pressed="true"] {
-    border-color: rgb(var(--accent-rgb) / 0.28);
-    color: rgb(var(--accent-rgb));
-    background: rgb(var(--accent-rgb) / 0.12);
+    border-color: transparent;
+    color: rgb(var(--text-rgb));
+    background: rgb(var(--text-rgb) / 0.08);
   }
 
   .director-compact-panel-backdrop {
@@ -3704,5 +3687,26 @@ textarea:focus-visible {
 
   .top-bar-actions > .top-bar-action-button[aria-label="关闭"] {
     display: none;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .top-bar-action-button svg {
+    transition: transform 160ms ease;
+  }
+  .top-bar-action-button:active svg {
+    transform: scale(0.9);
+  }
+  .director-sidebar {
+    animation: director-panel-enter 220ms ease-out both;
+  }
+}
+
+@keyframes director-panel-enter {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
   }
 }

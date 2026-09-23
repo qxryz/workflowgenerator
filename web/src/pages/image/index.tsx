@@ -1066,8 +1066,8 @@ function ImageResultStage({
                 <div className="wg-media-result-empty-icon">
                     <ImagePlus className="size-7" strokeWidth={1.6} />
                 </div>
-                <h3>{t("从一个画面想法开始")}</h3>
-                <p>{t("描述主体、环境和风格，生成结果会显示在这里")}</p>
+                <h3>{t("暂无图片")}</h3>
+                <p>{t("填写提示词后生成图片")}</p>
             </div>
         );
     }

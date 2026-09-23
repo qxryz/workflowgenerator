@@ -25,7 +25,8 @@ export function MediaWorkbenchHeader({ kind, title, onOpenHistory, onOpenSetting
     return (
         <header className="wg-media-workbench-topbar">
             <div className="min-w-0">
-                <h1 className="wg-sketch-title truncate text-[21px] font-semibold">{t(title)}</h1>
+                <h1 className="truncate">{t("工作台")}</h1>
+                <p className="mt-1 text-xs text-[color:var(--wg-home-muted)]">{t(title)}</p>
             </div>
 
             <nav className="wg-media-workbench-switch" aria-label={t("切换创作工作台")}>

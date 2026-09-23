@@ -1,3 +1,4 @@
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useNavigate } from "react-router-dom";
 import { App } from "antd";
 import { useState } from "react";
@@ -10,15 +11,16 @@ import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
 /** App-level status stays visible while a workspace runs off screen. */
 export function WorkspaceStatusBar() {
     const { message } = App.useApp();
+    const { t } = useAppTranslation();
     const [exporting, setExporting] = useState(false);
     const navigate = useNavigate();
     const work = useAgentStore((state) => state.work);
     const projects = useCanvasStore((state) => state.projects);
     const working = Object.keys(work).filter((id) => Object.values(work[id]).some(Boolean));
     return (
-        <footer className="relative z-[80] flex h-8 shrink-0 items-center gap-3 border-t border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] px-4 text-xs text-[color:var(--wg-home-text)]" aria-label="工作状态">
-            {working.length ? <LoaderCircle className="size-3.5 animate-spin" /> : <MessageSquare className="size-3.5 opacity-50" />}
-            <span role="status">工作中 {working.length}</span>
+        <footer className="wg-workspace-status relative z-[80] flex h-8 shrink-0 items-center gap-2 border-t border-[color:var(--wg-home-line)] bg-[color:var(--wg-home-bg)] px-4" aria-label={t("工作状态")}>
+            {working.length ? <LoaderCircle className="size-3.5 motion-safe:animate-spin" /> : <MessageSquare className="size-3.5 opacity-50" />}
+            <span role="status">{working.length ? t("工作中 {count}", { count: working.length }) : t("就绪")}</span>
             <div className="flex min-w-0 flex-1 gap-2 overflow-x-auto">
                 {working.map((id) => (
                     <button
@@ -35,8 +37,8 @@ export function WorkspaceStatusBar() {
             </div>
             <button
                 disabled={exporting}
-                title="打开 Zodiac Runtime 总工作空间"
-                className="flex shrink-0 items-center gap-1.5 disabled:opacity-50"
+                title={t("在访达中查看 Zodiac 工作空间")}
+                className="wg-text-button disabled:opacity-50"
                 onClick={async () => {
                     setExporting(true);
                     try {
@@ -49,7 +51,8 @@ export function WorkspaceStatusBar() {
                     }
                 }}
             >
-                {exporting ? <LoaderCircle className="size-3.5 animate-spin" /> : <FolderOpen className="size-3.5" />}在访达中查看 Zodiac 工作空间
+                {exporting ? <LoaderCircle className="size-3.5 motion-safe:animate-spin" /> : <FolderOpen className="size-3.5" />}
+                <span>{t("工作空间")}</span>
             </button>
         </footer>
     );

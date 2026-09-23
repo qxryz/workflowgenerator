@@ -1,0 +1,430 @@
+.wg-workspace {
+    font-family: var(--wg-font-ui);
+}
+.wg-primary-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    min-height: 40px;
+    padding: 0 16px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--wg-home-text);
+    color: var(--wg-panel);
+    font-size: 13px;
+    font-weight: 500;
+    transition:
+        opacity 160ms,
+        transform 160ms;
+}
+.wg-primary-button:hover {
+    opacity: 0.85;
+}
+.wg-primary-button:active {
+    transform: scale(0.97);
+}
+.wg-primary-button:disabled {
+    opacity: 0.3;
+    cursor: default;
+}
+/* Workspace chrome shares Zodiac's quiet controls and short, purposeful motion. */
+.wg-workspace-content {
+    background: var(--wg-home-bg);
+}
+.wg-app-header {
+    z-index: 30;
+    height: 56px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--wg-home-line);
+    background: var(--wg-home-bg);
+    color: var(--wg-home-text);
+}
+.wg-app-header-inner {
+    display: grid;
+    grid-template-columns: minmax(64px, 1fr) minmax(0, auto) minmax(108px, 1fr);
+    align-items: center;
+    height: 100%;
+    gap: 16px;
+    padding-inline: 20px;
+}
+.wg-brand-link,
+.wg-app-header-actions,
+.wg-primary-navigation {
+    display: flex;
+    align-items: center;
+}
+.wg-brand-link {
+    gap: 10px;
+    justify-self: start;
+}
+.wg-app-header-actions {
+    justify-self: end;
+    gap: 2px;
+}
+.wg-primary-navigation {
+    gap: 4px;
+    min-width: 0;
+    overflow-x: auto;
+    padding: 4px;
+}
+.wg-primary-navigation .wg-nav-item {
+    position: relative;
+    display: inline-flex;
+    flex-shrink: 0;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border-radius: 8px;
+    padding-inline: 12px;
+    color: var(--wg-home-muted);
+    font-size: 12px;
+    font-weight: 500;
+    transition:
+        color 160ms,
+        background-color 160ms;
+}
+.wg-primary-navigation .wg-nav-item:hover,
+.wg-primary-navigation .wg-nav-item.is-active {
+    color: var(--wg-home-text);
+}
+.wg-primary-navigation .wg-nav-item:hover:not(.is-active) {
+    background: var(--wg-home-hover);
+}
+.wg-nav-selection {
+    position: absolute;
+    inset: 0;
+    border-radius: 8px;
+    background: var(--wg-home-hover);
+}
+.wg-icon-button,
+.wg-text-button {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+    gap: 7px;
+    height: 32px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--wg-home-muted);
+    cursor: pointer;
+    transition:
+        background-color 160ms,
+        color 160ms,
+        transform 160ms;
+}
+.wg-icon-button {
+    width: 32px;
+    padding: 0;
+}
+.wg-text-button {
+    padding: 0 10px;
+    font-size: 12px;
+    font-weight: 500;
+}
+.wg-icon-button > svg {
+    width: 18px;
+    height: 18px;
+    stroke-width: 1.6;
+    transition: transform 180ms;
+}
+.wg-icon-button:hover:not(:disabled),
+.wg-text-button:hover:not(:disabled) {
+    background: var(--wg-home-hover);
+    color: var(--wg-home-text);
+}
+.wg-icon-button:hover:not(:disabled) > svg {
+    transform: translateY(-1px);
+}
+.wg-icon-button:active:not(:disabled),
+.wg-text-button:active:not(:disabled) {
+    transform: scale(0.94);
+}
+.wg-icon-button[data-active="true"],
+.wg-text-button[data-active="true"] {
+    background: var(--wg-home-hover);
+    color: var(--wg-home-text);
+}
+.wg-icon-button:disabled,
+.wg-text-button:disabled {
+    opacity: 0.28;
+    cursor: default;
+}
+.wg-icon-button[data-danger="true"]:hover {
+    color: #d44f54;
+    background: #d44f5410;
+}
+.wg-primary-navigation .wg-nav-item:focus-visible,
+.wg-icon-button:focus-visible,
+.wg-text-button:focus-visible {
+    outline: 2px solid var(--wg-home-muted);
+    outline-offset: 2px;
+}
+.wg-control-surface {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    height: 44px;
+    padding: 5px;
+    border: 1px solid color-mix(in srgb, var(--wg-home-text) 12%, transparent);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--wg-panel) 95%, transparent);
+    color: var(--wg-home-text);
+    box-shadow: 0 3px 12px #00000006;
+    backdrop-filter: blur(16px);
+}
+.wg-control-divider {
+    width: 1px;
+    height: 16px;
+    margin-inline: 6px;
+    background: var(--wg-home-line);
+}
+.wg-canvas-viewport {
+    container-type: inline-size;
+    container-name: canvas;
+}
+.wg-canvas-topbar {
+    position: absolute;
+    inset: 16px 16px auto;
+    z-index: 50;
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 12px;
+    pointer-events: none;
+}
+.wg-canvas-title {
+    min-width: 0;
+    max-width: 42%;
+}
+.wg-canvas-title-name {
+    max-width: 220px;
+    min-width: 0;
+    padding-inline: 8px;
+    color: var(--wg-home-text);
+    font-size: 13px;
+    font-weight: 500;
+}
+.wg-canvas-run-controls {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+}
+.wg-canvas-dock {
+    position: absolute;
+    left: 260px;
+    right: 16px;
+    bottom: 16px;
+    z-index: 50;
+    display: flex;
+    justify-content: center;
+    pointer-events: none;
+}
+.wg-canvas-zoom {
+    position: absolute;
+    bottom: 16px;
+    left: 16px;
+    z-index: 50;
+}
+.wg-canvas-zoom input[type="range"] {
+    width: 72px;
+    height: 3px;
+    accent-color: var(--wg-home-muted);
+    cursor: ew-resize;
+}
+.wg-canvas-popover {
+    animation: wg-panel-enter 180ms ease-out both;
+    border-radius: 12px;
+    box-shadow: 0 8px 30px #00000012;
+}
+.wg-canvas-tip {
+    animation: wg-panel-enter 140ms ease-out both;
+}
+.wg-page-header {
+    height: auto;
+    min-height: 80px;
+    border-bottom: 1px solid var(--wg-home-line);
+    background: transparent;
+}
+.wg-page-header {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    height: auto;
+    min-height: 80px;
+    padding: 16px 24px;
+}
+.wg-workspace .wg-library-header h1,
+.wg-workspace .wg-page-header h1,
+.wg-workspace .wg-media-workbench-topbar h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 24px;
+    letter-spacing: -0.02em;
+}
+.wg-workspace .wg-library-header p,
+.wg-workspace .wg-page-header p,
+.wg-workspace .wg-media-workbench-topbar p {
+    margin: 4px 0 0;
+    line-height: 16px;
+}
+.wg-session-list {
+    min-height: 0;
+}
+.wg-session-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    min-height: 84px;
+    padding: 16px 12px;
+    border-bottom: 1px solid var(--wg-home-line);
+    transition: background-color 160ms;
+}
+.wg-session-row:hover,
+.wg-session-row:focus-within {
+    background: var(--wg-home-hover);
+}
+.wg-session-row .wg-session-open {
+    display: flex;
+    flex: 1;
+    min-width: 0;
+    align-items: center;
+    gap: 14px;
+    text-align: left;
+}
+.wg-session-row .wg-session-arrow {
+    opacity: 0;
+    transform: translateX(-4px);
+    transition:
+        opacity 160ms,
+        transform 160ms;
+}
+.wg-session-row:hover .wg-session-arrow,
+.wg-session-row:focus-within .wg-session-arrow {
+    opacity: 0.6;
+    transform: translateX(0);
+}
+.wg-session-surface .ant-input-affix-wrapper {
+    height: 36px;
+    border-radius: 8px !important;
+    background: transparent !important;
+}
+.wg-session-surface .ant-input {
+    background: transparent !important;
+}
+.wg-workspace-status {
+    font-size: 11px;
+    color: var(--wg-home-muted);
+}
+.wg-workspace-status .wg-text-button {
+    height: 24px;
+    font-size: 11px;
+}
+.wg-interface-enter {
+    animation: wg-panel-enter 240ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+@keyframes wg-panel-enter {
+    from {
+        opacity: 0;
+        translate: 0 5px;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+@container canvas (max-width: 1000px) {
+    .wg-canvas-run-controls {
+        top: 52px;
+    }
+    .wg-canvas-title {
+        max-width: 46%;
+    }
+}
+@container canvas (max-width: 800px) {
+    .wg-canvas-dock {
+        left: 16px;
+        bottom: 68px;
+    }
+    .wg-canvas-zoom {
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    .wg-canvas-title-name {
+        max-width: 150px;
+    }
+    .wg-canvas-utilities .wg-shortcuts-button {
+        display: none;
+    }
+}
+@container canvas (max-width: 520px) {
+    .wg-canvas-title {
+        max-width: calc(100% - 172px);
+    }
+    .wg-canvas-utilities .wg-plugins-button {
+        display: none;
+    }
+    .wg-zodiac-trigger span {
+        display: none;
+    }
+}
+@media (max-width: 1100px) {
+    .wg-app-header-inner {
+        gap: 8px;
+        padding-inline: 12px;
+    }
+    .wg-primary-navigation .wg-nav-item {
+        padding-inline: 10px;
+    }
+    .wg-nav-label {
+        display: none;
+    }
+}
+@media (max-width: 640px) {
+    .wg-app-header-inner {
+        grid-template-columns: 32px minmax(0, 1fr) 64px;
+        gap: 6px;
+        padding-inline: 8px;
+    }
+    .wg-app-header-actions > .wg-icon-button {
+        display: none;
+    }
+    .wg-primary-navigation {
+        gap: 0;
+    }
+    .wg-primary-navigation .wg-nav-item {
+        padding-inline: 8px;
+    }
+    .wg-workspace .wg-library-header-inner,
+    .wg-workspace .wg-page-header {
+        flex-wrap: wrap;
+        gap: 12px;
+        padding: 16px;
+    }
+    .wg-workspace .wg-library-content {
+        padding: 16px;
+    }
+    .wg-workspace .wg-media-workbench-grid {
+        padding: 16px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .wg-icon-button,
+    .wg-icon-button > svg,
+    .wg-text-button,
+    .wg-session-row,
+    .wg-session-arrow,
+    .wg-primary-navigation .wg-nav-item,
+    .wg-primary-button {
+        transition: none;
+    }
+    .wg-interface-enter,
+    .wg-canvas-tip,
+    .wg-canvas-popover {
+        animation: none;
+    }
+}

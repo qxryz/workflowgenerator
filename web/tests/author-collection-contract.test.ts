@@ -35,16 +35,13 @@ test("Skills expose an empty-ready author collection without merging personal Sk
 
 test("the top navigation opens a standalone About Author page", () => {
     const navigation = readSource("../src/components/layout/app-top-nav.tsx");
-    const styles = readSource("../src/styles/globals.css");
     const router = readSource("../src/router.tsx");
     const page = readSource("../src/pages/about-author/index.tsx");
     const note = readSource("../src/components/author-library/author-note.tsx");
     assert.match(navigation, /title=\{t\("别点我"\)\}/u);
-    assert.match(navigation, /className="hidden text-\[11px\] xl:inline">\{t\("别点我"\)\}/u);
+    assert.match(navigation, /aria-label=\{t\("别点我"\)\}/u);
     assert.match(navigation, /label: t\("说了别点"\)/u);
-    // The extra "upcoming" placeholder and its divider were gated behind the
-    // desktop-only isDesktopApp(), which went away with src-tauri and
-    // desktop-storage. The web-only menu keeps one divider before "探索".
+    // Preserve menu destinations when changing the navigation presentation.
     assert.equal(navigation.match(/type: "divider"/gu)?.length, 1);
     assert.doesNotMatch(navigation, /isDesktopApp|desktop-storage"|key: "upcoming"/u);
     assert.match(navigation, /key: "explore", label: t\("探索"\)/u);
@@ -54,10 +51,6 @@ test("the top navigation opens a standalone About Author page", () => {
     assert.doesNotMatch(navigation, /dsh-launcher/u);
     assert.doesNotMatch(navigation, /getDshVersion/u);
     assert.doesNotMatch(navigation, /更多好玩的，正在路上/u);
-    assert.match(navigation, /"wg-playful-nav"/u);
-    assert.match(styles, /\.wg-playful-nav \{/u);
-    assert.match(styles, /--wg-playful-mint: #19785f/u);
-    assert.match(styles, /--wg-playful-mint: #74ddbd/u);
     assert.match(navigation, /setPlayfulMenuOpen\(false\)/u);
     assert.match(navigation, /if \(key === "about-author"\) \{\s+navigate\("\/about-author"\)/u);
     assert.match(router, /path: "\/about-author", element: <AboutAuthorPage/u);

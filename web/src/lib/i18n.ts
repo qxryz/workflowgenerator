@@ -10,6 +10,19 @@ export function normalizeAppLanguage(value: unknown): AppLanguage {
 }
 
 const englishMessages: Record<string, string> = {
+    "暂无音频": "No audio yet",
+    "暂无视频": "No videos yet",
+    "暂无图片": "No images yet",
+    "选择任务并填写内容后生成音频": "Choose a task and enter content to generate audio",
+    "填写提示词后生成视频": "Enter a prompt to generate a video",
+    "填写提示词后生成图片": "Enter a prompt to generate an image",
+    "画布名称": "Canvas name",
+    "就绪": "Ready",
+    "工作中 {count}": "{count} running",
+    "{count} 个提示词": "{count} prompts",
+    "{count} 个资产": "{count} assets",
+    "{count} 个工作流": "{count} workflows",
+    "已归档的创作记录": "Archived conversations",
     "对话操作": "Conversation actions",
     "等待选择": "Waiting for your choice",
     "播放音频": "Play audio",

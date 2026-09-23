@@ -256,12 +256,12 @@ export default function AssetsPage() {
     };
 
     return (
-        <div className="wg-library-page wg-paper-surface flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
+        <div className="wg-library-page flex h-full flex-col overflow-hidden bg-transparent text-[color:var(--wg-home-text)]">
             <header className="wg-library-header">
                 <div className="wg-library-header-inner">
                     <div className="min-w-0">
                         <h1 className="wg-sketch-title shrink-0 text-[21px] font-semibold">{t("我的资产")}</h1>
-                        <p className="wg-library-meta mt-0.5">ASSETS / {hydrated ? String(validAssets.length).padStart(2, "0") : "--"}</p>
+                        <p className="wg-library-meta mt-0.5">{hydrated ? t("{count} 个资产", { count: validAssets.length }) : t("加载中")}</p>
                     </div>
                     <div className="wg-library-actions flex min-w-0 flex-1 flex-wrap items-center justify-end gap-2 md:ml-auto">
                         <label className="wg-library-search min-w-[220px] flex-1 md:max-w-sm">

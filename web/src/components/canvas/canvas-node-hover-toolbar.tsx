@@ -190,7 +190,7 @@ export function CanvasNodeHoverToolbar({
     return (
         <>
             <div
-                className="absolute z-[70] flex h-12 -translate-x-1/2 -translate-y-full items-center overflow-visible rounded-[18px] border border-black/10 bg-white text-[15px] text-[#242529] shadow-[0_8px_28px_rgba(15,23,42,.12)]"
+                className="wg-control-surface absolute z-[70] -translate-x-1/2 -translate-y-full overflow-visible"
                 style={{ left, top }}
                 onMouseEnter={() => onKeep(node.id)}
                 onMouseLeave={() => {
@@ -315,12 +315,10 @@ function ToolbarAction({ title, label, icon, onClick, showLabel, active = false,
     const { t } = useAppTranslation();
     const hasText = showLabel && Boolean(label);
     return (
-        <Tooltip title={t(title)} placement="top" mouseEnterDelay={0.2} color="#ffffff" styles={{ root: { color: "#242529", boxShadow: "0 8px 24px rgba(15,23,42,.16)", fontSize: 13, fontWeight: 500 } }}>
-            <button type="button" className={`group relative flex h-12 items-center whitespace-nowrap px-1.5 ${danger ? "text-[#ef4444]" : ""}`} onClick={onClick} aria-label={t(title)}>
-                <span className={`flex h-9 items-center ${hasText ? "gap-2 px-2.5" : "justify-center px-2"} rounded-lg transition group-hover:bg-[#f0f0f1] ${active ? "bg-[#eeeeef]" : ""}`}>
-                    {icon}
-                    {hasText ? <span>{t(label)}</span> : null}
-                </span>
+        <Tooltip title={t(title)} placement="top" mouseEnterDelay={0.2}>
+            <button type="button" className={hasText ? "wg-text-button whitespace-nowrap" : "wg-icon-button"} data-active={active || undefined} data-danger={danger || undefined} onClick={onClick} aria-label={t(title)}>
+                {icon}
+                {hasText ? <span>{t(label)}</span> : null}
             </button>
         </Tooltip>
     );
