@@ -17,6 +17,92 @@
     font-size: 12px;
     color: var(--wg-home-muted);
 }
+.zodiac-trace-usage-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    min-height: 30px;
+    padding: 4px 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--wg-home-text);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+    cursor: pointer;
+    transition: background-color 160ms ease;
+}
+.zodiac-trace-usage-pill:hover,
+.zodiac-trace-usage-pill[aria-expanded="true"] {
+    background: var(--wg-home-hover);
+}
+.zodiac-trace-usage-pill:focus-visible {
+    outline: 2px solid #6485c8;
+    outline-offset: 2px;
+}
+.zodiac-trace-usage-pill svg {
+    width: 14px;
+    height: 14px;
+    stroke-width: 1.5;
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-cache-hit,
+.zodiac-trace-usage-note {
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-usage-indicator {
+    width: 4px;
+    height: 4px;
+    border-radius: 50%;
+    background: #bd8d45;
+}
+.zodiac-trace-usage-content {
+    width: min(260px, calc(100vw - 64px));
+    color: var(--wg-home-text);
+    font-size: 12px;
+}
+.zodiac-trace-usage-content h3 {
+    margin: 0 0 4px;
+    font-size: 13px;
+    font-weight: 500;
+}
+.zodiac-trace-usage-note {
+    margin: 0;
+    font-size: 11px;
+}
+.zodiac-trace-usage-content footer {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--wg-home-line);
+}
+.zodiac-trace-usage-rows {
+    margin: 12px 0 0;
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+}
+.zodiac-trace-usage-rows > div {
+    display: flex;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 3px 0;
+}
+.zodiac-trace-usage-rows [data-nested] {
+    padding-left: 12px;
+    color: var(--wg-home-muted);
+    font-size: 11px;
+}
+.zodiac-trace-usage-rows > div:last-child {
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px solid var(--wg-home-line);
+}
+.zodiac-trace-usage-rows dd {
+    margin: 0;
+}
 .zodiac-trace-timeline {
     flex-shrink: 0;
     min-width: 0;
@@ -311,6 +397,7 @@
     }
 }
 @media (prefers-reduced-motion: reduce) {
+    .zodiac-trace-usage-pill,
     .zodiac-trace-bar,
     .zodiac-trace-row {
         transition: none;

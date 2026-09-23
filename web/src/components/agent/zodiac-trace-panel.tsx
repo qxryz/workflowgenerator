@@ -6,6 +6,8 @@ import { ArrowDownToLine, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-
 import { layoutTraceTimeline } from "@/lib/agent/zodiac-trace-layout";
 import "./zodiac-trace.css";
 import type { ZodiacActivity } from "@/lib/agent/zodiac-activity";
+import type { TraceTokens, TraceUsage } from "@/lib/agent/zodiac-trace-usage";
+import { TraceUsageDetails, TraceUsagePill } from "./zodiac-trace-usage";
 
 type TraceRecord = {
     id: string;
@@ -14,10 +16,11 @@ type TraceRecord = {
     at: number;
     title: string;
     parentId?: string;
+    usage?: TraceTokens | null;
     info: { role?: string; agent?: string; tokens?: unknown; modelID?: string; error?: unknown };
     part: { type: string; text?: string; tool?: string; state?: { status?: string; input?: unknown; output?: unknown; error?: string; time?: { start?: number; end?: number } }; time?: { start?: number; end?: number } };
 };
-type TracePage = { records: TraceRecord[]; before: number | null };
+type TracePage = { records: TraceRecord[]; before: number | null; usage: TraceUsage };
 export function traceText(value: unknown): string {
     const text = typeof value === "string" ? value : JSON.stringify(value, null, 2) || "";
     return text
@@ -71,6 +74,7 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
     const requestRef = useRef<AbortController | null>(null);
     runningRef.current = running;
     const [records, setRecords] = useState<TraceRecord[]>([]);
+    const [usage, setUsage] = useState<TraceUsage | null>(null);
     const [before, setBefore] = useState<number | null>(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
@@ -88,6 +92,7 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
         let timer: ReturnType<typeof setTimeout> | undefined;
         followRef.current = true;
         setRecords([]);
+        setUsage(null);
         setBefore(null);
         setSelected("");
         setQuery("");
@@ -100,6 +105,7 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
             try {
                 const page = await agentRequest<TracePage>("trace", { projectId, sessionId }, controller.signal);
                 if (controller.signal.aborted) return;
+                setUsage(page.usage ?? null);
                 setRecords((old) => [...new Map([...old, ...page.records].map((row) => [row.id, row])).values()].sort((a, b) => a.at - b.at));
                 if (first) {
                     setBefore(page.before);
@@ -252,6 +258,7 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
                     options={[{ value: "all", label: t("全部记录") }, { value: "error", label: t("失败记录") }, ...[...new Set(records.map((row) => row.info.agent).filter(Boolean))].map((value) => ({ value, label: value }))]}
                 />
                 <span className="zodiac-trace-count">{t("{count} 条记录", { count: visible.length })}</span>
+                <TraceUsagePill key={`${projectId}:${sessionId}:${open}`} usage={usage} unavailable={Boolean(error)} />
                 <div className="zodiac-trace-controls">
                     <div className="zodiac-trace-zoom">
                         <button type="button" className="wg-icon-button" aria-label={t("缩小时间线")} disabled={zoom <= 0.5} onClick={() => setZoom((value) => Math.max(0.5, value - 0.25))}>
@@ -425,7 +432,6 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
                                 { label: "输入", value: detail.part.state?.input },
                                 { label: "输出", value: detail.part.state?.output ?? detail.part.text },
                                 { label: "错误", value: detail.part.state?.error ?? detail.info.error },
-                                { label: "用量", value: detail.info.tokens },
                             ]
                                 .filter((entry) => entry.value != null)
                                 .map((entry) => (
@@ -434,6 +440,12 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
                                         <pre>{traceText(entry.value)}</pre>
                                     </div>
                                 ))}
+                            {detail.info.role === "assistant" ? (
+                                <div className="zodiac-trace-field">
+                                    <h3>{t("本次请求 · Token")}</h3>
+                                    <TraceUsageDetails tokens={detail.usage ?? null} />
+                                </div>
+                            ) : null}
                             <details className="zodiac-trace-raw">
                                 <summary>{t("原始记录")}</summary>
                                 <pre>{traceText(detail)}</pre>
