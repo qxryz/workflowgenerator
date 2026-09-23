@@ -1,0 +1,321 @@
+.zodiac-trace-modal .ant-modal-container {
+    overflow: hidden;
+}
+.zodiac-trace-filters {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+.zodiac-trace-filters .ant-input-affix-wrapper {
+    width: 288px;
+}
+.zodiac-trace-filters .ant-select {
+    width: 160px;
+}
+.zodiac-trace-count {
+    font-size: 12px;
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-timeline {
+    flex-shrink: 0;
+    min-width: 0;
+    border: 1px solid var(--wg-home-line);
+    border-radius: 10px;
+    overflow: hidden;
+}
+.zodiac-trace-controls {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-left: auto;
+    flex-shrink: 0;
+    font-size: 12px;
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-controls .wg-icon-button {
+    width: 26px;
+    height: 26px;
+}
+.zodiac-trace-controls .wg-icon-button > svg {
+    width: 14px;
+    height: 14px;
+}
+.zodiac-trace-controls .wg-text-button {
+    height: 26px;
+}
+.zodiac-trace-zoom,
+.zodiac-trace-pan {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+.zodiac-trace-zoom {
+    margin-left: auto;
+}
+.zodiac-trace-zoom .ant-slider {
+    width: 100px;
+    margin-inline: 8px;
+}
+.zodiac-trace-zoom-value {
+    width: 48px;
+    font-variant-numeric: tabular-nums;
+}
+.zodiac-trace-timeline-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    max-height: 196px;
+    overscroll-behavior: contain;
+    scrollbar-width: auto;
+    scrollbar-color: color-mix(in srgb, var(--wg-home-muted) 45%, transparent) transparent;
+}
+.zodiac-trace-track {
+    position: relative;
+    min-width: 100%;
+}
+.zodiac-trace-tick {
+    position: absolute;
+    top: 1px;
+    bottom: 5px;
+    border-left: 1px solid var(--wg-home-line);
+    pointer-events: none;
+}
+.zodiac-trace-tick > span {
+    display: block;
+    margin-left: 4px;
+    font-size: 10px;
+    white-space: nowrap;
+    color: var(--wg-home-muted);
+    font-variant-numeric: tabular-nums;
+}
+.zodiac-trace-bar {
+    position: absolute;
+    height: 10px;
+    padding: 0;
+    border: 1px solid color-mix(in srgb, var(--trace-tone) 55%, transparent);
+    border-radius: 0;
+    background: color-mix(in srgb, var(--trace-tone) 65%, var(--wg-panel));
+    color: var(--wg-home-text);
+    cursor: pointer;
+    font-size: 10px;
+    line-height: 20px;
+    transition:
+        background-color 150ms,
+        box-shadow 150ms,
+        top 180ms ease;
+}
+.zodiac-trace-bar:hover {
+    background: color-mix(in srgb, var(--trace-tone) 45%, var(--wg-panel));
+}
+.zodiac-trace-bar[data-selected] {
+    background: #6485c8;
+    border-color: #6485c8;
+    color: #fff;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, #fff 65%, #6485c8);
+    z-index: 1;
+}
+.zodiac-trace-split {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    gap: 12px;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+}
+.zodiac-trace-list-pane,
+.zodiac-trace-detail {
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid var(--wg-home-line);
+    border-radius: 10px;
+}
+.zodiac-trace-list-pane {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+.zodiac-trace-list-heading,
+.zodiac-trace-row {
+    display: grid;
+    grid-template-columns: 42px 64px minmax(0, 1fr) 46px;
+    align-items: center;
+    gap: 8px;
+    padding-inline: 12px;
+    text-align: left;
+    font-size: 12px;
+}
+.zodiac-trace-list-heading {
+    height: 36px;
+    flex-shrink: 0;
+    border-bottom: 1px solid var(--wg-home-line);
+    background: var(--wg-home-hover);
+    color: var(--wg-home-muted);
+    scrollbar-gutter: stable;
+    overflow-y: auto;
+}
+.zodiac-trace-list {
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-gutter: stable;
+    min-height: 0;
+    flex: 1;
+}
+.zodiac-trace-row {
+    width: 100%;
+    height: 42px;
+    border: 0;
+    border-bottom: 1px solid var(--wg-home-line);
+    background: transparent;
+    color: var(--wg-home-text);
+    cursor: pointer;
+    transition:
+        background-color 160ms,
+        box-shadow 160ms;
+}
+.zodiac-trace-row:hover {
+    background: var(--wg-home-hover);
+}
+.zodiac-trace-row[data-selected] {
+    background: color-mix(in srgb, #6485c8 14%, var(--wg-panel));
+    box-shadow: inset 3px 0 #6485c8;
+}
+.zodiac-trace-number,
+.zodiac-trace-row time {
+    color: var(--wg-home-muted);
+    font-variant-numeric: tabular-nums;
+    font-size: 11px;
+}
+.zodiac-trace-row[data-selected] .zodiac-trace-number {
+    color: #6485c8;
+    font-weight: 600;
+}
+.zodiac-trace-preview {
+    display: block;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.zodiac-trace-preview strong {
+    font-weight: 500;
+}
+.zodiac-trace-preview > span {
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-modal [data-tone="agent"] {
+    --trace-tone: #6485c8;
+}
+.zodiac-trace-modal [data-tone="child"] {
+    --trace-tone: #4e9a98;
+}
+.zodiac-trace-modal [data-tone="user"] {
+    --trace-tone: #8b9095;
+}
+.zodiac-trace-modal [data-tone="error"] {
+    --trace-tone: #d85b64;
+}
+.zodiac-trace-modal [data-tone="approval"] {
+    --trace-tone: #bd8d45;
+}
+.zodiac-trace-state {
+    font-size: 11px;
+    white-space: nowrap;
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-state[data-tone="error"],
+.zodiac-trace-state[data-tone="approval"] {
+    color: var(--trace-tone);
+}
+.zodiac-trace-detail {
+    overflow: auto;
+    overscroll-behavior: contain;
+    padding: 18px;
+}
+.zodiac-trace-detail-heading {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    flex-wrap: wrap;
+    overflow-wrap: anywhere;
+}
+.zodiac-trace-detail-heading strong {
+    font-size: 13px;
+}
+.zodiac-trace-detail-heading > span:last-child,
+.zodiac-trace-detail-meta {
+    font-size: 11px;
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-detail-meta {
+    margin-top: 8px;
+    margin-bottom: 24px;
+}
+.zodiac-trace-detail-content {
+    animation: zodiac-trace-reveal 160ms ease-out;
+}
+.zodiac-trace-field {
+    margin-bottom: 24px;
+    min-width: 0;
+}
+.zodiac-trace-field h3,
+.zodiac-trace-raw summary {
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-detail pre {
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+    font-size: 12px;
+    line-height: 1.7;
+}
+.zodiac-trace-raw {
+    border-top: 1px solid var(--wg-home-line);
+    padding-top: 16px;
+}
+.zodiac-trace-raw summary {
+    cursor: pointer;
+}
+.zodiac-trace-placeholder {
+    margin-top: 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--wg-home-muted);
+}
+.zodiac-trace-row:focus-visible,
+.zodiac-trace-bar:focus-visible {
+    outline: 2px solid #6485c8;
+    outline-offset: -2px;
+}
+@keyframes zodiac-trace-reveal {
+    from {
+        opacity: 0.5;
+        translate: 0 3px;
+    }
+    to {
+        opacity: 1;
+        translate: 0 0;
+    }
+}
+@media (max-width: 760px) {
+    .zodiac-trace-split {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    }
+    .zodiac-trace-controls {
+        gap: 4px;
+    }
+    .zodiac-trace-zoom .ant-slider {
+        width: 60px;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .zodiac-trace-bar,
+    .zodiac-trace-row {
+        transition: none;
+    }
+    .zodiac-trace-detail-content {
+        animation: none;
+    }
+}

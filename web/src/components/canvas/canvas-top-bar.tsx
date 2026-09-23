@@ -1,6 +1,6 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 
-import { Button, Dropdown, Modal, Tooltip } from "antd";
+import { Dropdown, Modal, Tooltip } from "antd";
 import { Eye, Play, Square, Zap, Plus, Trash2, Download, Folder, Home, Menu, Redo2, PanelLeftClose, PanelLeftOpen, Undo2, Upload } from "lucide-react";
 
 import { UserStatusActions } from "@/components/layout/user-status-actions";
@@ -69,9 +69,26 @@ export function CanvasTopBar({
     const colorTheme = useThemeStore((state) => state.theme);
     const theme = canvasThemes[colorTheme];
     const titleRef = useRef<HTMLDivElement>(null);
+    const barRef = useRef<HTMLDivElement>(null);
+    const [compact, setCompact] = useState(false);
     const [shortcutsOpen, setShortcutsOpen] = useState(false);
     const sidePanelOpen = useCanvasSidePanelStore((state) => state.panelOpen);
     const toggleSidePanel = useCanvasSidePanelStore((state) => state.togglePanel);
+
+    useLayoutEffect(() => {
+        const bar = barRef.current;
+        if (!bar) return;
+        const update = () => {
+            const width = bar.clientWidth;
+            // Ignore retained canvases while hidden; leave space between thresholds
+            // so dragging around the boundary does not repeatedly open and fold tools.
+            if (width) setCompact((current) => width < (current ? 768 : 720));
+        };
+        update();
+        const observer = new ResizeObserver(update);
+        observer.observe(bar);
+        return () => observer.disconnect();
+    }, []);
 
     useEffect(() => {
         if (!isTitleEditing) return;
@@ -84,10 +101,10 @@ export function CanvasTopBar({
 
     return (
         <>
-            <div className="wg-canvas-topbar">
+            <div ref={barRef} className="wg-canvas-topbar" data-compact={compact || undefined}>
                 <div className="wg-control-surface wg-canvas-title pointer-events-auto">
                     <Tooltip title={t(sidePanelOpen ? "收起面板" : "展开面板")}>
-                        <button type="button" onClick={toggleSidePanel} aria-label={t(sidePanelOpen ? "收起面板" : "展开面板")} className="wg-icon-button">
+                        <button type="button" onClick={toggleSidePanel} aria-label={t(sidePanelOpen ? "收起面板" : "展开面板")} className="wg-icon-button wg-canvas-sidebar-toggle">
                             {sidePanelOpen ? <PanelLeftClose className="size-4" strokeWidth={1.8} /> : <PanelLeftOpen className="size-4" strokeWidth={1.8} />}
                         </button>
                     </Tooltip>
@@ -96,6 +113,7 @@ export function CanvasTopBar({
                         classNames={{ root: "wg-canvas-menu" }}
                         menu={{
                             items: [
+                                { key: "panel", icon: <PanelLeftOpen className="size-4" />, label: t(sidePanelOpen ? "收起面板" : "展开面板"), onClick: toggleSidePanel },
                                 { key: "home", icon: <Home className="size-4" />, label: t("主页"), onClick: onHome },
                                 { key: "projects", icon: <Folder className="size-4" />, label: t("我的画布"), onClick: onProjects },
                                 { type: "divider" },
@@ -115,7 +133,7 @@ export function CanvasTopBar({
                         </button>
                     </Dropdown>
 
-                    <div ref={titleRef} className="flex min-w-0 items-center">
+                    <div ref={titleRef} className="wg-canvas-title-editor flex min-w-0 items-center">
                         {isTitleEditing ? (
                             <input
                                 autoFocus
@@ -138,36 +156,69 @@ export function CanvasTopBar({
                     </div>
                 </div>
 
-                {workflowActionCount > 0 ? (
-                    <div className="wg-control-surface wg-canvas-run-controls pointer-events-auto" aria-label={t("工作流运行")}>
-                        {workflowStatus === "running" ? (
-                            <Button danger type="text" size="small" className="!h-8 !rounded-xl" icon={<Square className="size-3.5 fill-current" />} onClick={onStopWorkflow}>
-                                {t("停止")}
-                            </Button>
-                        ) : workflowStatus === "waiting_review" ? (
-                            <Button type="text" size="small" className="!h-8 !rounded-xl !px-3" icon={<Eye className="size-3.5" />} disabled={!onInspectWorkflow} onClick={onInspectWorkflow}>
-                                {t("检查结果")}
-                            </Button>
-                        ) : (
-                            <>
-                                <Button type="text" size="small" className="!h-8 !rounded-xl !px-3" icon={<Play className="size-3.5" />} onClick={onRunGuided}>
-                                    {t("逐步运行")}
-                                </Button>
-                                <Button type="text" size="small" className="!h-8 !rounded-xl !px-3" icon={<Zap className="size-3.5" />} onClick={onRunAutomatic}>
-                                    {t("自动运行")}
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                ) : null}
+                <div className="wg-control-surface wg-canvas-commands pointer-events-auto">
+                    {workflowActionCount > 0 ? (
+                        <>
+                            <div className="wg-canvas-run-controls" role="group" aria-label={t("工作流运行")}>
+                                {workflowStatus === "running" ? (
+                                    <Tooltip title={t("停止")}>
+                                        <button type="button" className="wg-text-button wg-canvas-run-button" data-danger="true" aria-label={t("停止")} onClick={onStopWorkflow}>
+                                            <Square className="size-3.5 shrink-0 fill-current" />
+                                            <span className="wg-canvas-run-label">{t("停止")}</span>
+                                        </button>
+                                    </Tooltip>
+                                ) : workflowStatus === "waiting_review" ? (
+                                    <Tooltip title={t("检查结果")}>
+                                        <button type="button" className="wg-text-button wg-canvas-run-button" aria-label={t("检查结果")} disabled={!onInspectWorkflow} onClick={onInspectWorkflow}>
+                                            <Eye className="size-3.5 shrink-0" />
+                                            <span className="wg-canvas-run-label">{t("检查结果")}</span>
+                                        </button>
+                                    </Tooltip>
+                                ) : compact ? (
+                                    <Dropdown
+                                        trigger={["click"]}
+                                        placement="bottomRight"
+                                        classNames={{ root: "wg-canvas-menu" }}
+                                        menu={{
+                                            items: [
+                                                { key: "guided", label: t("逐步运行"), icon: <Play className="size-4" />, disabled: !onRunGuided, onClick: onRunGuided },
+                                                { key: "automatic", label: t("自动运行"), icon: <Zap className="size-4" />, disabled: !onRunAutomatic, onClick: onRunAutomatic },
+                                            ],
+                                        }}
+                                    >
+                                        <button type="button" className="wg-icon-button wg-canvas-folded-control" aria-label={t("工作流运行")} title={t("工作流运行")} aria-haspopup="menu">
+                                            <Play />
+                                        </button>
+                                    </Dropdown>
+                                ) : (
+                                    <>
+                                        <Tooltip title={t("逐步运行")}>
+                                            <button type="button" className="wg-text-button wg-canvas-run-button" aria-label={t("逐步运行")} disabled={!onRunGuided} onClick={onRunGuided}>
+                                                <Play className="size-3.5 shrink-0" />
+                                                <span className="wg-canvas-run-label">{t("逐步运行")}</span>
+                                            </button>
+                                        </Tooltip>
+                                        <Tooltip title={t("自动运行")}>
+                                            <button type="button" className="wg-text-button wg-canvas-run-button" aria-label={t("自动运行")} disabled={!onRunAutomatic} onClick={onRunAutomatic}>
+                                                <Zap className="size-3.5 shrink-0" />
+                                                <span className="wg-canvas-run-label">{t("自动运行")}</span>
+                                            </button>
+                                        </Tooltip>
+                                    </>
+                                )}
+                            </div>
+                            <span className="wg-control-divider" />
+                        </>
+                    ) : null}
 
-                <div className="wg-control-surface wg-canvas-utilities pointer-events-auto">
-                    <UserStatusActions variant="canvas" onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
-                    <span className="wg-control-divider" />
-                    <button type="button" className="wg-text-button wg-zodiac-trigger" data-active={agentOpen || undefined} aria-label="Zodiac" aria-pressed={agentOpen} onClick={onToggleAgent}>
-                        <ZodiacAvatar className="size-5 border-0 shadow-none" />
-                        <span>Zodiac</span>
-                    </button>
+                    <div className="wg-canvas-utilities">
+                        <UserStatusActions variant="canvas" compact={compact} onOpenShortcuts={() => setShortcutsOpen(true)} onOpenPlugins={onOpenPlugins} />
+                        <span className="wg-control-divider" />
+                        <button type="button" className="wg-text-button wg-zodiac-trigger" data-active={agentOpen || undefined} aria-label="Zodiac" aria-pressed={agentOpen} onClick={onToggleAgent}>
+                            <ZodiacAvatar className="size-5 border-0 shadow-none" />
+                            <span className="wg-zodiac-label">Zodiac</span>
+                        </button>
+                    </div>
                 </div>
             </div>
             <Modal title={t("快捷键")} open={shortcutsOpen} onCancel={() => setShortcutsOpen(false)} footer={null} centered>

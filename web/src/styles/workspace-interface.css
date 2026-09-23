@@ -153,7 +153,8 @@
     opacity: 0.28;
     cursor: default;
 }
-.wg-icon-button[data-danger="true"]:hover {
+.wg-icon-button[data-danger="true"]:hover,
+.wg-text-button[data-danger="true"] {
     color: #d44f54;
     background: #d44f5410;
 }
@@ -177,6 +178,7 @@
     backdrop-filter: blur(16px);
 }
 .wg-control-divider {
+    flex-shrink: 0;
     width: 1px;
     height: 16px;
     margin-inline: 6px;
@@ -190,28 +192,71 @@
     position: absolute;
     inset: 16px 16px auto;
     z-index: 50;
-    display: flex;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: start;
-    justify-content: space-between;
     gap: 12px;
     pointer-events: none;
 }
 .wg-canvas-title {
+    justify-self: start;
     min-width: 0;
-    max-width: 42%;
+    max-width: 100%;
 }
 .wg-canvas-title-name {
     max-width: 220px;
     min-width: 0;
+    flex-shrink: 1;
     padding-inline: 8px;
     color: var(--wg-home-text);
     font-size: 13px;
     font-weight: 500;
 }
-.wg-canvas-run-controls {
-    position: absolute;
-    left: 50%;
-    transform: translateX(-50%);
+.wg-canvas-commands {
+    justify-self: end;
+    min-width: 0;
+}
+.wg-canvas-run-controls,
+.wg-canvas-utilities {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+.wg-canvas-run-button,
+.wg-zodiac-trigger {
+    gap: 0;
+    min-width: 32px;
+    padding-inline: 8px;
+}
+.wg-canvas-run-label,
+.wg-zodiac-label {
+    overflow: hidden;
+    max-width: 140px;
+    margin-left: 7px;
+    white-space: nowrap;
+    transition:
+        max-width 220ms ease,
+        margin-left 220ms ease,
+        opacity 160ms ease;
+}
+.wg-canvas-topbar[data-compact] .wg-canvas-run-label,
+.wg-canvas-topbar[data-compact] .wg-zodiac-label {
+    max-width: 0;
+    margin-left: 0;
+    opacity: 0;
+}
+.wg-canvas-folded-control {
+    animation: wg-control-fold 180ms ease-out;
+}
+@keyframes wg-control-fold {
+    from {
+        opacity: 0;
+        scale: 0.85;
+    }
+    to {
+        opacity: 1;
+        scale: 1;
+    }
 }
 .wg-canvas-dock {
     position: absolute;
@@ -337,12 +382,11 @@
         translate: 0 0;
     }
 }
-@container canvas (max-width: 1000px) {
-    .wg-canvas-run-controls {
-        top: 52px;
-    }
-    .wg-canvas-title {
-        max-width: 46%;
+@container canvas (max-width: 1050px) {
+    .wg-canvas-run-label {
+        max-width: 0;
+        margin-left: 0;
+        opacity: 0;
     }
 }
 @container canvas (max-width: 800px) {
@@ -357,18 +401,10 @@
     .wg-canvas-title-name {
         max-width: 150px;
     }
-    .wg-canvas-utilities .wg-shortcuts-button {
-        display: none;
-    }
 }
-@container canvas (max-width: 520px) {
-    .wg-canvas-title {
-        max-width: calc(100% - 172px);
-    }
-    .wg-canvas-utilities .wg-plugins-button {
-        display: none;
-    }
-    .wg-zodiac-trigger span {
+@container canvas (max-width: 380px) {
+    .wg-canvas-sidebar-toggle,
+    .wg-canvas-title-editor {
         display: none;
     }
 }
@@ -416,6 +452,8 @@
     .wg-icon-button,
     .wg-icon-button > svg,
     .wg-text-button,
+    .wg-canvas-run-label,
+    .wg-zodiac-label,
     .wg-session-row,
     .wg-session-arrow,
     .wg-primary-navigation .wg-nav-item,
@@ -425,6 +463,9 @@
     .wg-interface-enter,
     .wg-canvas-tip,
     .wg-canvas-popover {
+        animation: none;
+    }
+    .wg-canvas-folded-control {
         animation: none;
     }
 }

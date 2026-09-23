@@ -10,6 +10,17 @@ export function normalizeAppLanguage(value: unknown): AppLanguage {
 }
 
 const englishMessages: Record<string, string> = {
+    "第 {count} 轮": "Turn {count}",
+    "重置缩放": "Reset zoom",
+    "最新记录": "Latest record",
+    "滚动查看时间线": "Scroll through timeline",
+    "向后查看时间线": "Scroll timeline forward",
+    "向前查看时间线": "Scroll timeline backward",
+    "放大时间线": "Zoom in timeline",
+    "缩小时间线": "Zoom out timeline",
+    "时间线缩放": "Timeline zoom",
+    "轨迹记录": "Trace records",
+    "更多工具": "More tools",
     "暂无音频": "No audio yet",
     "暂无视频": "No videos yet",
     "暂无图片": "No images yet",
