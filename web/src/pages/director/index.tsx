@@ -396,7 +396,7 @@ export default function DirectorPage() {
                             <div>
                                 <h2 className="text-[15px] font-semibold">导演台暂时无法打开</h2>
                                 <p className="mt-1.5 text-[12px] text-[color:var(--wg-home-muted)]">请检查应用资源后重新加载。</p>
-                                <button type="button" className="wg-sketch-button wg-sketch-button-primary mt-5 inline-flex h-9 items-center gap-2 px-4 text-[12px] font-semibold" onClick={reload}>
+                                <button type="button" className="wg-primary-button mt-5 h-9 px-4 text-[12px] font-semibold" onClick={reload}>
                                     <RefreshCw className="size-4" strokeWidth={1.8} />
                                     重新加载
                                 </button>

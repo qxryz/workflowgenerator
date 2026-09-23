@@ -119,7 +119,7 @@ export default function CanvasPage() {
                             <Upload01Icon className="size-4" strokeWidth={1.7} />
                             <span className="hidden lg:inline">{t("导入")}</span>
                         </button>
-                        <button type="button" disabled={!hydrated} className="wg-sketch-button wg-sketch-button-primary inline-flex h-9 items-center gap-2 px-3.5 text-[12px] font-semibold disabled:opacity-50" onClick={createAndEnter}>
+                        <button type="button" disabled={!hydrated} className="wg-primary-button h-9 px-3.5 text-[12px] font-semibold disabled:opacity-50" onClick={createAndEnter}>
                             <Add01Icon className="size-4" strokeWidth={1.8} />
                             {t("新建")}
                         </button>
@@ -148,7 +148,7 @@ export default function CanvasPage() {
                         <span className="grid size-10 place-items-center rounded-[11px] border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] text-[color:var(--wg-home-accent)]"><Add01Icon className="size-5" strokeWidth={1.7} /></span>
                         <h2 className="mt-4 text-[15px] font-semibold">{t("新建工作流")}</h2>
                         <p className="mt-1.5 max-w-xs text-[12px] leading-5 text-[color:var(--wg-home-muted)]">{t("从空白画布开始，或让 Zodiac 帮你搭建节点。")}</p>
-                        <button type="button" className="wg-sketch-button wg-sketch-button-primary mt-5 inline-flex h-9 items-center gap-2 px-4 text-[12px] font-semibold" onClick={createAndEnter}>
+                        <button type="button" className="wg-primary-button mt-5 h-9 px-4 text-[12px] font-semibold" onClick={createAndEnter}>
                             <Add01Icon className="size-4" strokeWidth={1.8} />
                             {t("新建")}
                         </button>

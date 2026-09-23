@@ -325,17 +325,6 @@
         transform: scale(0.98);
     }
 
-    .wg-sketch-button-primary {
-        border-color: transparent;
-        background: var(--wg-home-text);
-        color: var(--wg-panel);
-    }
-
-    .wg-sketch-button-primary:hover {
-        background: var(--wg-home-text);
-        opacity: 0.85;
-    }
-
     .wg-sketch-button-quiet {
         border: 1px solid transparent;
         transition:
