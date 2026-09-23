@@ -21,15 +21,6 @@ export async function openExternalUrl(value: string) {
         notifyExternalLinkError();
         return;
     }
-    if ("__TAURI_INTERNALS__" in window) {
-        try {
-            const { invoke } = await import("@tauri-apps/api/core");
-            await invoke("open_external_url", { url: url.toString() });
-        } catch {
-            notifyExternalLinkError();
-        }
-        return;
-    }
     window.open(url.toString(), "_blank", "noopener,noreferrer");
 }
 

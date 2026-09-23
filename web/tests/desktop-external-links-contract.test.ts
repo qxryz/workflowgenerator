@@ -8,6 +8,7 @@ test("external links open only allowlisted protocols with opener isolation", () 
     const externalLinks = readSource("../src/services/external-links.ts");
     const appProviders = readSource("../src/components/layout/app-providers.tsx");
     const desktopMain = readSource("../src-tauri/src/main.rs");
+    const appTopNav = readSource("../src/components/layout/app-top-nav.tsx");
     const channelEditor = readSource("../src/components/layout/channel-editor-drawer.tsx");
 
     // `noopener,noreferrer` plus a per-call protocol allowlist is what keeps a
@@ -16,9 +17,9 @@ test("external links open only allowlisted protocols with opener isolation", () 
     assert.match(externalLinks, /export async function openExternalUrl/u);
     assert.match(externalLinks, /new Set\(\["http:", "https:", "mailto:", "tel:"\]\)/u);
     assert.match(externalLinks, /window\.open\(url\.toString\(\), "_blank", "noopener,noreferrer"\)/u);
-    assert.match(externalLinks, /invoke\("open_external_url", \{ url: url\.toString\(\) \}\)/u);
-    assert.match(desktopMain, /generate_handler!\[open_external_url\]/u);
-    assert.match(desktopMain, /matches!\(parsed\.scheme\(\), "https" \| "http" \| "mailto" \| "tel"\)/u);
+    assert.match(desktopMain, /\.on_new_window\(\|url, _\|/u);
+    assert.match(desktopMain, /Command::new\("\/usr\/bin\/open"\)/u);
+    assert.match(appTopNav, /openExternalUrl\(EXPLORE_URL\)/u);
     assert.match(channelEditor, /openExternalUrl\(keyUrl\)/u);
     assert.match(channelEditor, /bailian\.console\.aliyun\.com\/cn-beijing\/model\/settings\/api-key/u);
     assert.doesNotMatch(externalLinks, /location\.href\s*=/u);
