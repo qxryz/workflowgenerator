@@ -1,6 +1,6 @@
 import { memo, useId, useRef, useState, type CSSProperties, type FormEvent, type ReactNode } from "react";
 import { Button, Input } from "antd";
-import { CheckCircle2, Layers3 } from "lucide-react";
+import { ZodiacGlyph } from "@/components/brand/zodiac-glyph";
 
 import type { ZodiacAssetDecisionOption, ZodiacDecisionOption, ZodiacDecisionUi } from "@/lib/agent/zodiac-decision-ui";
 import type { CanvasTheme } from "@/lib/canvas-theme";
@@ -22,12 +22,12 @@ export const ZodiacDecisionCard = memo(function ZodiacDecisionCard(props: Zodiac
     if (answeredLabel) {
         return (
             <div
-                className="ml-11 flex min-h-8 min-w-0 items-center gap-2 px-1 py-1 text-xs"
+                className="flex min-h-8 min-w-0 items-center gap-2 px-1 py-1 text-xs"
                 style={{ borderColor: props.theme.node.stroke, background: props.theme.node.panel, color: props.theme.node.text }}
                 role="status"
                 aria-label={`已选择：${answeredLabel}`}
             >
-                <CheckCircle2 className="size-4 shrink-0" strokeWidth={1.8} style={{ color: props.theme.node.activeStroke }} aria-hidden />
+                <ZodiacGlyph name="check" className="size-4 shrink-0" strokeWidth={1.8} style={{ color: props.theme.node.activeStroke }} aria-hidden />
                 <span className="truncate">{answeredLabel}</span>
             </div>
         );
@@ -64,7 +64,7 @@ function OpenDecisionCard({ decision, theme, disabled = false, onSubmit }: Zodia
     };
 
     return (
-        <section className="ml-11 min-w-0 rounded-xl border p-4" style={{ borderColor: theme.node.stroke, background: "transparent", color: theme.node.text }} aria-labelledby={questionId} aria-busy={submitting}>
+        <section className="zodiac-enter min-w-0 border-l-2 py-1 pl-3" style={{ borderColor: theme.node.stroke, background: "transparent", color: theme.node.text }} aria-labelledby={questionId} aria-busy={submitting}>
             <p id={questionId} className="text-sm font-semibold leading-5">
                 {decision.question}
             </p>
@@ -251,7 +251,7 @@ function AssetPickerDecision({ decision, theme, disabled, submitting, submit }: 
                         checked={selectedIds.has(option.nodeId)}
                         disabled={disabled}
                         theme={theme}
-                        icon={<Layers3 className="size-4" strokeWidth={1.8} aria-hidden />}
+                        icon={<ZodiacGlyph name="file" className="size-4" strokeWidth={1.8} aria-hidden />}
                         onChange={() => toggle(option.nodeId)}
                     />
                 ))}
@@ -283,7 +283,7 @@ function ConfirmSummaryDecision({
             <ul className="grid gap-1.5 text-sm leading-5" aria-label="即将继续的内容">
                 {decision.summary.map((item, index) => (
                     <li key={`${index}:${item}`} className="flex gap-2">
-                        <CheckCircle2 className="mt-0.5 size-4 shrink-0" strokeWidth={1.8} style={{ color: theme.node.activeStroke }} aria-hidden />
+                        <ZodiacGlyph name="check" className="mt-0.5 size-4 shrink-0" strokeWidth={1.8} style={{ color: theme.node.activeStroke }} aria-hidden />
                         <span>{item}</span>
                     </li>
                 ))}
@@ -321,10 +321,10 @@ function DecisionOptionRow({
 }) {
     return (
         <label
-            className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-lg border px-3 py-2.5 text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.99] motion-reduce:transform-none motion-reduce:transition-none"
+            className="flex min-h-11 cursor-pointer items-start gap-2.5 rounded-lg border border-transparent px-3 py-2.5 text-left transition-[border-color,background-color,transform] duration-150 active:scale-[0.99] motion-reduce:transform-none motion-reduce:transition-none"
             style={optionRowStyle(theme, checked, disabled)}
         >
-            <input className="mt-0.5 size-4 shrink-0" type={inputType} name={name} checked={checked} disabled={disabled} style={{ accentColor: theme.node.activeStroke }} onChange={onChange} />
+            <input className="peer sr-only" type={inputType} name={name} checked={checked} disabled={disabled} onChange={onChange} /><span className="zodiac-choice-mark mt-0.5 grid size-4 shrink-0 place-items-center rounded border opacity-40 peer-checked:opacity-100 peer-focus-visible:outline peer-focus-visible:outline-2 peer-focus-visible:outline-offset-2" style={{ borderColor: checked ? theme.node.text : theme.node.stroke }}><ZodiacGlyph name="check" className="size-3" /></span>
             {icon ? (
                 <span className="mt-0.5 shrink-0" style={{ color: theme.node.muted }}>
                     {icon}
@@ -386,7 +386,7 @@ function CustomChoiceRow({
 
 function SubmitButton({ disabled, submitting }: { disabled: boolean; submitting: boolean }) {
     return (
-        <Button className="mt-3 !h-9 w-full !font-medium" type="primary" htmlType="submit" loading={submitting} disabled={disabled}>
+        <Button className="mt-3 !h-8 !px-5 !text-xs !font-medium" type="primary" htmlType="submit" loading={submitting} disabled={disabled}>
             继续
         </Button>
     );
@@ -394,8 +394,8 @@ function SubmitButton({ disabled, submitting }: { disabled: boolean; submitting:
 
 function optionRowStyle(theme: CanvasTheme, checked: boolean, disabled: boolean): CSSProperties {
     return {
-        borderColor: checked ? theme.node.activeStroke : theme.node.stroke,
-        background: checked ? `color-mix(in srgb, ${theme.node.activeStroke} 9%, ${theme.node.panel})` : theme.node.panel,
+        borderColor: "transparent",
+        background: checked ? `color-mix(in srgb, ${theme.node.text} 8%, transparent)` : `color-mix(in srgb, ${theme.node.text} 3%, transparent)`,
         color: theme.node.text,
         opacity: disabled ? 0.58 : 1,
         cursor: disabled ? "not-allowed" : "pointer",

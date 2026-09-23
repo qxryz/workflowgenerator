@@ -377,7 +377,7 @@ export async function importZodiacPlans(projectId: string, plans: import("@/lib/
 }
 
 export type CanvasProjectChange = { id: string; expected: string | null; value: string | null };
-export type CanvasCommitResult = { conflict: boolean; projects: Array<{ id: string; value: string | null }>; ids: string[] };
+export type CanvasCommitResult = { conflict: boolean; cleanupPending?: string[]; projects: Array<{ id: string; value: string | null }>; ids: string[] };
 /** Canvas writes never use the unguarded generic store endpoints. */
 export function commitCanvasProjects(changes: CanvasProjectChange[]): Promise<CanvasCommitResult> {
     return trackWrite((async () => {

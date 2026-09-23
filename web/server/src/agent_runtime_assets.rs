@@ -82,6 +82,10 @@ pub(super) fn materialize(state: &AppState, work: &FsPath, assets: &[Value], pre
         if let Err(error) = result { entry["error"] = json!(error); }
         entries.push(entry);
     }
+    // A vision part and its durable chat upload can refer to the same file.
+    // Keep the user's stable attachment ID and filename in the workspace index.
+    let mut attachment_hashes = std::collections::HashSet::new();
+    entries.retain(|entry| entry["origin"] != "message_attachment" || entry["contentHash"].as_str().is_none_or(|hash| attachment_hashes.insert(hash.to_owned())));
     if preserve_attachments {
         let index = safe_child(work, ".zodiac/assets.json")?;
         if index.is_file() {

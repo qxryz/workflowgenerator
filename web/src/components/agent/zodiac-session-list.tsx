@@ -3,7 +3,7 @@ import { App, Button, Empty, Input, Spin, Popconfirm, Drawer } from "antd";
 import { ArrowUpRight, MessageSquare, Search } from "lucide-react";
 import { Streamdown } from "streamdown";
 import { useNavigate } from "react-router-dom";
-import { deleteArchivedZodiacSession, listZodiacSessions, resumeZodiacSession, type ZodiacListedSession } from "@/services/zodiac-session-storage";
+import { archiveZodiacSessionById, deleteArchivedZodiacSession, listZodiacSessions, resumeZodiacSession, type ZodiacListedSession } from "@/services/zodiac-session-storage";
 import { flushAppState } from "@/services/app-lifecycle";
 import { getStoredValue } from "@/services/server-storage";
 import { useAgentStore } from "@/stores/use-agent-store";
@@ -69,7 +69,7 @@ export function ZodiacSessionList({ workspaceId, archivedOnly = false, onOpen, o
                     <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={query ? "没有找到对话" : "还没有对话"} />
                 ) : (
                     visible.map((session) => (
-                        <article key={session.id} className="group mb-2 rounded-xl border border-[color:var(--wg-home-line)] p-3.5 transition-colors hover:bg-[color:var(--wg-home-hover)]">
+                        <article key={session.id} className="zodiac-enter group mb-1 rounded-lg p-3.5 transition-colors hover:bg-[color:var(--wg-home-hover)]">
                             <button type="button" className="flex w-full items-start gap-3 text-left" disabled={!!opening} onClick={() => void open(session)}>
                                 <MessageSquare className="mt-1 size-4 shrink-0 opacity-50" />
                                 <span className="min-w-0 flex-1">
@@ -84,6 +84,15 @@ export function ZodiacSessionList({ workspaceId, archivedOnly = false, onOpen, o
                                 <span className="opacity-45">{session.archived ? "已归档" : "最近使用"}</span>
                                 <div className="flex items-center gap-1">
                                     {archivedOnly && !workspaceId && session.archived ? <Button type="text" size="small" disabled={!!opening} onClick={() => void open(session, true)}>恢复</Button> : null}
+                                    {!session.archived ? <Button type="text" size="small" disabled={!!opening} onClick={async () => {
+                                        try {
+                                            if (Object.values(useAgentStore.getState().work[session.workspaceId] || {}).some(Boolean)) throw new Error("该工作流正在运行，请结束任务后归档。");
+                                            await flushAppState();
+                                            await archiveZodiacSessionById(session.id);
+                                            setSessions(await listZodiacSessions());
+                                            message.success("会话已归档");
+                                        } catch (error) { message.error(error instanceof Error ? error.message : "归档失败"); }
+                                    }}>归档</Button> : null}
                                     {session.archived ? (
                                         <Popconfirm
                                             title="删除这段对话？"
@@ -111,7 +120,7 @@ export function ZodiacSessionList({ workspaceId, archivedOnly = false, onOpen, o
                     ))
                 )}
             </div>
-            <Drawer title={preview?.title || "对话记录"} open={!!preview} onClose={() => setPreview(null)} width={580}>
+            <Drawer rootClassName="zodiac-surface" title={preview?.title || "对话记录"} open={!!preview} onClose={() => setPreview(null)} width={580}>
                 {preview?.items
                     .filter((item) => item.text && ["user", "assistant", "error"].includes(item.role || ""))
                     .map((item) => (

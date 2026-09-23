@@ -221,6 +221,7 @@ pub async fn native_store_set(
     let (encoded, encoding) = encode_store_value(value.as_bytes())?;
     {
         let connection = storage.lock()?;
+        crate::canvas_cas::validate_session_write(&connection, &namespace, &key, &value)?;
         connection
             .execute(
                 "
@@ -336,6 +337,7 @@ pub async fn native_store_batch(
             .map_err(|error| format!("无法开始应用数据事务：{error}"))?;
         for (namespace, key, value) in prepared {
             if let Some((encoded, encoding)) = value {
+                crate::canvas_cas::validate_session_write(&transaction, &namespace, &key, &decode_store_value(encoded.clone(), &encoding)?)?;
                 transaction
                     .execute(
                         "
@@ -969,6 +971,16 @@ pub async fn native_media_read_data_url(
     )))
 }
 
+fn media_has_durable_reference(connection: &Connection, key: &str) -> Result<bool, String> {
+    let mut statement = connection.prepare("SELECT value, encoding FROM kv_store").map_err(|e| e.to_string())?;
+    let values = statement.query_map([], |row| Ok((row.get::<_, Vec<u8>>(0)?, row.get::<_, String>(1)?))).map_err(|e| e.to_string())?;
+    for row in values {
+        let (value, encoding) = row.map_err(|e| e.to_string())?;
+        if decode_store_value(value, &encoding)?.contains(key) { return Ok(true); }
+    }
+    Ok(false)
+}
+
 pub async fn native_media_remove(
     storage: State<Arc<NativeStorage>>,
     bucket: String,
@@ -977,6 +989,9 @@ pub async fn native_media_remove(
     validate_media_identity(&bucket, &key)?;
     let filename = {
         let connection = storage.lock()?;
+        // A second window may have saved a reference after the caller's snapshot.
+        // Check durable ownership under the same lock as removing the index row.
+        if media_has_durable_reference(&connection, &key)? { return Ok(()); }
         let filename = connection
             .query_row(
                 "SELECT filename FROM media WHERE bucket = ?1 AND key = ?2",
@@ -1811,6 +1826,22 @@ fn set_sqlite_companion_permissions(database_path: &Path) {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn media_cleanup_keeps_durable_references_from_other_windows() {
+        let db = Connection::open_in_memory().unwrap();
+        db.execute_batch("CREATE TABLE kv_store(value BLOB, encoding TEXT)").unwrap();
+        for content in [r#"{"storageKey":"image:shared"}"#.to_owned(), format!("{} image:history", "x".repeat(GZIP_THRESHOLD))] {
+            let (bytes, encoding) = encode_store_value(content.as_bytes()).unwrap();
+            db.execute("INSERT INTO kv_store VALUES (?1,?2)", params![bytes, encoding]).unwrap();
+        }
+        assert!(media_has_durable_reference(&db, "image:shared").unwrap());
+        assert!(media_has_durable_reference(&db, "image:history").unwrap());
+        assert!(!media_has_durable_reference(&db, "image:orphan").unwrap());
+        db.execute("DELETE FROM kv_store", []).unwrap();
+        assert!(!media_has_durable_reference(&db, "image:shared").unwrap());
+    }
+
 
     #[test]
     fn parses_open_ended_and_suffix_ranges() {

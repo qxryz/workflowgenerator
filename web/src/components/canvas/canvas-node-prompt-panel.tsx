@@ -39,13 +39,13 @@ export function CanvasNodePromptPanel({ node, isRunning, onPromptChange, onConfi
     const hasTextContent = node.type === CanvasNodeType.Text && Boolean(node.metadata?.content?.trim());
     const hasImageContent = node.type === CanvasNodeType.Image && Boolean(node.metadata?.content);
     const isEditingExistingContent = hasTextContent || hasImageContent;
-    const [prompt, setPrompt] = useState(node.metadata?.prompt || "");
+    const [prompt, setPrompt] = useState((node.metadata?.role === "result-slot" ? node.metadata?.composerContent : node.metadata?.prompt) || "");
     const videoReferenceCounts = selectedCanvasReferenceCounts(mentionReferences, prompt);
 
     // 同步外部提示词修改；状态、内容等无关更新仍保留当前编辑草稿。
     useEffect(() => {
-        setPrompt(node.metadata?.prompt || "");
-    }, [node.id, node.metadata?.prompt]);
+        setPrompt((node.metadata?.role === "result-slot" ? node.metadata?.composerContent : node.metadata?.prompt) || "");
+    }, [node.id, node.metadata?.prompt, node.metadata?.composerContent, node.metadata?.role]);
 
     const updatePrompt = (value: string) => {
         setPrompt(value);

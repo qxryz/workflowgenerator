@@ -299,3 +299,36 @@ export async function flushCanvasStoreWrites(options: { strictProjectId?: string
         if (id) { const count = (strictProjects.get(id) || 1) - 1; if (count) strictProjects.set(id, count); else strictProjects.delete(id); }
     }
 }
+
+
+/** Destructive project deletion waits for durable CAS and refuses busy workspaces. */
+export async function deleteCanvasProjects(ids: string[]) {
+    const { useAgentStore } = await import("@/stores/use-agent-store");
+    const { flushAppState } = await import("@/services/app-lifecycle");
+    const busy = () => ids.some(id => Object.values(useAgentStore.getState().work[id] || {}).some(Boolean));
+    if (busy()) throw new Error("工作流正在运行，请结束任务后删除。");
+    await flushAppState();
+    if (busy()) throw new Error("工作流正在运行，请结束任务后删除。");
+    const reply = await commitCanvasProjects(ids.map(id => ({ id, expected: storedProjectValues.get(id) ?? null, value: null })));
+    if (reply.conflict) throw new Error("画布已在其他页面修改，请刷新后再删除。");
+    const { zodiacSessionWriteFence } = await import("@/lib/agent/zodiac-session-write-fence");
+    const { useWorkflowRunStore } = await import("./use-workflow-run-store");
+    for (const id of ids) {
+        zodiacSessionWriteFence.activate(id, `deleted-${id}`);
+        storedProjectRefs.delete(id); storedProjectValues.delete(id); ownCommits.delete(id);
+        const runId = useWorkflowRunStore.getState().runIdsByProject[id];
+        if (runId) useWorkflowRunStore.getState().removeRun(runId);
+        useAgentStore.getState().removeContext(id);
+    }
+    const projects = useCanvasStore.getState().projects.filter(project => !ids.includes(project.id));
+    queuedPersistState = { projects };
+    useCanvasStore.setState({ projects });
+    markMediaReferencesChanged();
+    if (reply.cleanupPending?.length) throw new Error("画布记录已删除，部分会话文件清理失败。请再次点击删除重试清理。");
+    const { cleanupUnusedImages } = await import("@/services/image-storage");
+    const { cleanupUnusedMedia } = await import("@/services/file-storage");
+    const { cleanupUnusedAssetFiles } = await import("@/services/asset-file-storage");
+    const { collectVerifiedMediaReferenceSnapshot } = await import("@/services/media-reference-snapshot");
+    const references = await collectVerifiedMediaReferenceSnapshot();
+    await cleanupUnusedImages({}, references); await cleanupUnusedMedia({}, references); await cleanupUnusedAssetFiles({}, references);
+}

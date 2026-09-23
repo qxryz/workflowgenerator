@@ -1,3 +1,4 @@
+import { deleteCanvasProjects } from "@/stores/canvas/use-canvas-store";
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { ChangeEvent as ReactChangeEvent, DragEvent as ReactDragEvent, MouseEvent as ReactMouseEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
@@ -509,7 +510,6 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
     const openProject = useCanvasStore((state) => state.openProject);
     const updateProject = useCanvasStore((state) => state.updateProject);
     const renameProject = useCanvasStore((state) => state.renameProject);
-    const deleteProjects = useCanvasStore((state) => state.deleteProjects);
     const currentProjectTitle = useCanvasStore((state) => state.projects.find((project) => project.id === projectId)?.title);
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const [nodes, setNodes] = useState<CanvasNodeData[]>([]);
@@ -1751,10 +1751,10 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
     }, [createProject, navigate]);
 
     const deleteCurrentProject = useCallback(() => {
-        deleteProjects([projectId]);
-        cleanupAssetImages();
-        navigate("/canvas");
-    }, [cleanupAssetImages, deleteProjects, navigate, projectId]);
+        modal.confirm({ title: "删除当前画布？", content: "相关会话（含归档）、计划、运行记录和工作文件会一起删除。其他画布或素材库仍在使用的媒体会保留。此操作无法撤销。", okText: "删除", cancelText: "取消", okButtonProps: { danger: true },
+            onOk: async () => { try { await deleteCanvasProjects([projectId]); navigate("/canvas"); } catch (error) { message.error(error instanceof Error ? error.message : "删除失败"); throw error; } },
+        });
+    }, [modal, message, navigate, projectId]);
 
     const exportCurrentProject = useCallback(async () => {
         const project = useCanvasStore.getState().projects.find((item) => item.id === projectId);
@@ -2385,7 +2385,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
     }, []);
 
     const handleNodePromptChange = useCallback((nodeId: string, prompt: string) => {
-        setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, prompt } } : node)));
+        setNodes((prev) => prev.map((node) => (node.id === nodeId ? { ...node, metadata: { ...node.metadata, ...(node.metadata?.role === "result-slot" ? { composerContent: prompt } : { prompt }) } } : node)));
     }, []);
 
     const handleConfigNodeChange = useCallback(
@@ -3184,7 +3184,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
                         metadata: beginCanvasImageBatch(
                             {
                                 ...(declaredImageNode?.metadata?.role === "result-slot" ? { role: "result-slot" as const } : {}),
-                                prompt: effectivePrompt,
+                                prompt: declaredImageNode?.metadata?.role === "result-slot" ? undefined : effectivePrompt,
                                 status: NODE_STATUS_LOADING,
                                 ...generationMetadata,
                             },
@@ -3720,6 +3720,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
             } finally {
                 options.signal?.removeEventListener("abort", abort);
                 finishGenerationRequest(slotLease);
+                if (!hasCanvasGenerationRequestForRunningId(generationRequestsRef.current, nodeId)) setRunningNodeId(current => current === nodeId ? null : current);
             }
         },
         [assertGenerationRequestCurrent, commitNodes, finishGenerationRequest, flushProjectSave, getActiveGenerationBoundary, handleGenerateNode, isGenerationRequestCurrent, message, startGenerationRequest, stopGenerationByRunningId],

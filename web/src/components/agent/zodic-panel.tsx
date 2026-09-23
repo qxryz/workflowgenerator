@@ -1,14 +1,21 @@
+import { zodiacSessionWriteFence } from "@/lib/agent/zodiac-session-write-fence";
+import "./zodiac-interface.css";
+import { ZodiacGlyph } from "@/components/brand/zodiac-glyph";
+import { ZodiacTracePanel, traceText } from "./zodiac-trace-panel";
+import { useAppTranslation } from "@/hooks/use-app-translation";
+import { markMediaReferencesChanged } from "@/services/media-retention-policy";
+import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
 import { prepareZodiacManualOps } from "@/lib/agent/zodiac-manual-workflow";
 import { zodiacPlanContext } from "@/lib/agent/zodiac-plan-context";
 import { pinZodiacStageReferences } from "@/lib/agent/zodiac-stage-execution";
 import { zodiacWorkspaceAssets } from "@/lib/agent/zodiac-assets";
 import { agentRequest } from "@/services/api/opencode-runtime";
-import { ArrowDown, History, Plus, PanelRightClose, RotateCcw } from "lucide-react";
+
 import { ZodiacSessionList } from "./zodiac-session-list";
 import { ZodiacActivityCard } from "./zodiac-activity-card";
 import { zodiacToolNeedsApproval, zodiacToolLabel, updateZodiacActivity, type ZodiacActivity, type ZodiacActivityEvent } from "@/lib/agent/zodiac-activity";
 import { memo, useCallback, useEffect, useMemo, useRef, useState, useSyncExternalStore } from "react";
-import { App, Button, Drawer, Empty, Input, Select, Tooltip } from "antd";
+import { App, Button, Drawer, Empty, Input, Select, Switch, Tooltip } from "antd";
 import { Settings01Icon, SparklesIcon } from "hugeicons-react";
 
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
@@ -20,8 +27,8 @@ import { AgentChatComposer, AgentChatMessage, AgentPendingToolCard, type CanvasA
 import { canvasThemes } from "@/lib/canvas-theme";
 import { composeZodiacSystemPrompt, type ZodiacCanvasSnapshot } from "@/lib/agent/zodiac-harness";
 import { prepareZodiacCanvasVision, zodiacVisionConfig } from "@/lib/agent/zodiac-canvas-vision";
-import { imageToDataUrl, resolveImageUrl } from "@/services/image-storage";
-import { resolveMediaUrl } from "@/services/file-storage";
+import { uploadImage, publishUploadedImage, discardUploadedImage, imageToDataUrl, resolveImageUrl } from "@/services/image-storage";
+import { uploadMediaFile, discardUploadedMedia, publishUploadedMedia, resolveMediaUrl } from "@/services/file-storage";
 import { createZodiacRun, finishZodiacRun, interruptZodiacRun, markZodiacRunApplying, markZodiacRunPlanning, settleZodiacRun, shouldShowZodiacRun, type ZodiacRun } from "@/lib/agent/zodiac-run-events";
 import { extractZodiacDecisionPayload, hasZodiacDecisionProtocol, normalizeZodiacDecisionUi, stripZodiacDecisionPayload, type ZodiacDecisionUi } from "@/lib/agent/zodiac-decision-ui";
 import { claimsUnexecutedCanvasAction, isCanvasRecapConfirmation } from "@/lib/agent/zodiac-response-safety";
@@ -62,7 +69,7 @@ import {
 } from "@/services/api/zodiac-transport";
 import { createZodiacPlan, getZodiacPlan, listZodiacPlans, mutateZodiacPlan } from "@/services/server-storage";
 import { registerStateFlusher } from "@/services/app-lifecycle";
-import { activateZodiacSessionState, archiveZodiacSession, createZodiacSession, loadZodiacSession, removeActiveZodiacSession, saveZodiacSessionState, type ZodiacSessionState } from "@/services/zodiac-session-storage";
+import { activateZodiacSessionState, retainZodiacSession, createZodiacSession, loadZodiacSession, removeActiveZodiacSession, saveZodiacSessionState, type ZodiacSessionState } from "@/services/zodiac-session-storage";
 import { HUB_TOOL_EXECUTION_NAMES, executeHubTool, type HubExecutorContext } from "@/lib/agent/zodiac-hub-tools";
 import { executeZodiacPluginTool } from "@/lib/agent/zodiac-plugin-tools";
 import { buildZodiacSkillRuntimeReport } from "@/lib/agent/zodiac-skill-runtime";
@@ -77,7 +84,7 @@ import { requestImageQuestion, type AiTextMessage } from "@/services/api/image";
 import { CanvasNodeType, type CanvasGenerationMode } from "@/types/canvas";
 import type { WorkflowExecutionMode } from "@/lib/canvas/workflow-execution";
 
-type ZodicAttachment = CanvasAgentChatAttachment & { dataUrl: string; type: string };
+type ZodicAttachment = CanvasAgentChatAttachment & { dataUrl?: string; type: string };
 type ZodiacSkillAttachment = { id: string; name: string; body: string; version?: string; description?: string; triggers?: string[] };
 type ZodicTool = {
     id: string;
@@ -93,7 +100,7 @@ type ZodicTool = {
 type ZodicDecision = {
     ui: ZodiacDecisionUi;
     runId?: string;
-    status: "pending" | "answered";
+    status: "pending" | "answered" | "cancelled";
     answerLabel?: string;
 };
 type ZodicRecovery = {
@@ -106,12 +113,13 @@ type ZodicItem = CanvasAgentChatMessage & { errorMessage?: string; activity?: Zo
 type ActiveZodiacOperation = ZodiacActiveOperation<ZodicItem>;
 
 const MAX_ATTACHMENTS = 6;
-const MAX_ATTACHMENT_BYTES = 12 * 1024 * 1024;
+const MAX_ATTACHMENT_BYTES = 64 * 1024 * 1024;
 const STREAM_FLUSH_MS = 40;
-const SESSION_SAVE_MS = 500;
+const SESSION_SAVE_MS = 2000;
 
 export function ZodicPanel({ projectId, visible = true }: { projectId?: string; visible?: boolean } = {}) {
     const { message } = App.useApp();
+    const { t } = useAppTranslation();
     const theme = canvasThemes[useThemeStore((state) => state.theme)];
     const config = useConfigStore((state) => state.config);
     // Hub 工具（hub_generate_* / hub_analyse_media）要按应用渠道发请求，与手动生成同一份配置。
@@ -126,17 +134,25 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     const [skillPickerOpen, setSkillPickerOpen] = useState(false);
     const [skillQuery, setSkillQuery] = useState("");
     const [historyOpen, setHistoryOpen] = useState(false);
+    const [traceOpen, setTraceOpen] = useState(false);
+    const attachmentRefs = useRef(attachments);
+    attachmentRefs.current = attachments;
+    useEffect(() => registerRuntimeMediaReferenceProvider(() => zodiacSessionWriteFence.matches(sessionRef.current.workspaceId, sessionRef.current.id) ? { attachments: attachmentRefs.current, items: itemsRef.current } : null), []);
     const [sessionVersion, setSessionVersion] = useState(0);
     const [saveStatus, setSaveStatus] = useState<"saving" | "saved" | "error">("saved");
     const [sending, setSending] = useState(false);
+    const [autoApprove, setAutoApprove] = useState(false);
+    const autoApproveRef = useRef(false);
+    autoApproveRef.current = autoApprove;
     const [approval, setApproval] = useState<{ request: ZodiacToolRequest; resolve: (approved: boolean) => void } | null>(null);
     const conversationRef = useRef<HTMLDivElement | null>(null);
     const followOutputRef = useRef(true);
     const [awayFromLatest, setAwayFromLatest] = useState(false);
     const scrollToLatest = () => { followOutputRef.current = true; setAwayFromLatest(false); conversationRef.current?.scrollTo({ top: conversationRef.current.scrollHeight, behavior: "smooth" }); };
-    useEffect(() => { if (conversationRef.current) conversationRef.current.scrollTop = conversationRef.current.scrollHeight; }, [items, approval, visible]);
+    useEffect(() => { if (followOutputRef.current && conversationRef.current) conversationRef.current.scrollTop = conversationRef.current.scrollHeight; }, [items, approval, visible]);
     const askToolApproval = (request: ZodiacToolRequest, signal: AbortSignal) => new Promise<boolean>(resolve => {
         if (signal.aborted) { resolve(false); return; }
+        if (autoApproveRef.current) { resolve(true); return; }
         let settled = false;
         const finish = (approved: boolean) => { if (settled) return; settled = true; signal.removeEventListener("abort", abort); setApproval(null); resolve(approved); };
         const abort = () => finish(false);
@@ -166,11 +182,11 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         if (projectId) useAgentStore.getState().setWork(projectId, "tools", workspaceHasActiveOperation);
     }, [projectId, workspaceHasActiveOperation]);
     useEffect(() => {
-        if (!visible) { setHistoryOpen(false); setSkillPickerOpen(false); }
+        if (!visible) { setHistoryOpen(false); setSkillPickerOpen(false); setTraceOpen(false); }
         const element = conversationRef.current;
         if (!element || !visible) return;
         let frame = 0;
-        const follow = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => { element.scrollTop = element.scrollHeight; }); };
+        const follow = () => { cancelAnimationFrame(frame); frame = requestAnimationFrame(() => { if (followOutputRef.current) element.scrollTop = element.scrollHeight; }); };
         const observer = new MutationObserver(follow);
         observer.observe(element, { subtree: true, childList: true, characterData: true });
         follow();
@@ -229,6 +245,8 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             .then((saved) => {
                 if (!active || sessionEpochRef.current !== loadEpoch) return;
                 activateZodiacSessionState(saved);
+                setAutoApprove(saved.autoApprove === true);
+                followOutputRef.current = true;
                 const interruptedToolRunIds = new Set(
                     saved.items
                         .filter((item) => item.tool?.status === "running")
@@ -264,7 +282,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                     const restoredItem: ZodicItem = {
                         ...item,
                         streamId: undefined,
-                        attachments: undefined,
+                        attachments: item.attachments?.filter(attachment => attachment.storageKey),
                         text: unsafeStoredTool ? "这个旧提案没有继续执行。请重新描述你希望调整的内容。" : interrupted ? "上次操作被中断，可以重新尝试。" : item.role === "assistant" ? stripZodiacReasoning(cleanAssistantProtocol(item.text)) : item.text,
                         workProcess: item.role === "assistant" ? item.workProcess || extractZodiacWorkProcess(item.text) : item.workProcess,
                         detail: restoredTool ? { status: restoredTool.status, name: "canvas_apply_ops", error: restoredTool.error, ops: safeOps } : item.detail,
@@ -360,14 +378,16 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             setItems(trimmed);
             return;
         }
+        sessionRef.current.autoApprove = autoApprove;
         setSaveStatus("saving");
+        if (!sending && sessionSaveTimerRef.current !== null) { window.clearTimeout(sessionSaveTimerRef.current); sessionSaveTimerRef.current = null; }
         if (sessionSaveTimerRef.current !== null) return;
         sessionSaveTimerRef.current = window.setTimeout(() => {
             sessionSaveTimerRef.current = null;
             const snapshot = itemsRef.current;
             void saveZodiacSessionState(sessionStateWithItems(sessionRef.current, snapshot)).then(() => { if (itemsRef.current === snapshot && loadedSessionRef.current === sessionKey) setSaveStatus("saved"); }).catch(() => setSaveStatus("error"));
-        }, SESSION_SAVE_MS);
-    }, [items, sessionKey]);
+        }, sending ? SESSION_SAVE_MS : 350);
+    }, [items, sessionKey, sending, autoApprove]);
 
     useEffect(
         () => () => {
@@ -396,12 +416,20 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     );
 
     const addFiles = async (files: FileList | File[] | null) => {
-        const selected = Array.from(files || []).filter((file) => file.type.startsWith("image/"));
+        const selected = Array.from(files || []).filter((file) => /^(image|video|audio)\//.test(file.type));
         const room = Math.max(0, MAX_ATTACHMENTS - attachments.length);
-        const accepted = selected.slice(0, room).filter((file) => file.size <= MAX_ATTACHMENT_BYTES);
-        if (selected.length > accepted.length) message.warning(`最多添加 ${MAX_ATTACHMENTS} 张图片，单张不超过 12MB`);
-        const next = await Promise.all(accepted.map(toAttachment));
-        setAttachments((current) => [...current, ...next]);
+        const accepted = selected.slice(0, room).filter((file) => file.size <= (file.type.startsWith("image/") ? 12 * 1024 * 1024 : MAX_ATTACHMENT_BYTES));
+        if (selected.length > accepted.length) message.warning(`最多添加 ${MAX_ATTACHMENTS} 个媒体文件，图片不超过 12MB，音视频不超过 64MB`);
+        const epoch = sessionEpochRef.current;
+        const results = await Promise.allSettled(accepted.map(toAttachment));
+        const uploads = results.flatMap(result => result.status === "fulfilled" ? [result.value] : []);
+        if (epoch !== sessionEpochRef.current) { await Promise.allSettled(uploads.map(upload => upload.discard())); return; }
+        const next = [...attachmentRefs.current, ...uploads.map(upload => upload.attachment)].slice(0, MAX_ATTACHMENTS);
+        attachmentRefs.current = next;
+        markMediaReferencesChanged();
+        setAttachments(next);
+        for (const upload of uploads) { if (next.includes(upload.attachment)) upload.publish(); else void upload.discard(); }
+        if (results.some(result => result.status === "rejected")) message.error("部分附件上传失败，请重试。");
     };
 
     const createHubContext = (signal: AbortSignal, operationNamespace: string, turnId = operationNamespace, ownerSessionId = sessionRef.current.id): HubExecutorContext => {
@@ -442,8 +470,9 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         const turnSkills = submittedDecision ? [] : attachedSkills;
         if ((!text && !turnAttachments.length && !turnSkills.length) || sending || stageRunning || confirmingPlanRef.current || controllerRef.current) return;
         if (!submittedDecision && itemsRef.current.some((item) => item.decision?.status === "pending")) {
-            message.info("先完成当前选择，再继续下一步");
-            return;
+            const adjusted = itemsRef.current.map(item => item.decision?.status === "pending" ? { ...item, decision: { ...item.decision, status: "cancelled" as const, answerLabel: "已中断，按新消息调整" } } : item);
+            itemsRef.current = adjusted;
+            setItems(adjusted);
         }
         if (hasZodiacActiveOperations(sessionKey)) {
             message.info("先完成当前画布操作，再继续下一步");
@@ -456,7 +485,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         const user: ZodicItem = {
             id: crypto.randomUUID(),
             role: "user",
-            text: displayText?.trim() || text || (turnAttachments.length ? "请查看这些图片" : turnSkills.length ? "请使用本轮附加的 Skills 继续" : ""),
+            text: displayText?.trim() || text || (turnAttachments.length ? "请查看这些媒体" : turnSkills.length ? "请使用本轮附加的 Skills 继续" : ""),
             attachments: turnAttachments,
             skills: turnSkills.length ? turnSkills : undefined,
         };
@@ -536,16 +565,23 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         let imageAnalysisError: string | undefined;
         const onActivity = (event: ZodiacActivityEvent) => {
             if (!isCurrentRequest()) return;
-            setItems(current => current.map(item => item.id === runId ? { ...item, activity: updateZodiacActivity(item.activity || [], event) } : item));
+            setItems(current => {
+                const previous = current.find(item => item.id === runId);
+                if (!previous) return current;
+                const activity = updateZodiacActivity(previous.activity || [], event.detail ? { ...event, detail: traceText(event.detail) } : event);
+                return activity === previous.activity ? current : current.map(item => item === previous ? { ...item, activity } : item);
+            });
         };
         const applyToolRequest = async (request: ZodiacToolRequest, actor?: ZodiacRoleContext): Promise<ZodiacToolResult> => {
             const toolSignal = actor?.signal || controller.signal;
+            toolSignal.throwIfAborted();
             if (zodiacToolNeedsApproval(request.name) && !request.name.startsWith("hub_generate_")) {
-                onActivity({ id: `${actor?.taskId}:${request.callId}`, kind: "approval", status: "waiting", label: `确认${zodiacToolLabel(request.name)}`, at: Date.now() });
+                onActivity({ id: `${actor?.taskId}:${request.callId}`, kind: "approval", status: "waiting", label: `确认${zodiacToolLabel(request.name)}`, detail: toolApprovalSummary(request, canvasContext?.getSnapshot()), at: Date.now() });
                 const approved = await askToolApproval(request, toolSignal);
                 toolSignal.throwIfAborted();
+                onActivity({ id: `${actor?.taskId}:${request.callId}`, kind: "approval", status: approved ? "done" : "error", label: approved ? "已批准" : "已拒绝", at: Date.now() });
                 if (!approved) return { ok: false, error: "用户拒绝了这项操作。停止该操作，不得改参数绕过拒绝。" };
-                onActivity({ id: `${actor?.taskId}:${request.callId}`, kind: "tool", status: "running", label: zodiacToolLabel(request.name), at: Date.now() });
+
             }
             if (!isCurrentRequest() || toolSignal.aborted) return { ok: false, error: "会话已停止，未执行此操作。" };
             const mutationTools = ["zodiac-ops", "hub_canvas_write_node", "hub_canvas_apply_text_edits", "hub_canvas_group_nodes", "hub_canvas_group_recent_outputs", "hub_canvas_ungroup_node", "hub_save_file_to_session", "hub_import_file"];
@@ -577,7 +613,9 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 const file = await agentRequest<{ kind: "text" | "image" | "video" | "audio"; content?: string; storageKey?: string; url?: string }>("import", { projectId: requestSessionKey, sessionId: sessionRef.current.id, path: args.path, callId: request.callId }, toolSignal);
                 toolSignal.throwIfAborted();
                 const id = `agent-file-${request.callId.slice(0, 20)}`;
-                const saved = await canvasContext.applyOps([{ type: "add_node", id, nodeType: file.kind, title: args.name || args.path?.split("/").at(-1) || "产物", metadata: { content: file.content || file.url || "", ...(file.storageKey ? { storageKey: file.storageKey } : {}), agentSessionId: sessionRef.current.id, agentTurnId: actor?.turnId || requestUser.id, agentTaskId: actor?.taskId, status: "success" } }]);
+                const existingNodes = canvasContext.getSnapshot().nodes;
+                const position = { x: existingNodes.length ? Math.max(...existingNodes.map(node => node.position.x + node.width)) + 96 : 0, y: 0 };
+                const saved = await canvasContext.applyOps([{ type: "add_node", id, position, nodeType: file.kind, title: args.name || args.path?.split("/").at(-1) || "产物", metadata: { content: file.content || file.url || "", ...(file.storageKey ? { storageKey: file.storageKey } : {}), agentSessionId: sessionRef.current.id, agentTurnId: actor?.turnId || requestUser.id, agentTaskId: actor?.taskId, status: "success" } }]);
                 if (!saved.nodes.some(node => node.id === id)) return { ok: false, error: "产物尚未保存到画布。" };
                 return { ok: true, result: { nodeId: id, path: args.path, storageKey: file.storageKey } };
             }
@@ -695,7 +733,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 sessionId: sessionRef.current.id,
                 projectId: requestSessionKey,
                 turnId: requestUser.id,
-                assets: snapshot ? zodiacWorkspaceAssets(snapshot.nodes, snapshot.selectedNodeIds) : [],
+                assets: [...(snapshot ? zodiacWorkspaceAssets(snapshot.nodes, snapshot.selectedNodeIds) : []), ...requestItems.flatMap(item => (item.attachments || []).filter(file => file.storageKey).map(file => ({ id: file.id, name: file.name, type: file.mimeType?.split("/")[0] || "image", storageKey: file.storageKey, origin: "message_attachment" as const })))],
                 onPermissionRequest: request => askToolApproval(request, controller.signal),
                 messages,
                 text: messages.map((entry) => `${entry.role}: ${typeof entry.content === "string" ? entry.content : entry.content.map((part) => (part.type === "text" ? part.text : `[${part.type}]`)).join("\n")}`).join("\n\n"),
@@ -717,6 +755,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 signal: controller.signal,
             });
             if (streamFlushTimer !== null) window.clearTimeout(streamFlushTimer);
+            controller.signal.throwIfAborted();
             latestStreamText = reply;
             flushStream();
             if (!isCurrentRequest()) return;
@@ -945,7 +984,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         [canvasContext, message, sessionKey],
     );
 
-    const deleteCurrentSession = useCallback(async () => {
+    const startNewSession = useCallback(async () => {
         if (hasZodiacActiveOperations(sessionKey)) {
             message.warning("方案正在加入画布，请稍候");
             return;
@@ -960,7 +999,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         const currentSession = sessionStateWithItems(sessionRef.current, itemsRef.current);
         loadedSessionRef.current = null;
         try {
-            await archiveZodiacSession(currentSession);
+            await retainZodiacSession(currentSession);
             const nextSession = createZodiacSession<ZodicItem>(sessionKey, workspaceTitle);
             await removeActiveZodiacSession(sessionKey, nextSession.id);
             sessionRef.current = nextSession;
@@ -970,6 +1009,9 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             setPrompt("");
             setAttachments([]);
             setAttachedSkills([]);
+            setAutoApprove(false);
+            setSaveStatus("saved");
+            followOutputRef.current = true;
             setSending(false);
             message.success("新会话已开始");
         } catch (error) {
@@ -981,27 +1023,30 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     }, [message, sessionKey, workspaceTitle]);
 
     const applyingProposal = stageRunning || workspaceHasActiveOperation || items.some((item) => item.tool?.status === "running");
+    useEffect(() => { markMediaReferencesChanged(); }, [attachments, items]);
+
     const pendingDecision = items.some((item) => item.decision?.status === "pending");
-    const visibleItems = items.filter((item) => {
+    const visibleItems = items.filter((item, index) => {
+        if (item.run?.status === "error" && items[index + 1]?.role === "error") return false;
         if (item.run) return shouldShowZodiacRun(item.run) || !!item.activity?.length;
         if (item.role === "assistant" && !item.text.trim() && !item.workProcess?.trim() && !item.decision && !item.tool && !item.recovery) return false;
         return true;
     });
 
     return (
-        <div className="flex min-h-0 flex-1 flex-col">
-            <header className="flex h-[72px] shrink-0 items-center gap-3 border-b px-5" style={{borderColor:theme.node.stroke}}>
-                <ZodiacAvatar className="size-9" />
-                <div className="min-w-0 flex-1"><h2 className="text-[15px] font-semibold">Zodiac</h2><p className="mt-0.5 truncate text-xs" style={{color:theme.node.muted}}>{workspaceTitle}</p></div>
-                <Tooltip title="历史对话"><Button type="text" shape="circle" aria-label="历史对话" disabled={sending || applyingProposal} icon={<History className="size-4" />} onClick={()=>setHistoryOpen(true)} /></Tooltip>
-                <Tooltip title="新对话"><Button type="text" shape="circle" aria-label="新对话" disabled={sending || applyingProposal || !items.length} icon={<Plus className="size-4" />} onClick={()=>void deleteCurrentSession()} /></Tooltip>
-                <Tooltip title="收起对话"><Button type="text" shape="circle" aria-label="收起对话" icon={<PanelRightClose className="size-4" />} onClick={()=>useAgentStore.getState().closePanel()} /></Tooltip>
+        <div className="zodiac-panel flex min-h-0 flex-1 flex-col">
+            <header className="flex h-16 shrink-0 items-center gap-2.5 px-5" style={{borderColor:theme.node.stroke}}>
+                <ZodiacAvatar className="size-7" />
+                <div className="min-w-0 flex-1"><h2 className="text-sm font-medium">Zodiac</h2><p className="mt-0.5 truncate text-xs" style={{color:theme.node.muted}}>{workspaceTitle}</p></div>
+                <nav className="flex items-center gap-0.5" aria-label={t("对话操作")}>
+                    {([{ name: "trace", label: "轨迹", action: () => setTraceOpen(true) }, { name: "history", label: "历史对话", action: () => setHistoryOpen(true), disabled: sending || applyingProposal }, { name: "add", label: "新对话", action: () => void startNewSession(), disabled: sending || applyingProposal || !items.length }, { name: "collapse", label: "收起对话", action: () => useAgentStore.getState().closePanel() }] as const).map(control => <Tooltip key={control.name} title={t(control.label)}><button type="button" className="zodiac-icon-button" aria-label={t(control.label)} disabled={"disabled" in control && control.disabled} onClick={control.action}><ZodiacGlyph name={control.name} /></button></Tooltip>)}
+                </nav>
             </header>
-            <div ref={conversationRef} onScroll={event => { const el = event.currentTarget; followOutputRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 100; setAwayFromLatest(!followOutputRef.current); }} className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-5">
+            <div ref={conversationRef} onWheel={event => { if (event.deltaY < 0) { followOutputRef.current = false; setAwayFromLatest(true); } }} onScroll={event => { const el = event.currentTarget; followOutputRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 24; setAwayFromLatest(!followOutputRef.current); }} className="thin-scrollbar min-h-0 flex-1 overflow-y-auto px-5 py-5">
                 {!items.length ? (
                     <div className="mx-auto flex h-full max-w-[290px] flex-col items-center justify-center pb-12 text-center">
-                        <ZodiacAvatar className="size-14" />
-                        <h2 className="mt-5 text-[20px] font-semibold" style={{ color: theme.node.text }}>
+                        <ZodiacAvatar className="size-10" />
+                        <h2 className="mt-4 text-lg font-medium" style={{ color: theme.node.text }}>
                             开始创作
                         </h2>
                         <p className="mt-2 text-sm leading-6" style={{ color: theme.node.muted }}>
@@ -1014,22 +1059,22 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 ) : (
                     <div className="space-y-5">
                         {visibleItems.map((item) => (
-                            <ZodicConversationItem
-                                key={item.id}
+                            <div key={item.id} className="zodiac-enter"><ZodicConversationItem
                                 item={item}
                                 theme={theme}
                                 decisionDisabled={sending || applyingProposal}
+                                onTrace={() => setTraceOpen(true)}
                                 onResolve={resolveTool}
                                 onDecisionSubmit={submitDecision}
                                 onRecovery={(retryPrompt, actionLabel) => void send(retryPrompt, actionLabel)}
-                            />
+                            /></div>
                         ))}
                     </div>
                 )}
-                {approval ? <div className="mt-5" role="alertdialog" aria-label="工具审批"><AgentPendingToolCard title={zodiacToolLabel(approval.request.name)} summary={toolApprovalSummary(approval.request, canvasContext?.getSnapshot())} theme={theme} approveText="批准一次" rejectText="拒绝" onApprove={()=>approval.resolve(true)} onReject={()=>approval.resolve(false)} /></div> : null}
+                {approval ? <div className="zodiac-enter mt-5" role="alertdialog" aria-label="工具审批"><AgentPendingToolCard minimal title={t("审批")} summary={zodiacToolLabel(approval.request.name)} children={<div><details><summary className="cursor-pointer text-xs">查看操作</summary><pre className="mt-2 max-h-52 overflow-auto whitespace-pre-wrap break-words text-xs">{toolApprovalSummary(approval.request, canvasContext?.getSnapshot())}</pre></details><Button type="link" size="small" onClick={() => setTraceOpen(true)}>查看轨迹</Button></div>} theme={theme} approveText="批准一次" rejectText="拒绝" onApprove={()=>approval.resolve(true)} onReject={()=>approval.resolve(false)} /></div> : null}
                 {canvasContext ? <ZodiacPlanPanel actionsRef={planActionsRef} projectId={sessionKey} sessionId={sessionRef.current.id} createContext={createHubContext} onRunningChange={setStageRunning} stopRef={stageStopRef} conversationBusy={sending} onAdjust={title => setPrompt(`调整「${title}」：`)} onContinue={(planId, title) => void send(`继续已有计划「${title}」（planId: ${planId}），读取最新状态后规划下一阶段供我确认。`, "继续下一阶段")} /> : null}
             </div>
-            {awayFromLatest ? <div className="flex justify-center py-1"><Button size="small" shape="round" icon={<ArrowDown className="size-3" />} onClick={scrollToLatest}>回到最新</Button></div> : null}
+            {awayFromLatest ? <div className="flex justify-center py-1"><Button size="small" shape="round" icon={<ZodiacGlyph name="send" className="size-3 rotate-180" />} onClick={scrollToLatest}>回到最新</Button></div> : null}
             {activeWorkflowRunId && !stageRunning ? (
                 <details className="shrink-0 border-t px-4 py-2" style={{ borderColor: theme.node.stroke }}>
                     <summary className="cursor-pointer text-xs" style={{color:theme.node.muted}}>画布执行记录</summary>
@@ -1055,23 +1100,29 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             <AgentChatComposer
                 prompt={prompt}
                 attachments={attachments}
-                disabled={!directReady || applyingProposal || pendingDecision}
+                disabled={!directReady || applyingProposal}
                 sending={sending || stageRunning}
-                placeholder={!directReady ? "先设置一个文本模型…" : applyingProposal ? "正在执行，可先写下下一条消息…" : pendingDecision ? "先回答上方问题…" : "描述你想做什么…"}
+                placeholder={!directReady ? "先设置一个文本模型…" : applyingProposal ? "正在执行，可先写下下一条消息…" : pendingDecision ? t("Zodiac 该怎么调整？") : "描述你想做什么…"}
                 theme={theme}
-                onPromptChange={setPrompt}
+                onPromptChange={value => {
+                    setPrompt(value);
+                    if (value.trim() && itemsRef.current.some(item => item.decision?.status === "pending")) {
+                        controllerRef.current?.abort();
+                        const next = itemsRef.current.map(item => item.decision?.status === "pending" ? { ...item, decision: { ...item.decision, status: "cancelled" as const, answerLabel: "已中断，等待调整" } } : item);
+                        itemsRef.current = next;
+                        setItems(next);
+                    }
+                }}
                 onSubmit={send}
                 onStop={() => { stageStopRef.current?.(); controllerRef.current?.abort(); }}
                 onAddFiles={addFiles}
                 onRemoveAttachment={(id) => setAttachments((current) => current.filter((item) => item.id !== id))}
                 skillChips={attachedSkills.map(({ id, name }) => ({ id, name }))}
+                onAddSkill={() => setSkillPickerOpen(true)}
                 onRemoveSkill={(id) => setAttachedSkills((current) => current.filter((item) => item.id !== id))}
                 left={
                     <>
-                        <Tooltip title="添加技能">
-                            <Button aria-label="附加技能" type="text" shape="circle" className="!h-9 !w-9 !min-w-9" style={{ color: theme.node.muted }} icon={<SparklesIcon className="size-4" strokeWidth={1.8} />} onClick={() => setSkillPickerOpen(true)} />
-                        </Tooltip>
-                        <Select aria-label="聊天模型" variant="borderless" size="small" className="min-w-0 max-w-44" popupMatchSelectWidth={280} value={config.textModel || config.model || undefined} placeholder="选择模型" disabled={sending || applyingProposal} options={selectableModelsByCapability(config,"text").map(value=>({value,label:modelOptionLabel(config,value)}))} onChange={value=>useConfigStore.getState().updateConfig("textModel",value)} notFoundContent={<Button type="link" onClick={()=>useConfigStore.getState().openConfigDialog(true,"channels")}>添加模型渠道</Button>} />
+                        <Select suffixIcon={<ZodiacGlyph name="chevron" className="size-3" />} aria-label="聊天模型" variant="borderless" size="small" className="min-w-0 max-w-44 !text-xs [&_.ant-select-content]:!text-xs" styles={{ root: { color: theme.node.muted } }} labelRender={item => String(item.value || "").split("::").slice(1).join("::") || item.label} popupMatchSelectWidth={280} value={config.textModel || config.model || undefined} placeholder="选择模型" disabled={sending || applyingProposal} options={selectableModelsByCapability(config,"text").map(value=>({value,label:modelOptionLabel(config,value)}))} onChange={value=>useConfigStore.getState().updateConfig("textModel",value)} notFoundContent={<Button type="link" onClick={()=>useConfigStore.getState().openConfigDialog(true,"channels")}>添加模型渠道</Button>} />
                         {canvasContext ? undefined : (
                             <span className="text-[11px]" style={{ color: theme.node.muted }}>
                                 打开画布后可直接编排
@@ -1080,11 +1131,15 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                     </>
                 }
             />
-            <div className="flex shrink-0 items-center justify-between px-5 pb-3 text-[10px]" style={{color:theme.node.muted}}><span>Enter 发送 · Shift Enter 换行</span>
-                    <button type="button" className="text-[11px]" role="status" disabled={saveStatus !== "error"} onClick={() => { setSaveStatus("saving"); void saveZodiacSessionState(sessionStateWithItems(sessionRef.current, itemsRef.current)).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error")); }} style={{ color: saveStatus === "error" ? "#ef4444" : theme.node.muted }}>{saveStatus === "saving" ? "保存中…" : saveStatus === "error" ? "保存失败 · 重试" : "已保存"}</button>
+            <div className="flex min-h-7 shrink-0 items-center justify-between gap-3 px-5 pb-3 text-[11px]" style={{ color: theme.node.muted }}>
+                <Tooltip title={t("允许本会话中的命令与文件操作。媒体生成仍需手动运行。") }>
+                    <label className="flex cursor-pointer items-center gap-2"><Switch size="small" aria-label={t("自动审批")} checked={autoApprove} onChange={value => { autoApproveRef.current = value; setAutoApprove(value); if (value) approval?.resolve(true); }} /><span>{t("自动审批")}</span></label>
+                </Tooltip>
+                <button type="button" role="status" className="text-[10px] disabled:opacity-60" disabled={saveStatus !== "error"} onClick={() => { setSaveStatus("saving"); void saveZodiacSessionState(sessionStateWithItems(sessionRef.current, itemsRef.current)).then(() => setSaveStatus("saved")).catch(() => setSaveStatus("error")); }} style={{ color: saveStatus === "error" ? "#ef4444" : undefined }}>{t(saveStatus === "error" ? "保存失败 · 重试" : sending ? "自动保存" : saveStatus === "saving" ? "保存中…" : "已保存")}</button>
             </div>
-            <Drawer open={historyOpen} title="对话" width={400} onClose={() => setHistoryOpen(false)} styles={{ body: { display: "flex", flexDirection: "column" } }} destroyOnHidden><ZodiacSessionList workspaceId={sessionKey} onOpen={() => setHistoryOpen(false)} /></Drawer>
-            <Drawer open={skillPickerOpen} width={420} title="添加技能" onClose={() => setSkillPickerOpen(false)} extra={<Button type="primary" onClick={()=>setSkillPickerOpen(false)}>完成</Button>}>
+            <ZodiacTracePanel open={traceOpen} onClose={() => setTraceOpen(false)} projectId={sessionKey} sessionId={sessionRef.current.id} running={sending || stageRunning} activities={items.flatMap(item => (item.activity || []).map(activity => ({ ...activity, id: `${item.id}:${activity.id}` })))} />
+            <Drawer rootClassName="zodiac-surface" open={historyOpen} title="对话" width={400} onClose={() => setHistoryOpen(false)} styles={{ body: { display: "flex", flexDirection: "column" } }} destroyOnHidden><ZodiacSessionList workspaceId={sessionKey} onOpen={() => setHistoryOpen(false)} /></Drawer>
+            <Drawer rootClassName="zodiac-surface" open={skillPickerOpen} width={420} title="添加技能" onClose={() => setSkillPickerOpen(false)} extra={<Button type="primary" onClick={()=>setSkillPickerOpen(false)}>完成</Button>}>
                 <Input aria-label="搜索技能" placeholder="搜索技能" value={skillQuery} onChange={event=>setSkillQuery(event.target.value)} allowClear className="mb-4" />
                 {!skills.length ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="还没有安装技能" /> : <div className="space-y-2">{skills.filter(skill=>`${skill.name} ${skill.description}`.toLowerCase().includes(skillQuery.toLowerCase())).sort((a,b)=>a.priority-b.priority).map(skill=>{
                     const attached=attachedSkills.some(item=>item.id===skill.id);
@@ -1104,19 +1159,21 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
     onResolve,
     onDecisionSubmit,
     onRecovery,
+    onTrace,
 }: {
     item: ZodicItem;
     theme: (typeof canvasThemes)[keyof typeof canvasThemes];
     decisionDisabled: boolean;
     onResolve: (id: string, decision: "apply" | "reject") => void;
     onDecisionSubmit: (id: string, answerText: string, answerLabel: string) => void;
+    onTrace: () => void;
     onRecovery: (retryPrompt: string, actionLabel: string) => void;
 }) {
     if (item.role === "error") return <div className="space-y-3">
-        {item.text && item.text !== item.errorMessage ? <AgentChatMessage item={{...item, role:"assistant"}} theme={theme} user={null} /> : null}
-        <div className="rounded-xl border px-4 py-3" style={{borderColor:theme.node.stroke}}><p className="text-sm font-medium">这次回复没有完成</p><p className="mt-1 break-words text-xs leading-5" style={{color:theme.node.muted}}>{item.errorMessage || item.text}</p><Button className="mt-3" size="small" disabled={decisionDisabled} icon={<RotateCcw className="size-3.5" />} onClick={()=>onRecovery("上次回复中断。请先核对已有工具结果与计划状态，再继续未完成的回复；不要重复已经完成的生成或写入。", "重试回复")}>重试</Button></div>
+        {item.text && item.text !== item.errorMessage ? <AgentChatMessage minimal item={{...item, role:"assistant"}} theme={theme} user={null} /> : null}
+        <div className="border-l-2 py-1 pl-3" style={{borderColor:theme.node.stroke}}><p className="flex items-center gap-2 text-sm font-medium"><ZodiacGlyph name="alert" className="size-3.5 opacity-60" />回复未完成</p><p className="mt-1 break-words text-xs leading-5" style={{color:theme.node.muted}}>{item.errorMessage || item.text}</p><Button className="mt-3" size="small" disabled={decisionDisabled} type="text" icon={<ZodiacGlyph name="retry" className="size-3.5" />} onClick={()=>onRecovery("上次回复中断。请先核对已有工具结果与计划状态，再继续未完成的回复；不要重复已经完成的生成或写入。", "重试回复")}>重试</Button></div>
     </div>;
-    if (item.run) return <ZodiacActivityCard run={item.run} activities={item.activity} theme={theme} />;
+    if (item.run) return <ZodiacActivityCard run={item.run} activities={item.activity} theme={theme} onTrace={onTrace} />;
     const incompleteIssues = item.tool?.status === "pending" || item.tool?.status === "failed" ? item.tool.workOrder.issues : [];
     const missingTitles = [...new Set(incompleteIssues.map((issue) => `「${issue.title}」`))].join("、");
     const recovery: ZodicRecovery | undefined =
@@ -1133,7 +1190,7 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
         return (
             <div className="space-y-2">
                 <ZodiacWorkProcess text={item.workProcess} theme={theme} />
-                <div className="flex items-center justify-between gap-3 rounded-xl border px-3 py-2.5" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
+                <div className="flex items-center justify-between gap-3 rounded-lg bg-black/[.025] px-3 py-2.5 dark:bg-white/[.025]" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
                     <span className="min-w-0 text-xs leading-5" style={{ color: theme.node.text }}>
                         {recovery.message}
                     </span>
@@ -1149,14 +1206,14 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
         return (
             <div className="space-y-2">
                 <ZodiacWorkProcess text={item.workProcess} theme={theme} />
-                {visibleText ? <AgentChatMessage item={{ ...item, text: visibleText }} theme={theme} user={null} /> : null}
-                <ZodiacDecisionCard
+                {visibleText && !(item.decision.status === "cancelled" && visibleText === "请选择后继续。") ? <AgentChatMessage minimal item={{ ...item, text: visibleText }} theme={theme} user={null} /> : null}
+                {item.decision.status === "cancelled" ? <p className="text-xs" style={{ color: theme.node.muted }}>已中断 · {item.decision.ui.question}</p> : <ZodiacDecisionCard
                     decision={item.decision.ui}
                     theme={theme}
                     answeredLabel={item.decision.status === "answered" ? item.decision.answerLabel : undefined}
                     disabled={decisionDisabled}
                     onSubmit={(answerText, answerLabel) => onDecisionSubmit(item.id, answerText, answerLabel)}
-                />
+                />}
             </div>
         );
     }
@@ -1164,7 +1221,7 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
     if (item.tool?.status === "running") {
         return (
             <div>
-                <AgentPendingToolCard state="running" summary={item.tool.summary} summaryMeta={executionModeLabel(item.tool.executionMode)} detail={item.detail} theme={theme} />
+                <AgentPendingToolCard minimal state="running" summary={item.tool.summary} summaryMeta={executionModeLabel(item.tool.executionMode)} detail={item.detail} theme={theme} />
                 <ZodiacWorkOrderDetail order={item.tool.workOrder} theme={theme} />
             </div>
         );
@@ -1172,7 +1229,7 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
     if (item.tool?.status === "failed") {
         return (
             <div>
-                <AgentPendingToolCard
+                <AgentPendingToolCard minimal
                     state="failed"
                     summary={item.tool.summary}
                     summaryMeta={executionModeLabel(item.tool.executionMode)}
@@ -1192,7 +1249,7 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
     if (item.tool?.status === "pending") {
         return (
             <div>
-                    <AgentPendingToolCard
+                    <AgentPendingToolCard minimal
                         title={destructive ? "确认删除这些内容？" : "把这套方案加入画布？"}
                         summary={item.tool.summary}
                         summaryMeta={executionModeLabel(item.tool.executionMode)}
@@ -1215,7 +1272,7 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
     return (
         <div className="space-y-2">
             <ZodiacWorkProcess text={item.workProcess} theme={theme} />
-            {visibleText ? <AgentChatMessage item={visibleItem} theme={theme} user={null} /> : null}
+            {visibleText ? <AgentChatMessage minimal item={visibleItem} theme={theme} user={null} /> : null}
             {item.skills?.length ? (
                 <div className="flex flex-wrap justify-end gap-1.5">
                     {item.skills.map((skill) => (
@@ -1236,7 +1293,7 @@ function sessionStateWithItems(session: ZodiacSessionState<ZodicItem>, items: Zo
         ...item,
         text: item.role === "assistant" ? stripZodiacReasoning(cleanAssistantProtocol(item.text)) : item.text,
         streamId: undefined,
-        attachments: undefined,
+        attachments: item.attachments?.filter(attachment => attachment.storageKey),
     }));
     return {
         ...session,
@@ -1262,7 +1319,7 @@ function saveZodiacSessionInBackground(session: ZodiacSessionState<ZodicItem>) {
 function ZodiacWorkProcess({ text, theme }: { text?: string; theme: (typeof canvasThemes)[keyof typeof canvasThemes] }) {
     if (!text?.trim()) return null;
     return (
-        <details className="rounded-xl px-3 py-2.5 text-left" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
+        <details className="py-1 text-left" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
             <summary className="cursor-pointer text-xs font-medium" style={{ color: theme.node.text }}>
                 思考过程
             </summary>
@@ -1281,14 +1338,14 @@ function updateRunItem(items: ZodicItem[], runId: string, update: (run: ZodiacRu
     return items.map((item) => (item.id === runId && item.run ? { ...item, run: update(item.run) } : item));
 }
 
-async function toAttachment(file: File): Promise<ZodicAttachment> {
-    const dataUrl = await new Promise<string>((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = () => resolve(String(reader.result));
-        reader.onerror = () => reject(reader.error || new Error("图片读取失败"));
-        reader.readAsDataURL(file);
-    });
-    return { id: crypto.randomUUID(), name: file.name, type: file.type, dataUrl, url: dataUrl };
+async function toAttachment(file: File) {
+    const isImage = file.type.startsWith("image/");
+    const uploaded = isImage ? await uploadImage(file) : await uploadMediaFile(file, file.type.split("/")[0]);
+    return {
+        attachment: { id: crypto.randomUUID(), name: file.name, type: file.type, mimeType: file.type, storageKey: uploaded.storageKey, url: uploaded.url } satisfies ZodicAttachment,
+        publish: () => isImage ? publishUploadedImage(uploaded as Awaited<ReturnType<typeof uploadImage>>) : publishUploadedMedia(uploaded),
+        discard: () => isImage ? discardUploadedImage(uploaded as Awaited<ReturnType<typeof uploadImage>>) : discardUploadedMedia(uploaded),
+    };
 }
 
 /**
@@ -1321,7 +1378,7 @@ async function toRequestMessages(
                 item.role === "user" && item.attachments?.length
                     ? [
                           { type: "text" as const, text: withAttachmentNote(withAttachedSkillNote(item.text, item.skills), item.attachments as ZodicAttachment[]) },
-                          ...await Promise.all(item.attachments.map(async (attachment) => {
+                          ...await Promise.all(item.attachments.filter(attachment => !attachment.mimeType || attachment.mimeType.startsWith("image/")).map(async (attachment) => {
                               const url = await imageToDataUrl({ url: attachment.url, dataUrl: (attachment as ZodicAttachment).dataUrl });
                               if (!url?.startsWith("data:image/")) throw new Error(`无法读取图片附件「${attachment.name}」，请重新上传。`);
                               return { type: "image_url" as const, image_url: { url } };
@@ -1339,7 +1396,7 @@ async function toRequestMessages(
     return messages;
 }
 
-/** 画布视觉快照与成功读取的图片像素一起发送；附件也保留真实视觉内容。 */
+/** 画布视觉快照与成功读取的图片像素一起发送；图片附件也保留真实视觉内容。 */
 function withAttachmentNote(text: string, attachments: ZodicAttachment[]) {
     const names = attachments
         .map((attachment) => attachment.name)
@@ -1655,7 +1712,7 @@ function normalizeStoredDecision(decision: ZodicDecision | undefined): ZodicDeci
     return {
         ui,
         ...(typeof decision?.runId === "string" && decision.runId.trim() ? { runId: decision.runId.trim().slice(0, 128) } : {}),
-        status: decision?.status === "answered" && answerLabel ? "answered" : "pending",
+        status: decision?.status === "cancelled" ? "cancelled" : decision?.status === "answered" && answerLabel ? "answered" : "pending",
         ...(answerLabel ? { answerLabel } : {}),
     };
 }

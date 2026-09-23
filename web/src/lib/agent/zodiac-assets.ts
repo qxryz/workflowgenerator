@@ -3,7 +3,7 @@ import { canvasTextHash } from "../canvas/canvas-text-tools.ts";
 import { isSeedance25Model } from "../seedance-2-5.ts";
 
 export type ZodiacWorkspaceAsset = {
-    id: string; name: string; type: string; storageKey?: string; content?: string;
+    id: string; name: string; type: string; origin?: "message_attachment"; storageKey?: string; content?: string;
     resultVersionId?: string; contentHash?: string; groupId?: string; selected?: boolean;
     width?: number; height?: number; duration?: number;
 };

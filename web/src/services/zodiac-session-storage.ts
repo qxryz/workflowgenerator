@@ -16,6 +16,7 @@ export type ZodiacSessionItem = {
 
 export type ZodiacSessionState<T extends ZodiacSessionItem = ZodiacSessionItem> = {
     version: 2;
+    autoApprove?: boolean;
     id: string;
     workspaceId: string;
     workspaceTitle: string;
@@ -29,6 +30,7 @@ export type ZodiacSessionState<T extends ZodiacSessionItem = ZodiacSessionItem> 
 
 export type ZodiacArchivedSession<T extends ZodiacSessionItem = ZodiacSessionItem> = ZodiacSessionState<T> & {
     endedAt: string;
+    archived?: boolean;
 };
 
 const activeStore = createServerJsonStore("zodiac-sessions-v1");
@@ -77,12 +79,19 @@ export function saveZodiacSessionState<T extends ZodiacSessionItem>(session: Zod
         updatedAt: new Date().toISOString(),
     };
     return activeWrites.enqueue(session.workspaceId, session.id, async () => {
-        if (durable.items.length || durable.summary) await activeStore.setItem(session.workspaceId, durable);
-        else await activeStore.removeItem(session.workspaceId);
+        await activeStore.setItem(session.workspaceId, durable);
     });
 }
 
+export async function retainZodiacSession<T extends ZodiacSessionItem>(session: ZodiacSessionState<T>) {
+    return storeSessionRecord(session, false);
+}
+
 export async function archiveZodiacSession<T extends ZodiacSessionItem>(session: ZodiacSessionState<T>) {
+    return storeSessionRecord(session, true);
+}
+
+async function storeSessionRecord<T extends ZodiacSessionItem>(session: ZodiacSessionState<T>, isArchived: boolean) {
     if (!session.items.length && !session.summary) return;
     const sanitized = sanitizeStoredZodiacSession(session).session;
     const archived: ZodiacArchivedSession<T> = {
@@ -90,6 +99,7 @@ export async function archiveZodiacSession<T extends ZodiacSessionItem>(session:
         title: sanitized.title || sessionTitle(sanitized.items),
         updatedAt: new Date().toISOString(),
         endedAt: new Date().toISOString(),
+        archived: isArchived,
     };
     await archiveStore.setItem(archived.id, archived);
 }
@@ -107,6 +117,10 @@ export function activateZodiacSessionState(session: Pick<ZodiacSessionState, "id
 }
 
 export async function listArchivedZodiacSessions<T extends ZodiacSessionItem>() {
+    return (await listSessionRecords<T>()).filter(session => session.archived !== false);
+}
+
+async function listSessionRecords<T extends ZodiacSessionItem>() {
     const sessions: ZodiacArchivedSession<T>[] = [];
     const migrations: Array<{ key: string; session: ZodiacArchivedSession<T> }> = [];
     await archiveStore.iterate<ZodiacArchivedSession<T>, void>((value, key) => {
@@ -140,7 +154,7 @@ export type ZodiacListedSession<T extends ZodiacSessionItem = ZodiacSessionItem>
 /** One history for active and saved conversations. Active snapshots take precedence. */
 export async function listZodiacSessions<T extends ZodiacSessionItem>(): Promise<ZodiacListedSession<T>[]> {
     const entries = new Map<string, ZodiacListedSession<T>>();
-    for (const session of await listArchivedZodiacSessions<T>()) entries.set(session.id, { ...session, archived: true });
+    for (const session of await listSessionRecords<T>()) entries.set(session.id, { ...session, archived: session.archived !== false });
     await activeStore.iterate<ZodiacSessionState<T>, void>(value => {
         if (value?.version === 2 && value.id && Array.isArray(value.items) && (value.items.length || value.summary)) entries.set(value.id, { ...sanitizeStoredZodiacSession(value).session, archived: false });
     });
@@ -152,10 +166,23 @@ export async function resumeZodiacSession(sessionId: string, options?: { restore
     if (!target) throw new Error("会话不存在，请刷新列表。");
     if (target.archived && !options?.restoreArchived) throw new Error("请在对话菜单中选择恢复。");
     const current = await loadZodiacSession(target.workspaceId, target.workspaceTitle, { preserveAssistantProtocol: true });
-    if (current.id !== target.id) await archiveZodiacSession(current);
+    if (current.id !== target.id) await retainZodiacSession(current);
     const { archived: _archived, endedAt: _endedAt, ...session } = target;
     await activeWrites.replace(session.workspaceId, session.id, async () => { await activeStore.setItem(session.workspaceId, session); });
-    if (target.archived) await archiveStore.removeItem(target.id);
+    await archiveStore.removeItem(target.id);
     if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("zodiac-session-resumed", { detail: { workspaceId: session.workspaceId } }));
     return session;
+}
+
+/** Explicit archive action; replacing the active session invalidates delayed writes. */
+export async function archiveZodiacSessionById(sessionId: string) {
+    const target = (await listZodiacSessions()).find(session => session.id === sessionId);
+    if (!target || target.archived) return;
+    const current = await loadZodiacSession(target.workspaceId, target.workspaceTitle, { preserveAssistantProtocol: true });
+    await archiveZodiacSession(target);
+    if (current.id === target.id) {
+        const replacement = createZodiacSession(target.workspaceId, target.workspaceTitle);
+        await activeWrites.replace(target.workspaceId, replacement.id, async () => { await activeStore.setItem(target.workspaceId, replacement); });
+        if (typeof window !== "undefined") window.dispatchEvent(new CustomEvent("zodiac-session-resumed", { detail: { workspaceId: target.workspaceId } }));
+    }
 }

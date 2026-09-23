@@ -6,7 +6,7 @@ import type { canvasThemes } from "@/lib/canvas-theme";
 export function ZodiacWorkOrderDetail({ order, theme }: { order: ZodiacWorkOrder; theme: (typeof canvasThemes)[keyof typeof canvasThemes] }) {
     if (!order.steps.length) return null;
     return (
-        <details className="group ml-11 mt-2 overflow-hidden rounded-xl border" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
+        <details className="group mt-2 overflow-hidden border-l" style={{ borderColor: theme.node.stroke, background: "transparent" }}>
             <summary className="cursor-pointer list-none items-center gap-2 px-3 py-2.5 text-xs font-medium" style={{ color: theme.node.text, display: "flex", listStyle: "none" }}>
                 <FileText className="size-3.5" />
                 <span>工作单 · {order.steps.length} 个步骤</span>

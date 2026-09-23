@@ -1,6 +1,6 @@
 import { useEffect, useImperativeHandle, useRef, useState } from "react";
 import { Button, Drawer, Popconfirm, Select } from "antd";
-import { Check } from "lucide-react";
+import { ZodiacGlyph } from "@/components/brand/zodiac-glyph";
 import { AgentPendingToolCard } from "@/components/canvas/canvas-agent-chat-ui";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { canvasThemes } from "@/lib/canvas-theme";
@@ -267,7 +267,7 @@ export function ZodiacPlanPanel({
     return (
         <section className="mt-5" aria-label={t("创作计划")}>
             {stage ? (
-                <AgentPendingToolCard
+                <AgentPendingToolCard minimal
                     theme={theme}
                     title={waitingResult ? "这一步的结果可以吗？" : frontier?.outline.title || plan.title}
                     summary={executing ? `正在完成「${frontier?.outline.title}」` : waitingResult ? "内容已写入画布，请检查后继续。" : ready ? "文档已准备，可保存到画布。" : "确认后完成以下内容。"}
@@ -284,7 +284,7 @@ export function ZodiacPlanPanel({
                         {stage.contract.workItems.slice(0, 4).map((item, index) => (
                             <li key={item.id} className="flex items-start gap-3 text-xs leading-5">
                                 <span className="grid size-5 shrink-0 place-items-center rounded-full border text-[10px]" style={{ borderColor: theme.node.stroke }}>
-                                    {stage.runtime.items[item.id]?.status === "succeeded" ? <Check className="size-3" /> : index + 1}
+                                    {stage.runtime.items[item.id]?.status === "succeeded" ? <ZodiacGlyph name="check" className="size-3" /> : index + 1}
                                 </span>
                                 <div className="min-w-0">
                                     <p className="font-medium">{item.title}</p>
@@ -304,7 +304,7 @@ export function ZodiacPlanPanel({
                     </button>
                 </AgentPendingToolCard>
             ) : frontier ? (
-                <AgentPendingToolCard
+                <AgentPendingToolCard minimal
                     theme={theme}
                     title={frontier.outline.title}
                     summary="上一阶段已完成，可以继续准备下一步。"
@@ -318,7 +318,7 @@ export function ZodiacPlanPanel({
                     创作计划已完成
                 </p>
             )}
-            <div className="ml-12 mt-2 flex items-center gap-2 text-xs" style={{ color: theme.node.muted }}>
+            <div className="mt-2 flex items-center gap-2 text-xs" style={{ color: theme.node.muted }}>
                 {!stage ? (
                     <button type="button" className="hover:underline" onClick={() => setExpanded(true)}>
                         查看详情
@@ -334,11 +334,11 @@ export function ZodiacPlanPanel({
                 ) : null}
             </div>
             {error && stage?.runtime.status !== "blocked" ? (
-                <p role="alert" className="ml-12 mt-2 text-xs text-red-500">
+                <p role="alert" className="mt-2 text-xs text-red-500">
                     {error}
                 </p>
             ) : null}
-            <Drawer title="创作流程" open={expanded} onClose={() => setExpanded(false)} width={560} footer={stageActions}>
+            <Drawer rootClassName="zodiac-surface" title="创作流程" open={expanded} onClose={() => setExpanded(false)} width={560} footer={stageActions}>
                 <h2 className="mb-5 text-base font-semibold">{plan.title}</h2>
                 <div className="space-y-4">
                     {plans.length > 1 ? (
@@ -364,7 +364,7 @@ export function ZodiacPlanPanel({
                                 return (
                                     <li key={entry.id} className="flex items-center gap-3 text-sm" style={{ color: current ? theme.node.text : theme.node.muted }}>
                                         <span className="flex size-6 shrink-0 items-center justify-center rounded-full border text-xs" style={{ borderColor: theme.node.stroke, background: current ? theme.node.stroke : undefined }}>
-                                            {done ? <Check className="size-3.5" /> : index + 1}
+                                            {done ? <ZodiacGlyph name="check" className="size-3.5" /> : index + 1}
                                         </span>
                                         <span className={current ? "font-semibold" : ""}>{entry.title}</span>
                                         {current ? <span className="ml-auto text-xs">当前阶段</span> : null}

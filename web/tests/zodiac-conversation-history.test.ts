@@ -64,3 +64,14 @@ test("receipt IDs participate in summary boundaries and bounded recent history w
     assert.deepEqual(zodiacConversationAfterSummary(projected, plan?.throughId).map(({ id }) => id), ["reply", "last"]);
     assert.deepEqual(recentZodiacConversationItems(projected, 2).map(({ id }) => id), ["reply", "last"]);
 });
+
+
+test("interrupted choice stays before the adjustment and cannot be interpreted as approval", () => {
+    const rows = projectZodiacConversationHistory([
+        { ...message("choice", "assistant"), decision: { status: "cancelled" as const, ui: { id: "color", type: "single_choice" as const, question: "选择颜色", options: [{ id: "a", label: "红色" }, { id: "b", label: "蓝色" }] } } },
+        message("adjustment", "user", "改成小狗，不选颜色"),
+    ]);
+    assert.match(rows[0].text, /用户已中断.*不得继续旧选项/);
+    assert.doesNotMatch(rows[0].text, /用户答复：|等待用户答复/);
+    assert.equal(rows.at(-1)?.text, "改成小狗，不选颜色");
+});

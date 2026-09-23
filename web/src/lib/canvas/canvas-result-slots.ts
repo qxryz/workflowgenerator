@@ -419,6 +419,8 @@ function applySuccessfulVersion(slot: CanvasResultSlotNode, version: CanvasResul
         ...mirrored,
         metadata: {
             ...mirrored.metadata,
+            prompt: undefined,
+            composerContent: undefined,
             status: "success",
             errorDetails: undefined,
             slotState: "ready",

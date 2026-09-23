@@ -29,6 +29,8 @@ use tokio::{
 mod context;
 #[path = "agent_runtime_assets.rs"]
 mod assets;
+#[path = "agent_runtime_trace.rs"]
+mod trace;
 
 type Result<T> = std::result::Result<T, String>;
 type Registry = Mutex<HashMap<String, Arc<Runtime>>>;
@@ -121,6 +123,7 @@ pub fn router() -> Router<AppState> {
             post(start).layer(DefaultBodyLimit::max(128 * 1024 * 1024)),
         )
         .route("/api/agent/state", post(snapshot))
+        .route("/api/agent/trace", post(trace::trace))
         .route("/api/agent/monitor", post(monitor))
         .route("/api/agent/events", post(events))
         .route("/api/agent/abort", post(abort))
@@ -599,7 +602,8 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
             session_id: input.session_id.clone(),
         };
         let key = key(&state, &identity)?;
-        let create_guard = START_LOCK.get_or_init(|| Mutex::new(())).lock().await;
+        let _create_guard = project_lifecycle_lock().lock().await;
+        crate::canvas_cas::validate_session_write(&*state.storage.lock()?, "zodiac-sessions-v1", &input.project_id, "")?;
         let mut existing = registry().lock().await.get(&key).cloned();
         if let Some(candidate) = existing.clone() {
             let selected = provider(&state).await?;
@@ -660,7 +664,6 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
             registry().lock().await.insert(key, runtime.clone());
             runtime
         };
-        drop(create_guard);
         let mut turn = runtime.turn.lock().await;
         if turn.as_ref().is_some_and(|(id, _)| id == &input.turn_id) {
             let delivery = std::fs::read(runtime.control.join("submission.json")).ok()
@@ -1230,4 +1233,33 @@ fn persist_json(path: &FsPath, value: &impl serde::Serialize) -> Result<()> {
         let _ = std::fs::remove_file(temporary);
     }
     result
+}
+
+
+pub(crate) fn project_lifecycle_lock() -> &'static Mutex<()> { START_LOCK.get_or_init(Default::default) }
+
+pub(crate) async fn check_project_idle(state: &AppState, project: &str) -> Result<()> {
+    valid_id(project)?;
+    let root = safe_child(&storage::workspace_root(&state.storage)?, &format!("workflows/{project}"))?;
+    let runtimes: Vec<_> = registry().lock().await.values().filter(|r| r.work.starts_with(&root)).cloned().collect();
+    for runtime in runtimes {
+        if runtime.child.lock().await.try_wait().map_err(|e| e.to_string())?.is_some() { continue; }
+        let status = runtime.get("/session/status").await?;
+        if status.as_object().is_some_and(|items| items.values().any(|s| s["type"].as_str().is_some_and(|s| s != "idle"))) || !runtime.bridge.pending.lock().await.is_empty() { return Err("该工作流正在运行，请结束任务后删除。".into()); }
+    }
+    Ok(())
+}
+
+pub(crate) async fn remove_project_files(state: &AppState, project: &str) -> Result<()> {
+    valid_id(project)?;
+    let work = safe_child(&storage::workspace_root(&state.storage)?, &format!("workflows/{project}"))?;
+    let control = safe_child(&storage::app_data_root(&state.storage)?.join("runtimes"), project)?;
+    let runtimes: Vec<_> = {
+        let mut all = registry().lock().await;
+        let keys: Vec<_> = all.iter().filter(|(_,r)| r.work.starts_with(&work)).map(|(key,_)| key.clone()).collect();
+        keys.into_iter().filter_map(|key| all.remove(&key)).collect()
+    };
+    for runtime in runtimes { runtime.bridge.pending.lock().await.clear(); let mut child = runtime.child.lock().await; if child.try_wait().map_err(|e| e.to_string())?.is_none() { child.kill().await.map_err(|e| e.to_string())?; } runtime.bridge_task.abort(); }
+    for path in [work, control] { if path.exists() { std::fs::remove_dir_all(path).map_err(|e| e.to_string())?; } }
+    Ok(())
 }

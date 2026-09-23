@@ -9,7 +9,7 @@ export type ZodiacHistoryItem = {
         status: "pending" | "running" | "applied" | "failed" | "rejected";
         error?: string;
     };
-    decision?: { ui: ZodiacDecisionUi; status: "pending" | "answered"; answerLabel?: string };
+    decision?: { ui: ZodiacDecisionUi; status: "pending" | "answered" | "cancelled"; answerLabel?: string };
 };
 
 const toolStatus = {
@@ -39,7 +39,7 @@ export function projectZodiacConversationHistory<T extends ZodiacHistoryItem>(it
             `已显示原生选择卡（${ui.type}，${decision.status}）：${ui.question}`,
             "options" in ui ? `选项：${ui.options.map((option) => option.label).join("；")}` : "",
             "summary" in ui ? `确认内容：${ui.summary.join("；")}` : "",
-            decision.status === "answered" ? `用户答复：${decision.answerLabel || "已继续，具体要求见后续用户消息"}。无需重复询问。` : "等待用户答复，不得当作已经确认或执行。",
+            decision.status === "cancelled" ? "用户已中断此选择。以之后的用户消息调整任务，不得继续旧选项或重新弹出此卡。" : decision.status === "answered" ? `用户答复：${decision.answerLabel || "已继续，具体要求见后续用户消息"}。无需重复询问。` : "等待用户答复，不得当作已经确认或执行。",
         ].filter(Boolean).join("\n");
         return [{ ...item, text: [item.text, receipt].filter(Boolean).join("\n\n") }];
     });

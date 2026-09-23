@@ -198,7 +198,7 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
                 if (handled.has(request.id)) continue;
                 handled.add(request.id);
                 const name = request.permission === "bash" ? "执行命令" : request.permission === "edit" ? "写入文件" : "访问文件";
-                options.onActivity?.({ id: request.id, kind: "approval", status: "waiting", label: `确认${name}`, at: Date.now() });
+                options.onActivity?.({ id: request.id, kind: "approval", status: "waiting", label: `确认${name}`, detail: JSON.stringify({ patterns: request.patterns, metadata: request.metadata }, null, 2), at: Date.now() });
                 const approved =
                     (!waitingForUser && (await options.onPermissionRequest?.({ callId: request.id, name, args: { patterns: request.patterns, ...(typeof request.metadata === "object" && request.metadata !== null ? request.metadata : {}) } }))) || false;
                 await agentRequest("permission", { ...identity, id: request.id, result: approved }, options.signal);
@@ -257,7 +257,7 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
         return finalText;
     } catch (error) {
         await stop();
-        options.onActivity?.({ id: "runtime", kind: "model", status: "error", label: options.signal?.aborted ? "已停止" : "执行失败", at: Date.now() });
+        options.onActivity?.({ id: "runtime", kind: "model", status: "error", label: options.signal?.aborted ? "已停止" : "执行失败", detail: options.signal?.aborted ? undefined : error instanceof Error ? error.message : String(error), at: Date.now() });
         throw error;
     } finally {
         eventController.abort();

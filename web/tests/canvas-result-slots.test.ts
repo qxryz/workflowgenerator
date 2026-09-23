@@ -299,3 +299,11 @@ test("only an actively executing workflow node owns the generation stop action",
     assert.equal(workflowNodeOwnsGenerationStop("stopped"), false);
     assert.equal(workflowNodeOwnsGenerationStop(undefined), false);
 });
+
+
+test("saved result slots do not inherit the source generation prompt", () => {
+    const slot = createCanvasResultSlot({ id: "slot", mode: "image", position: { x: 0, y: 0 }, metadata: { prompt: "source generation", composerContent: "legacy copy" } });
+    const ready = appendResultSlotSuccess(slot, { id: "v1", artifacts: [{ id: "image", kind: "image", storageKey: "image:fixture", content: "/media/fixture" }] });
+    assert.equal(ready.metadata.prompt, undefined);
+    assert.equal(ready.metadata.composerContent, undefined);
+});

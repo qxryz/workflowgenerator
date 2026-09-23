@@ -19,6 +19,7 @@ use std::{
 
 const PROJECTS: &str = "canvas-project-v1";
 const META: &str = "canvas-project-meta-v1";
+const DELETED: &str = "canvas-deleted-v1";
 
 #[derive(Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -40,10 +41,12 @@ struct ProjectValue {
 struct ResultBody {
     projects: Vec<ProjectValue>,
     ids: Vec<String>,
+    #[serde(rename = "cleanupPending")]
+    cleanup_pending: Vec<String>,
 }
 
 pub fn protected_namespace(namespace: &str) -> bool {
-    matches!(namespace, PROJECTS | META)
+    matches!(namespace, PROJECTS | META | DELETED)
 }
 pub fn router() -> Router<AppState> {
     Router::new().route(
@@ -53,8 +56,18 @@ pub fn router() -> Router<AppState> {
 }
 
 async fn commit(State(state): State<AppState>, Json(request): Json<Commit>) -> Response {
+    let _lifecycle = crate::agent_runtime::project_lifecycle_lock().lock().await;
+    let deleted: Vec<_> = request.changes.iter().filter(|c| c.value.is_none()).map(|c| c.id.clone()).collect();
+    for id in &deleted {
+        if let Err(error) = crate::agent_runtime::check_project_idle(&state, id).await { return (StatusCode::BAD_REQUEST, error).into_response(); }
+    }
     match commit_projects(&state.storage, request.changes) {
-        Ok(Ok(result)) => Json(result).into_response(),
+        Ok(Ok(mut result)) => {
+            for id in deleted {
+                if crate::agent_runtime::remove_project_files(&state, &id).await.is_err() { result.cleanup_pending.push(id); }
+            }
+            Json(result).into_response()
+        },
         Ok(Err(result)) => (StatusCode::CONFLICT, Json(result)).into_response(),
         Err(error) => (StatusCode::BAD_REQUEST, error).into_response(),
     }
@@ -97,7 +110,7 @@ fn commit_projects(
 ) -> Result<Result<ResultBody, ResultBody>, String> {
     let mut seen = HashSet::new();
     for change in &changes {
-        if change.id.is_empty() || change.id.len() > 256 || !seen.insert(change.id.clone()) {
+        if change.id.is_empty() || change.id.len() > 160 || !change.id.bytes().all(|c| c.is_ascii_alphanumeric() || c == b'-' || c == b'_') || !seen.insert(change.id.clone()) {
             return Err("画布标识无效或重复".into());
         }
         if let Some(value) = &change.value {
@@ -136,10 +149,12 @@ fn commit_projects(
         return Ok(Err(ResultBody {
             projects: current,
             ids,
+            cleanup_pending: vec![],
         }));
     }
     for change in &changes {
         if let Some(value) = &change.value {
+            if read(&transaction, DELETED, &change.id)?.is_some() { return Err("该画布已删除，请创建新的画布".into()); }
             write(&transaction, PROJECTS, &change.id, value)?;
             if !ids.contains(&change.id) {
                 ids.insert(0, change.id.clone());
@@ -155,6 +170,19 @@ fn commit_projects(
                     .execute("DELETE FROM zodiac_plans WHERE project_id=?1", [&change.id])
                     .map_err(|error| error.to_string())?;
             }
+            // Remove active, inactive, and explicitly archived conversations in the same transaction.
+            let history = {
+                let mut query = transaction.prepare("SELECT key,value,encoding FROM kv_store WHERE namespace='zodiac-session-history-v1'").map_err(|e| e.to_string())?;
+                let entries = query.query_map([], |r| Ok((r.get::<_,String>(0)?,r.get::<_,Vec<u8>>(1)?,r.get::<_,String>(2)?))).map_err(|e| e.to_string())?;
+                entries.collect::<Result<Vec<_>,_>>().map_err(|e| e.to_string())?
+            };
+            for (key, bytes, encoding) in history {
+                let value = decode_store_value(bytes, &encoding)?;
+                let session: serde_json::Value = serde_json::from_str(&value).map_err(|e| e.to_string())?;
+                if session["workspaceId"] == change.id { transaction.execute("DELETE FROM kv_store WHERE namespace='zodiac-session-history-v1' AND key=?1", [key]).map_err(|e| e.to_string())?; }
+            }
+            transaction.execute("DELETE FROM kv_store WHERE namespace='zodiac-sessions-v1' AND key=?1", [&change.id]).map_err(|e| e.to_string())?;
+            write(&transaction, DELETED, &change.id, "true")?;
             transaction
                 .execute(
                     "DELETE FROM kv_store WHERE namespace=?1 AND key=?2",
@@ -180,6 +208,7 @@ fn commit_projects(
             })
             .collect(),
         ids,
+        cleanup_pending: vec![],
     }))
 }
 
@@ -303,6 +332,31 @@ mod tests {
         );
     }
 
+    #[test]
+    fn project_delete_cascades_sessions_and_blocks_late_writes() {
+        let dir = tempfile::tempdir().unwrap();
+        let storage = crate::storage::initialize(dir.path()).unwrap();
+        commit_projects(&storage, vec![change("a", None, Some(value("a", "body"))), change("b", None, Some(value("b", "keep")))]).unwrap().unwrap_or_else(|_| panic!("create conflict"));
+        {
+            let db = storage.lock().unwrap();
+            write(&db, "zodiac-sessions-v1", "a", r#"{"workspaceId":"a"}"#).unwrap();
+            for (key,workspace,archived) in [("history-a","a",false),("archive-a","a",true),("archive-b","b",true)] {
+                write(&db,"zodiac-session-history-v1",key,&serde_json::json!({"workspaceId":workspace,"archived":archived}).to_string()).unwrap();
+            }
+        }
+        assert!(commit_projects(&storage,vec![change("a",None,None)]).unwrap().is_err());
+        assert!(read(&storage.lock().unwrap(),"zodiac-sessions-v1","a").unwrap().is_some());
+        assert!(commit_projects(&storage,vec![change("a",Some(value("a","body")),None)]).unwrap().is_ok());
+        let db=storage.lock().unwrap();
+        assert!(read(&db,"zodiac-sessions-v1","a").unwrap().is_none());
+        assert!(read(&db,"zodiac-session-history-v1","history-a").unwrap().is_none());
+        assert!(read(&db,"zodiac-session-history-v1","archive-a").unwrap().is_none());
+        assert!(read(&db,"zodiac-session-history-v1","archive-b").unwrap().is_some());
+        assert!(validate_session_write(&db,"zodiac-sessions-v1","a","{}").is_err());
+        assert!(validate_session_write(&db,"zodiac-session-history-v1","late",r#"{"workspaceId":"a"}"#).is_err());
+        assert!(validate_session_write(&db,"zodiac-sessions-v1","b","{}").is_ok());
+    }
+
     #[tokio::test]
     async fn generic_store_routes_cannot_bypass_canvas_comparison() {
         use crate::storage;
@@ -344,4 +398,17 @@ mod tests {
             Some(original)
         );
     }
+}
+
+/// A delayed chat save must not resurrect records belonging to a deleted canvas.
+pub fn validate_session_write(connection: &rusqlite::Connection, namespace: &str, key: &str, value: &str) -> Result<(), String> {
+    let workspace = match namespace {
+        "zodiac-sessions-v1" => Some(key.to_owned()),
+        "zodiac-session-history-v1" => serde_json::from_str::<serde_json::Value>(value).ok().and_then(|s| s["workspaceId"].as_str().map(str::to_owned)),
+        _ => None,
+    };
+    if let Some(id) = workspace {
+        if read(connection, DELETED, &id)?.is_some() { return Err("画布已删除，未重新保存会话".into()); }
+    }
+    Ok(())
 }

@@ -1,4 +1,6 @@
-import { ArrowUpRight, FolderOpen, MessageSquare, Plus, Settings2, Shapes, Sparkles } from "lucide-react";
+import { CanvasDeleteProjectsDialog } from "@/components/canvas/canvas-delete-projects-dialog";
+import { useCanvasUiStore } from "@/stores/canvas/use-canvas-ui-store";
+import { ArrowUpRight, Trash2, FolderOpen, MessageSquare, Plus, Settings2, Shapes, Sparkles } from "lucide-react";
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
@@ -55,11 +57,11 @@ export default function IndexPage() {
                 </div>
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                     {recent.map((project) => (
-                        <button type="button" key={project.id} onClick={() => navigate(`/canvas/${project.id}`)} className="rounded-xl border border-[color:var(--wg-home-line)] p-5 text-left transition-colors hover:bg-[color:var(--wg-home-hover)]">
+                        <div key={project.id} className="group relative rounded-xl border border-[color:var(--wg-home-line)] transition-colors hover:bg-[color:var(--wg-home-hover)]"><button type="button" onClick={() => navigate(`/canvas/${project.id}`)} className="w-full p-5 text-left">
                             <FolderOpen className="mb-6 size-5 opacity-40" />
                             <p className="truncate text-sm font-medium">{project.title}</p>
                             <p className="mt-2 text-xs opacity-45">{new Date(project.updatedAt).toLocaleDateString()}</p>
-                        </button>
+                        </button><button type="button" aria-label={`删除 ${project.title}`} className="absolute right-3 top-3 rounded p-2 text-red-500 opacity-0 group-hover:opacity-100 focus:opacity-100" onClick={() => useCanvasUiStore.getState().setDeleteProjectIds([project.id])}><Trash2 className="size-4" /></button></div>
                     ))}
                 </div>
                 {hydrated && !recent.length ? <div className="rounded-xl border border-dashed border-[color:var(--wg-home-line)] py-12 text-center text-sm opacity-50">创建画布，开始一段创作。</div> : null}
@@ -68,6 +70,7 @@ export default function IndexPage() {
                     模型与渠道
                 </button>
             </div>
+            <CanvasDeleteProjectsDialog />
         </main>
     );
 }

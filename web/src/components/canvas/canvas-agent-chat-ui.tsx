@@ -1,14 +1,16 @@
 import { memo, useEffect, useRef, useState, type ReactNode } from "react";
-import { Button, Popconfirm, Tooltip } from "antd";
+import { Button, Dropdown, Popconfirm, Tooltip } from "antd";
 import { ArrowUp, CheckCircle2, CircleAlert, ImagePlus, LoaderCircle, Sparkles, Square, UserRound, X, XCircle } from "lucide-react";
 import { Streamdown } from "streamdown";
 
+import { useAppTranslation } from "@/hooks/use-app-translation";
+import { ZodiacGlyph } from "@/components/brand/zodiac-glyph";
 import { ZodiacAvatar } from "@/components/brand/zodiac-avatar";
 import { isPlainEnterKey } from "@/lib/keyboard-event";
 import { canvasThemes } from "@/lib/canvas-theme";
 import type { LocalUser } from "@/stores/use-user-store";
 
-export type CanvasAgentChatAttachment = { id: string; name: string; url: string };
+export type CanvasAgentChatAttachment = { id: string; name: string; url: string; storageKey?: string; mimeType?: string };
 export type CanvasAgentChatMessage = {
     id: string;
     role: "user" | "assistant" | "system" | "tool" | "error";
@@ -29,12 +31,14 @@ export const AgentChatMessage = memo(function AgentChatMessage({
     user,
     onRejectTool,
     onApproveTool,
+    minimal = false,
 }: {
     item: CanvasAgentChatMessage;
     theme: (typeof canvasThemes)[keyof typeof canvasThemes];
     user: LocalUser | null;
     onRejectTool?: (id: string) => void;
     onApproveTool?: (id: string) => void;
+    minimal?: boolean;
 }) {
     const isUser = item.role === "user";
     const isSystem = item.role === "system";
@@ -60,9 +64,9 @@ export const AgentChatMessage = memo(function AgentChatMessage({
     }
     return (
         <div className={`flex items-start gap-3 ${isUser ? "justify-end" : "justify-start"}`}>
-            {!isUser ? <AgentAvatar theme={theme} /> : null}
+            {!isUser && !minimal ? <AgentAvatar theme={theme} /> : null}
             <div
-                className={isUser ? "min-w-0 max-w-[82%] rounded-xl rounded-br-sm border px-3.5 py-2.5 text-left text-sm leading-6" : "min-w-0 flex-1 text-left text-sm leading-6"}
+                className={isUser ? `min-w-0 max-w-[88%] rounded-xl px-3.5 py-2.5 text-left text-sm leading-6 ${minimal ? "" : "rounded-br-sm border"}` : "min-w-0 flex-1 text-left text-sm leading-6"}
                 style={
                     isUser
                         ? {
@@ -83,7 +87,7 @@ export const AgentChatMessage = memo(function AgentChatMessage({
                 {item.attachments?.length ? <AgentMessageAttachments attachments={item.attachments} /> : null}
                 {item.meta ? <div className={`mt-1 text-[11px] opacity-45 ${isUser ? "text-right" : ""}`}>{item.meta}</div> : null}
             </div>
-            {isUser ? <AgentUserAvatar user={user} theme={theme} /> : null}
+            {isUser && !minimal ? <AgentUserAvatar user={user} theme={theme} /> : null}
         </div>
     );
 });
@@ -104,8 +108,10 @@ export function AgentPendingToolCard({
     onApprove,
     children,
     disabled = false,
+    minimal = false,
 }: {
     children?: ReactNode;
+    minimal?: boolean;
     disabled?: boolean;
     summary: string;
     detail?: unknown;
@@ -121,6 +127,18 @@ export function AgentPendingToolCard({
     onReject?: () => void;
     onApprove?: () => void;
 }) {
+    if (minimal) {
+        const approve = <Button size="small" type={danger ? "default" : "primary"} danger={danger} disabled={disabled} onClick={confirmationText ? undefined : onApprove}>{state === "failed" ? "重试" : approveText}</Button>;
+        return <section className="zodiac-enter min-w-0 border-l-2 py-1 pl-3" style={{ borderColor: theme.node.stroke, color: theme.node.text }}>
+            <div className="flex items-center gap-2 text-xs font-medium"><ZodiacGlyph name={state === "failed" || danger ? "alert" : "check"} className="size-3.5 opacity-60" /><span>{state === "failed" ? "未完成" : state === "running" ? "执行中" : title}</span></div>
+            <p className="mt-2 max-h-40 overflow-auto whitespace-pre-wrap break-words text-xs leading-5" style={{ color: theme.node.muted }}>{state === "failed" && errorText ? errorText : summary}{summaryMeta ? <span className="ml-2 opacity-60">{summaryMeta}</span> : null}</p>
+            {children ? <div className="mt-2">{children}</div> : null}
+            {state !== "running" ? <div className="mt-3 flex items-center gap-2">
+                {onApprove ? confirmationText ? <Popconfirm title="确认继续？" description={confirmationText} okText="确认更改" cancelText="取消" okButtonProps={{ danger }} onConfirm={onApprove}>{approve}</Popconfirm> : approve : null}
+                {onReject ? <Button size="small" type="text" disabled={disabled} onClick={onReject}>{rejectText}</Button> : null}
+            </div> : null}
+        </section>;
+    }
     const technicalDetail = import.meta.env.DEV && detail ? detail : undefined;
     const presentation = state === "running"
         ? { label: "正在执行", color: "#2563eb", border: "rgba(37,99,235,.22)", background: "rgba(37,99,235,.04)", icon: <LoaderCircle className="size-4 motion-safe:animate-spin" /> }
@@ -273,6 +291,7 @@ export function AgentChatComposer({
     onRemoveAttachment,
     skillChips = [],
     onRemoveSkill,
+    onAddSkill,
     left,
 }: {
     prompt: string;
@@ -288,27 +307,30 @@ export function AgentChatComposer({
     onRemoveAttachment?: (id: string) => void;
     skillChips?: Array<{ id: string; name: string }>;
     onRemoveSkill?: (id: string) => void;
+    onAddSkill?: () => void;
     left?: ReactNode;
 }) {
+    const { t } = useAppTranslation();
+    const compact = Boolean(onAddSkill);
     const fileInputRef = useRef<HTMLInputElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    useEffect(() => { const el = inputRef.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.min(176, Math.max(52, el.scrollHeight))}px`; }, [prompt]);
+    useEffect(() => { const el = inputRef.current; if (!el) return; el.style.height = "auto"; el.style.height = `${Math.min(176, Math.max(compact ? 44 : 52, el.scrollHeight))}px`; }, [prompt, compact]);
     const canSubmit = !disabled && !sending && Boolean(prompt.trim() || attachments.length || skillChips.length);
     return (
-        <div className="px-4 pb-4 pt-2" onWheelCapture={(event) => event.stopPropagation()}>
-            <div className="rounded-2xl border px-3 pb-3 pt-3 transition-colors focus-within:border-blue-400" style={{ background: theme.toolbar.panel, borderColor: theme.node.stroke }}>
+        <div className={compact ? "px-4 pb-2 pt-2" : "px-4 pb-4 pt-2"} onWheelCapture={(event) => event.stopPropagation()}>
+            <div className={compact ? "rounded-xl border px-3 pb-2 pt-3 transition-colors" : "rounded-2xl border px-3 pb-3 pt-3 transition-colors"} style={{ background: theme.toolbar.panel, borderColor: compact ? `color-mix(in srgb, ${theme.node.stroke} 70%, transparent)` : theme.node.stroke }}>
                 {attachments.length ? (
                     <div className="thin-scrollbar mb-2 flex gap-2 overflow-x-auto pb-1">
                         {attachments.map((item) => (
                             <div key={item.id} className="group relative size-14 shrink-0 overflow-hidden rounded-xl border" style={{ borderColor: theme.node.stroke }} title={item.name}>
-                                <img src={item.url} alt={item.name} className="size-full object-cover" />
+                                <AttachmentPreview item={item} />
                                 {onRemoveAttachment ? (
                                     <button
                                         type="button"
                                         className="absolute right-1 top-1 grid size-5 place-items-center rounded-full border opacity-0 shadow-sm transition group-hover:opacity-100"
                                         style={{ background: theme.toolbar.panel, borderColor: theme.node.stroke, color: theme.node.text }}
                                         onClick={() => onRemoveAttachment(item.id)}
-                                        aria-label="移除图片"
+                                        aria-label="移除附件"
                                     >
                                         <X className="size-3" />
                                     </button>
@@ -359,11 +381,11 @@ export function AgentChatComposer({
                         event.preventDefault();
                         void onSubmit();
                     }}
-                    className="thin-scrollbar max-h-44 min-h-[52px] w-full resize-none border-0 bg-transparent px-1 py-1 text-sm leading-5 outline-none placeholder:opacity-45"
+                    className="thin-scrollbar max-h-44 min-h-[44px] w-full resize-none border-0 bg-transparent px-1 py-1 text-sm leading-5 outline-none placeholder:opacity-45"
                     style={{ color: theme.node.text }}
                     placeholder={placeholder}
                 />
-                <div className="mt-2 flex items-center justify-between gap-2">
+                <div className="mt-1 flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-1">
                         {onAddFiles ? (
                             <>
@@ -371,22 +393,27 @@ export function AgentChatComposer({
                                     ref={fileInputRef}
                                     hidden
                                     type="file"
-                                    accept="image/*"
+                                    accept="image/*,video/*,audio/*"
                                     multiple
                                     onChange={(event) => {
                                         void onAddFiles(event.target.files);
                                         event.target.value = "";
                                     }}
                                 />
-                                <Tooltip title="上传图片">
-                                    <Button aria-label="上传图片" type="text" shape="circle" className="!h-9 !w-9 !min-w-9" disabled={sending} style={{ color: theme.node.muted }} icon={<ImagePlus className="size-4" />} onClick={() => fileInputRef.current?.click()} />
-                                </Tooltip>
+                                {onAddSkill ? <Dropdown trigger={["click"]} placement="topLeft" menu={{ items: [
+                                    { key: "media", label: t("上传媒体"), icon: <ZodiacGlyph name="attachment" />, disabled: sending },
+                                    { key: "skill", label: t("添加技能"), icon: <ZodiacGlyph name="skill" /> },
+                                ], onClick: ({ key }) => key === "media" ? fileInputRef.current?.click() : onAddSkill() }}>
+                                    <button type="button" aria-label={t("添加附件或技能")} className="grid size-8 shrink-0 place-items-center rounded-md opacity-70 transition-colors hover:bg-[color:var(--wg-home-hover)] hover:opacity-100 focus-visible:outline focus-visible:outline-2" style={{ color: theme.node.text }}><ZodiacGlyph name="add" /></button>
+                                </Dropdown> : <Tooltip title={t("上传媒体")}><Button aria-label={t("上传媒体")} type="text" shape="circle" className="!h-9 !w-9 !min-w-9" disabled={sending} style={{ color: theme.node.muted }} icon={<ImagePlus className="size-4" />} onClick={() => fileInputRef.current?.click()} /></Tooltip>}
                             </>
                         ) : null}
                         {left}
                     </div>
                     <div className="flex shrink-0 items-center gap-1.5">
-                        {sending && onStop ? (
+                        {compact ? <Tooltip title={sending ? t("停止") : t("Enter 发送，Shift Enter 换行")}>
+                            <button type="button" aria-label={sending ? t("停止") : t("发送")} disabled={sending ? !onStop : !canSubmit} onClick={() => sending ? onStop?.() : onSubmit()} className="grid size-8 place-items-center rounded-lg transition-opacity hover:opacity-80 disabled:cursor-default disabled:opacity-25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2" style={{ background: theme.node.text, color: theme.toolbar.panel }}><ZodiacGlyph name={sending ? "stop" : "send"} /></button>
+                        </Tooltip> : sending && onStop ? (
                             <Button danger shape="circle" className="!h-10 !w-10 !min-w-10" icon={<Square className="size-4" />} onClick={() => void onStop()} aria-label="停止" />
                         ) : (
                             <Button
@@ -468,9 +495,9 @@ function AgentUserAvatar({ user, theme }: { user: LocalUser | null; theme: (type
 
 function AgentMessageAttachments({ attachments }: { attachments: CanvasAgentChatAttachment[] }) {
     return (
-        <div className="mt-2 grid grid-cols-3 gap-1.5">
+        <div className="mt-2 grid grid-cols-2 gap-2">
             {attachments.map((item) => (
-                <img key={item.id} src={item.url} alt={item.name} className="aspect-square w-full rounded-lg object-cover" />
+                <div key={item.id} className={item.mimeType?.startsWith("audio/") ? "col-span-2 min-w-0" : "aspect-square max-h-40 overflow-hidden rounded-lg"}><AttachmentPreview item={item} controls /></div>
             ))}
         </div>
     );
@@ -499,4 +526,26 @@ function normalizeText(value: unknown) {
 
 function objectField(value: unknown, key: string) {
     return value && typeof value === "object" ? (value as Record<string, unknown>)[key] : undefined;
+}
+
+function AttachmentPreview({ item, controls = false }: { item: CanvasAgentChatAttachment; controls?: boolean }) {
+    if (item.mimeType?.startsWith("video/")) return <video src={item.url} aria-label={item.name} controls={controls} preload="metadata" className="size-full object-contain" />;
+    if (item.mimeType?.startsWith("audio/")) return controls ? <ChatAudioAttachment item={item} /> : <div className="flex h-full flex-col items-center justify-center gap-1 p-1 text-xs"><ZodiacGlyph name="play" /><span className="w-full truncate">{item.name}</span></div>;
+    return <img src={item.url} alt={item.name} className="size-full object-cover" />;
+}
+
+function ChatAudioAttachment({ item }: { item: CanvasAgentChatAttachment }) {
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const [playing, setPlaying] = useState(false);
+    const [duration, setDuration] = useState(0);
+    const [time, setTime] = useState(0);
+    const [failed, setFailed] = useState(false);
+    const { t } = useAppTranslation();
+    const displayTime = (seconds: number) => `${Math.floor(seconds / 60)}:${Math.floor(seconds % 60).toString().padStart(2, "0")}`;
+    return <div className="flex min-w-0 items-center gap-2.5 rounded-lg bg-black/5 p-2.5 dark:bg-white/5">
+        <audio ref={audioRef} src={item.url} preload="metadata" onLoadedMetadata={e => setDuration(Number.isFinite(e.currentTarget.duration) ? e.currentTarget.duration : 0)} onTimeUpdate={e => setTime(e.currentTarget.currentTime)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onError={() => setFailed(true)} />
+        <button type="button" className="zodiac-icon-button !opacity-100" aria-label={t(playing ? "暂停音频" : "播放音频")} disabled={failed} onClick={() => { if (playing) audioRef.current?.pause(); else void audioRef.current?.play().catch(() => setFailed(true)); }}><ZodiacGlyph name={playing ? "pause" : "play"} /></button>
+        <div className="min-w-0 flex-1"><p className="truncate text-xs" title={item.name}>{item.name}</p><input aria-label={t("音频进度")} className="mt-1 block h-1 w-full accent-current opacity-50" type="range" min={0} max={duration || 1} step={0.1} value={time} disabled={failed || !duration} onChange={e => { if (audioRef.current) audioRef.current.currentTime = Number(e.target.value); }} /></div>
+        <span className="shrink-0 text-[10px] tabular-nums opacity-50">{failed ? t("无法播放") : displayTime(playing ? time : duration)}</span>
+    </div>;
 }

@@ -1,5 +1,6 @@
+import { listZodiacSessions } from "./zodiac-session-storage";
 import { getMediaReferenceEpoch, getProvisionalStorageKeys, markMediaReferencesChanged, type VerifiedReferenceSnapshot } from "@/services/media-retention-policy";
-import { createServerJsonStore, listZodiacPlans } from "@/services/server-storage";
+import { createServerJsonStore, getStoredValue, listZodiacPlans } from "@/services/server-storage";
 import { readAllDirectorStoredProjects } from "@/services/director-project-storage";
 
 type RuntimeReferenceProvider = () => unknown | Promise<unknown>;
@@ -12,6 +13,7 @@ type HydratableStore = {
 };
 
 const runtimeProviders = new Map<symbol, RuntimeReferenceProvider>();
+const canvasProjectStore = createServerJsonStore("canvas-project-v1");
 const imageGenerationLogStore = createServerJsonStore("image-generation-logs-v1");
 const videoGenerationLogStore = createServerJsonStore("video-generation-logs-v1");
 const audioGenerationLogStore = createServerJsonStore("audio-generation-logs-v1");
@@ -45,7 +47,7 @@ async function buildVerifiedMediaReferenceSnapshot(): Promise<VerifiedReferenceS
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
         const epoch = getMediaReferenceEpoch();
-        const [runtimeReferences, imageGenerationLogs, videoGenerationLogs, audioGenerationLogs, structuredImageWorkbenchDrafts, directorProjects, stagePlans] = await Promise.all([
+        const [runtimeReferences, imageGenerationLogs, videoGenerationLogs, audioGenerationLogs, structuredImageWorkbenchDrafts, directorProjects, stagePlans, zodiacSessions, savedProjects, savedAssets] = await Promise.all([
             Promise.all(Array.from(runtimeProviders.values()).map((provider) => provider())),
             readStoreValues(imageGenerationLogStore),
             readStoreValues(videoGenerationLogStore),
@@ -53,13 +55,19 @@ async function buildVerifiedMediaReferenceSnapshot(): Promise<VerifiedReferenceS
             readStoreValues(structuredImageWorkbenchDraftStore),
             readAllDirectorStoredProjects(),
             Promise.all(useCanvasStore.getState().projects.map((project) => listZodiacPlans(project.id))),
+            listZodiacSessions(),
+            readStoreValues(canvasProjectStore),
+            getStoredValue("zustand-v1", "infinite-canvas:asset_store").then(value => value ? JSON.parse(value) : null),
         ]);
         const data = {
             assets: useAssetStore.getState().assets,
             projects: useCanvasStore.getState().projects,
+            savedProjects,
+            savedAssets,
             runtimeReferences,
             directorProjects,
             stagePlans,
+            zodiacSessions,
             workbenchHistory: { image: imageGenerationLogs, video: videoGenerationLogs, audio: audioGenerationLogs, structuredImage: structuredImageWorkbenchDrafts },
             provisionalUploads: getProvisionalStorageKeys(),
         };

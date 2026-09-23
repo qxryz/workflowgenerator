@@ -1,0 +1,123 @@
+.zodiac-panel {
+    --zodiac-soft: color-mix(in srgb, currentColor 5%, transparent);
+}
+.zodiac-panel .ant-btn,
+.zodiac-surface .ant-btn {
+    box-shadow: none !important;
+    border-radius: 7px !important;
+    transform: none;
+}
+.zodiac-panel .ant-btn-text,
+.zodiac-panel .ant-btn-link,
+.zodiac-surface .ant-btn-text {
+    border-color: transparent !important;
+    background: transparent !important;
+}
+.zodiac-panel .ant-btn-primary,
+.zodiac-surface .ant-btn-primary {
+    background: var(--wg-home-text) !important;
+    color: var(--wg-panel) !important;
+    border-color: transparent !important;
+}
+.zodiac-panel .ant-btn-primary:disabled {
+    opacity: 0.3;
+}
+.zodiac-icon-button {
+    display: grid;
+    width: 30px;
+    height: 30px;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.55;
+    transition:
+        background-color 160ms,
+        opacity 160ms,
+        transform 160ms;
+}
+.zodiac-icon-button:hover:not(:disabled) {
+    background: var(--zodiac-soft);
+    opacity: 1;
+}
+.zodiac-icon-button:active:not(:disabled) {
+    transform: scale(0.92);
+}
+.zodiac-icon-button:disabled {
+    opacity: 0.2;
+    cursor: default;
+}
+.zodiac-enter {
+    animation: zodiac-enter 320ms cubic-bezier(0.2, 0.75, 0.25, 1) both;
+}
+.zodiac-status-dot {
+    animation: zodiac-breathe 1.5s ease-in-out infinite;
+    transform-origin: center;
+}
+.zodiac-status-dot:nth-child(2) {
+    animation-delay: 160ms;
+}
+.zodiac-status-dot:nth-child(3) {
+    animation-delay: 320ms;
+}
+.zodiac-choice-mark path {
+    stroke-dasharray: 1;
+    stroke-dashoffset: 1;
+}
+input:checked + .zodiac-choice-mark path {
+    animation: zodiac-check 220ms ease-out forwards;
+}
+.zodiac-panel details[open] > :not(summary) {
+    animation: zodiac-enter 220ms ease-out;
+}
+.zodiac-panel .ant-select {
+    font-size: 12px;
+}
+.zodiac-panel .ant-select:hover {
+    opacity: 1;
+}
+.zodiac-panel .agent-streamdown {
+    line-height: 1.8;
+}
+@keyframes zodiac-enter {
+    from {
+        opacity: 0;
+        transform: translateY(7px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+@keyframes zodiac-breathe {
+    0%,
+    80%,
+    100% {
+        opacity: 0.3;
+        transform: translateY(0);
+    }
+    40% {
+        opacity: 1;
+        transform: translateY(-2px);
+    }
+}
+@keyframes zodiac-check {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+@media (prefers-reduced-motion: reduce) {
+    .zodiac-enter,
+    .zodiac-status-dot,
+    input:checked + .zodiac-choice-mark path,
+    .zodiac-panel details[open] > :not(summary) {
+        animation: none;
+    }
+    input:checked + .zodiac-choice-mark path {
+        stroke-dashoffset: 0;
+    }
+    .zodiac-icon-button {
+        transition: none;
+    }
+}
