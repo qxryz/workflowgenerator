@@ -2,7 +2,7 @@ import { flushPendingWrites } from "@/services/server-storage";
 import type { ZodiacTurnOptions, ZodiacToolResult } from "./zodiac-transport";
 import { nativeTools } from "./zodic.ts";
 import { zodiacToolLabel } from "@/lib/agent/zodiac-activity";
-import type { ZodiacRoleContext, ZodiacToolDefinition } from "@/lib/agent/zodiac-agent-policy";
+import { createZodiacToolDispatcher, type ZodiacRoleContext, type ZodiacToolDefinition } from "@/lib/agent/zodiac-agent-policy";
 
 type RuntimeMessage = {
     info: { id: string; role: string; time?: { completed?: number }; error?: { data?: { message?: string }; name?: string } };
@@ -13,7 +13,7 @@ type RuntimeSnapshot = {
     messages: RuntimeMessage[];
     status?: { type: string } | null;
     permissions: { id: string; permission: string; patterns: string[]; metadata: unknown }[];
-    tools: { callId: string; name: string; args: unknown }[];
+    tools: { callId: string; name: string; args: unknown; context: Pick<ZodiacRoleContext, "role" | "taskId" | "rootSessionId" | "turnId" | "nativeCallId"> }[];
     children: { id: string; title: string }[];
 };
 export async function agentRequest<T>(endpoint: string, body: unknown, signal?: AbortSignal): Promise<T> {
@@ -47,7 +47,7 @@ const delay = (signal?: AbortSignal) =>
 /** Shared by runtime registration and the in-app tool reference. Native task is not an MCP tool. */
 export function registeredZodiacTools(tools: readonly ZodiacToolDefinition[] = nativeTools(), skillTools: readonly ZodiacToolDefinition[] = []) {
     return [WORKSPACE_IMPORT_TOOL, ...tools, ...skillTools].filter(
-        (tool, index, all) => tool.name !== "task" && all.findIndex(t => t.name === tool.name) === index,
+        (tool, index, all) => !["task", "hub_generate_music", "hub_video_edit"].includes(tool.name) && all.findIndex(t => t.name === tool.name) === index,
     );
 }
 
@@ -86,7 +86,7 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
             .join("\n\n") +
         "\n\nRuntime tools: application tools have the wg_ prefix (for example wg_hub_canvas_write_node). Use native task for persistent subagents, with subagent_type router, planner or executor. Native read/write/edit/bash operate on actual files. Skill packages and scripts are under ./skills/. Keep intermediate files and scripts in this session workspace. A successful tool result that waits for the user ends this turn; do not continue mutating the canvas. Never claim execution without tool results.";
     const tools = registeredZodiacTools(typeof options.tools === "function" ? options.tools() : options.tools || nativeTools(), options.skillToolCatalog);
-    const context: ZodiacRoleContext = { role: "orchestrator", taskId: turnId, rootSessionId: options.sessionId, source: options.source || { kind: "opencode" }, signal: options.signal };
+    const dispatchers = new Map<string, ReturnType<typeof createZodiacToolDispatcher>>();
     const handled = new Set<string>();
     const reasoning = new Map<string, string>();
     let finalText = "";
@@ -204,7 +204,28 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
                 handled.add(request.callId);
                 let result: ZodiacToolResult;
                 try {
-                    result = waitingForUser ? { ok: false, error: "正在等待用户确认，不得继续执行。" } : options.onToolRequest ? await options.onToolRequest(request, context) : { ok: false, error: "工具执行器不可用" };
+                    const actor = request.context;
+                    if (!actor || actor.rootSessionId !== options.sessionId || actor.turnId !== turnId || !["orchestrator", "router", "planner", "executor"].includes(actor.role) || !actor.taskId) {
+                        result = { ok: false, error: "工具请求缺少有效的任务身份，未执行。" };
+                    } else if (waitingForUser) {
+                        result = { ok: false, error: "正在等待用户确认，不得继续执行。" };
+                    } else {
+                        const key = `${actor.taskId}:${actor.role}`;
+                        let dispatcher = dispatchers.get(key);
+                        if (!dispatcher) {
+                            dispatcher = createZodiacToolDispatcher({
+                                context: { ...actor, source: options.source || { kind: "opencode" }, signal: options.signal },
+                                tools: () => tools,
+                                execute: (call, context) => options.onToolRequest
+                                    ? options.onToolRequest(call, { ...context, nativeCallId: (call as RuntimeSnapshot["tools"][number]).context.nativeCallId })
+                                    : { ok: false, error: "工具执行器不可用" },
+                                skillTools: options.skillTools,
+                                maxCalls: options.maxToolRounds,
+                            });
+                            dispatchers.set(key, dispatcher);
+                        }
+                        result = await dispatcher.dispatch(request);
+                    }
                 } catch (error) {
                     result = { ok: false, error: error instanceof Error ? error.message : "工具执行失败" };
                 }
@@ -212,8 +233,8 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
                 await agentRequest("tool-result", { ...identity, id: request.callId, result }, options.signal);
             }
             const last = assistants.at(-1);
-            idleWithoutReply = !last && !state.status && !state.tools.length && !state.permissions.length ? idleWithoutReply + 1 : 0;
-            if (idleWithoutReply > 50) throw new Error("Agent 未开始回复，请检查模型连接后重试。");
+            idleWithoutReply = !last?.info.time?.completed && (!state.status || state.status.type === "idle") && !state.tools.length && !state.permissions.length ? idleWithoutReply + 1 : 0;
+            if (idleWithoutReply > 50) throw new Error(last ? "任务已中断，请先核对已生成的产物后继续。" : "Agent 未开始回复，请检查模型连接后重试。");
             if (last?.info.time?.completed && (!state.status || state.status.type === "idle") && !state.tools.length && !state.permissions.length) break;
             await delay(options.signal);
         }

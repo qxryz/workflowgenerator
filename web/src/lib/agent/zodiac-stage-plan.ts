@@ -8,8 +8,8 @@ export type ZodiacPlanOutput = { nodeId: string; storageKey?: string; resultVers
 export type ZodiacPlanItemRuntime = { status: "pending" | "running" | "succeeded" | "failed" | "interrupted"; attemptId?: string; operationId?: string; output?: ZodiacPlanOutput; supersededOutputs: ZodiacPlanOutput[]; error?: string };
 export type ZodiacStageRuntime = { status: "waiting_user" | "doing" | "done" | "blocked"; waitingReason?: "plan_review" | "result_review"; attemptId?: string; activeItemIds?: string[]; items: Record<string, ZodiacPlanItemRuntime>; blockedReason?: string };
 export type ZodiacPlanStage = ZodiacStageDraft & { runtime: ZodiacStageRuntime };
-export type ZodiacStagePlan = { version: 1; id: string; originId?: string; projectId: string; sessionId?: string; title: string; workflowId: string; revision: number; retiredOutputs?: ZodiacPlanOutput[]; outline: ZodiacStageOutline[]; stages: ZodiacPlanStage[]; createdAt: number; updatedAt: number };
-export type ZodiacPlanCreate = { id: string; projectId: string; sessionId?: string; title: string; workflowId: string; outline: ZodiacStageOutline[]; firstStage: ZodiacStageDraft; requestId: string };
+export type ZodiacStagePlan = { version: 1; id: string; originId?: string; projectId: string; sessionId?: string; plannerSessionId?: string; title: string; workflowId: string; revision: number; retiredOutputs?: ZodiacPlanOutput[]; outline: ZodiacStageOutline[]; stages: ZodiacPlanStage[]; createdAt: number; updatedAt: number };
+export type ZodiacPlanCreate = { id: string; projectId: string; sessionId?: string; plannerSessionId?: string; title: string; workflowId: string; outline: ZodiacStageOutline[]; firstStage: ZodiacStageDraft; requestId: string };
 export type ZodiacPlanCommand =
     | { type: "write_stage"; stage: ZodiacStageDraft }
     | { type: "replan"; outline: ZodiacStageOutline[]; stage: ZodiacStageDraft; reason: string }
@@ -21,7 +21,7 @@ export type ZodiacPlanCommand =
     | { type: "claim_item"; stageId: string; attemptId: string; itemId: string }
     | { type: "record_item"; stageId: string; attemptId: string; itemId: string; output?: ZodiacPlanOutput; error?: string }
     | { type: "finish"; stageId: string; attemptId: string };
-export type ZodiacPlanMutation = { planId: string; expectedRevision: number; requestId: string; command: ZodiacPlanCommand };
+export type ZodiacPlanMutation = { planId: string; expectedRevision: number; requestId: string; command: ZodiacPlanCommand; plannerSessionId?: string };
 /** claim.shouldExecute is false on replay: an uncertain claim must never launch a second paid request. */
 export type ZodiacPlanReply = { plan: ZodiacStagePlan; replayed: boolean; claim?: { itemId: string; shouldExecute: boolean } };
 export function zodiacPlanFrontier(plan: ZodiacStagePlan) {

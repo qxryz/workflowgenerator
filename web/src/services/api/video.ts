@@ -1,3 +1,6 @@
+import { AGNES_VIDEO_CONTRACT } from "@/lib/agnes-contract";
+import { MINIMAX_H3_REFERENCE_LIMITS } from "@/lib/minimax-contract";
+export { MINIMAX_H3_REFERENCE_LIMITS } from "@/lib/minimax-contract";
 import axios from "axios";
 import { nanoid } from "nanoid";
 
@@ -322,17 +325,17 @@ async function pollXaiVideoTask(config: AiConfig, task: VideoGenerationTask, opt
 }
 
 async function createAgnesVideoTask(config: AiConfig, model: string, prompt: string, references: ReferenceImage[], videoReferences: ReferenceVideo[], audioReferences: ReferenceAudio[], options?: RequestOptions): Promise<VideoGenerationTask> {
-    if (references.length > 1 || videoReferences.length || audioReferences.length) throw new Error("Agnes Video V2.0 当前仅支持文字或一张首帧图片");
+    if (references.length > AGNES_VIDEO_CONTRACT.references.images || videoReferences.length || audioReferences.length) throw new Error("Agnes Video V2.0 当前仅支持文字或一张首帧图片");
     const dimensions = videoDimensions(config.size);
-    const duration = Math.max(3, Math.min(18, Math.floor(Number(config.videoSeconds) || 6)));
+    const duration = Math.max(AGNES_VIDEO_CONTRACT.durationSeconds.min, Math.min(AGNES_VIDEO_CONTRACT.durationSeconds.max, Math.floor(Number(config.videoSeconds) || 6)));
     const body: Record<string, unknown> = {
         model: modelOptionName(model),
         prompt,
         width: dimensions.width,
         height: dimensions.height,
         // Agnes Video 要求 num_frames 满足 8*n+1，把期望帧数向上对齐到最近的有效值。
-        num_frames: 8 * Math.max(1, Math.ceil((duration * 24 - 1) / 8)) + 1,
-        frame_rate: 24,
+        num_frames: 8 * Math.max(1, Math.ceil((duration * AGNES_VIDEO_CONTRACT.frameRate - 1) / 8)) + 1,
+        frame_rate: AGNES_VIDEO_CONTRACT.frameRate,
     };
     if (references[0]) body.image = await imageToDataUrl(references[0]);
     try {
@@ -466,14 +469,7 @@ function miniMaxBillingMode(config: AiConfig) {
     return ((config as AiConfig & { minimaxBillingMode?: MiniMaxBillingMode }).minimaxBillingMode || "payg") as MiniMaxBillingMode;
 }
 
-export const MINIMAX_H3_REFERENCE_LIMITS = {
-    images: 9,
-    videos: 3,
-    audios: 3,
-    imageMaxBytes: 30 * 1024 * 1024,
-    videoMaxBytes: 50 * 1024 * 1024,
-    audioMaxBytes: 15 * 1024 * 1024,
-} as const;
+
 
 export function isMiniMaxH3ImageMime(value: string) {
     return ["image/jpeg", "image/jpg", "image/png", "image/webp"].includes(value.trim().toLowerCase());

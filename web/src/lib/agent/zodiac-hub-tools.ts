@@ -20,6 +20,7 @@ import { builtinCanvasResourceKind, isReadyCanvasResourceValue } from "../canvas
 import type { CanvasAgentOp, CanvasAgentSnapshot } from "../canvas/canvas-agent-ops.ts";
 import type { WorkflowExecutionMode, WorkflowRunSnapshot } from "../canvas/workflow-execution.ts";
 import type { CanvasGenerationMode, CanvasNodeData } from "../../types/canvas.ts";
+import { pinZodiacReference, zodiacReferenceInstructions, zodiacVideoReferenceSettings, type ZodiacAssetReference } from "./zodiac-assets.ts";
 
 /** 与 Zodiac transport 的工具结果同形；这里单独声明避免服务层反向依赖组件。 */
 export type HubToolOutcome = { ok: true; result: unknown } | { ok: false; error: string; requiresReconciliation?: true; nodeId?: string; actionNodeId?: string };
@@ -34,6 +35,8 @@ export type HubToolRequest = {
 export type HubExecutorContext = {
     sessionId?: string;
     turnId?: string;
+    taskId?: string;
+    defaultModels?: Partial<Record<CanvasGenerationMode, string>>;
     operationNamespace?: string;
     resolveMediaUrl?: (node: CanvasNodeData) => Promise<string | null>;
     getSnapshot: () => CanvasAgentSnapshot;
@@ -138,8 +141,18 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
     const ready = nodeById(context.getSnapshot(), slotId);
     if (ready && canvasResourceReady(ready) && ready.metadata?.storageKey) return { ok: true, result: await outputReceipt(ready, context, operation, actionId) };
     if (existing && ["loading", "running", "generating"].includes(String(existing.metadata?.status))) return { ok: false, error: "此操作仍在运行，请先核对真实状态，不要重复提交", requiresReconciliation: true, nodeId: slotId, actionNodeId: actionId };
-    const metadata: Record<string, unknown> = { generationMode: mode, prompt, status: "idle", ...operation.metadata };
-    const model = str(args.model);
+    const sourceReferences: ZodiacAssetReference[] = [];
+    for (const field of ["references", "videoReferences", "audioReferences"]) {
+        for (const ref of (args[field] || []) as ZodiacAssetReference[]) {
+            const node = nodeById(snapshot, ref.nodeId)!;
+            sourceReferences.push(node.type === "text" || node.metadata?.storageKey || ref.storageKey || ref.resultVersionId || ref.contentHash
+                ? await pinZodiacReference(ref, snapshot.nodes) : { ...ref });
+        }
+    }
+    context.signal?.throwIfAborted();
+    const model = str(args.model) || context.defaultModels?.[mode];
+    const referenceSettings = mode === "video" ? zodiacVideoReferenceSettings(model || "", sourceReferences, snapshot.nodes) : {};
+    const metadata: Record<string, unknown> = { generationMode: mode, prompt: zodiacReferenceInstructions(sourceReferences) + prompt, status: "idle", agentSourceReferences: sourceReferences, ...operation.metadata, ...referenceSettings };
     if (model) metadata.model = model;
     const size = str(args.size);
     if (size) metadata.size = size;
@@ -178,6 +191,7 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
     try {
         if (!existing) await context.applyOps(ops);
         if (referenceIds.some((id) => !context.getSnapshot().connections.some((edge) => edge.fromNodeId === id && edge.toNodeId === actionId))) throw new Error("参考素材连线未完整保存，未开始生成");
+        for (const ref of sourceReferences) if (ref.storageKey || ref.contentHash || ref.resultVersionId) await pinZodiacReference(ref, context.getSnapshot().nodes);
     } catch (error) {
         return { ok: false, error: `把生成动作加到画布时失败：${error instanceof Error ? error.message : String(error)}` };
     }
@@ -232,6 +246,8 @@ async function nodePayload(node: CanvasNodeData, snapshot: CanvasAgentSnapshot, 
         prompt: node.metadata?.prompt ?? null,
         model: node.metadata?.model ?? null,
         storageKey: node.metadata?.storageKey ?? null,
+        resultVersionId: node.metadata?.currentResultVersionId ?? null,
+        sourceReferences: node.metadata?.agentSourceReferences ?? [],
         url: node.metadata?.storageKey && context.resolveMediaUrl ? await context.resolveMediaUrl(node) : null,
         upstream: snapshot.connections.filter((connection) => connection.toNodeId === node.id).map((connection) => connection.fromNodeId),
         downstream: snapshot.connections.filter((connection) => connection.fromNodeId === node.id).map((connection) => connection.toNodeId),
@@ -337,7 +353,7 @@ type OperationIdentity = {
     id: string;
     key: string;
     fingerprint: string;
-    metadata: { agentSessionId?: string; agentTurnId?: string; agentOperationId: string; agentOperationFingerprint: string };
+    metadata: { agentSessionId?: string; agentTurnId?: string; agentTaskId?: string; agentOperationId: string; agentOperationFingerprint: string };
 };
 
 async function operationIdentity(request: HubToolRequest, context: HubExecutorContext): Promise<OperationIdentity> {
@@ -357,7 +373,7 @@ async function operationIdentity(request: HubToolRequest, context: HubExecutorCo
                 )
               : value;
     const fingerprint = await canvasTextHash(JSON.stringify([request.name, canonical(args)]));
-    return { id, key, fingerprint, metadata: { agentSessionId: context.sessionId, agentTurnId: context.turnId, agentOperationId: key, agentOperationFingerprint: fingerprint } };
+    return { id, key, fingerprint, metadata: { agentSessionId: context.sessionId, agentTurnId: context.turnId, agentTaskId: context.taskId, agentOperationId: key, agentOperationFingerprint: fingerprint } };
 }
 
 async function outputReceipt(node: CanvasNodeData, context: HubExecutorContext, operation: OperationIdentity, actionNodeId?: string) {

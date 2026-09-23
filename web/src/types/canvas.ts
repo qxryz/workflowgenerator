@@ -73,6 +73,8 @@ export type CanvasResultSlotVersion = CanvasResultSlotSuccessVersion | CanvasRes
 
 export type CanvasNodeMetadata = {
     agentSessionId?: string;
+    agentTaskId?: string;
+    agentSourceReferences?: Array<{ nodeId: string; role?: string; label?: string; storageKey?: string; resultVersionId?: string; contentHash?: string }>;
     agentTurnId?: string;
     agentOperationId?: string;
     agentOperationFingerprint?: string;

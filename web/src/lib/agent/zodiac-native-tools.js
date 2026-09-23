@@ -313,7 +313,7 @@ const HUB_DESCRIPTION_PREFIX = "Hub 技能约定的工具：";
 const hubReference = {
     type: "object",
     required: ["nodeId"],
-    properties: { nodeId: nodeId, role: text(40, "这张素材在本次生成里的作用，如 首帧 / 锁版参考 / 角色"), label: text(80, "给创作者看的素材名") },
+    properties: { nodeId: nodeId, role: text(40, "用途：source_edit / identity / style / layout / scene / first_frame / last_frame / audio / reference；按真实用途和顺序传递"), label: text(80, "素材名"), resultVersionId: text(160, "读取到的媒体版本，可省略"), contentHash: text(64, "读取到的文档哈希，可省略") },
     description: "输入素材。nodeId 必须来自本轮画布快照，模型不要自己编造 id。",
 };
 

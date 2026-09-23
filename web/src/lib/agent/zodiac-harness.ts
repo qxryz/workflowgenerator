@@ -111,6 +111,8 @@ const ZODIAC_DECISION_UI_CONTRACT = `# 分层决策界面
 
 const ZODIAC_HUB_TOOLS_CONTRACT = `# 生成与媒体工具
 
+会话的完整素材清单在 \`.zodiac/assets.json\`，包含 ready、contentHash、resultVersionId 及真实相对 path。索引只说明可用文件，不代表已看过内容；通过原生 read 读取所需文档和图片，或用分析工具读取图片。交给子任务时附上具体节点、版本和文件路径；不得仅传“上面的图片”。文档保留完整正文，媒体副本按内容区分，旧引用不能悄悄切换新版本。生成 references 的 role 说明原图编辑、人物、风格、构图、场景或帧用途；顺序必须对应提示词。
+
 技能正文里写的 \`question\` 就是上面的 \`zodiac-ui\`；其他工具以本轮实际工具目录和参数为准。读取技能后先检查返回的 runtime 依赖报告；正文可读不代表 MiniMax Gateway、媒体索引、脚本环境或旧工具协议已经接入。不能猜测安装路径，不能假设本机已安装外部软件或可以执行命令。已适配的生成工具走「设置 → 渠道」里配置的模型：
 
 - \`hub_generate_image\` / \`hub_generate_video\` / \`hub_generate_audio\`：发起已适配的图片、视频或语音生成。产物会作为节点落到画布，返回 \`nodeId\` 与媒体地址；后续要拿它当参考就引用这个 \`nodeId\`。

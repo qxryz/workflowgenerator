@@ -1,6 +1,6 @@
 import { runOpenCodeTurn } from "./opencode-runtime.ts";
 import type { ZodicMessage } from "@/services/api/zodic";
-import { throwIfZodiacAborted, type ZodiacAgentRole, type ZodiacExecutionSource, type ZodiacRoleContext, type ZodiacToolCatalog, type ZodiacToolDefinition } from "@/lib/agent/zodiac-agent-policy";
+import { throwIfZodiacAborted, type ZodiacExecutionSource, type ZodiacRoleContext, type ZodiacToolCatalog, type ZodiacToolDefinition } from "@/lib/agent/zodiac-agent-policy";
 import type { ZodiacActivityEvent } from "@/lib/agent/zodiac-activity";
 export type ZodiacToolRequest = { callId: string; name: string; args: unknown };
 export type ZodiacToolResult = { ok: true; result?: unknown } | { ok: false; error: string };
@@ -13,14 +13,8 @@ export type ZodiacTurnOptions = {
     sessionId: string;
     projectId?: string;
     turnId?: string;
-    assets?: Array<{ id: string; name: string; type: string; storageKey: string }>;
+    assets?: import("@/lib/agent/zodiac-assets").ZodiacWorkspaceAsset[];
     onPermissionRequest?: (request: ZodiacToolRequest) => Promise<boolean>;
-    rootSessionId?: string;
-    taskId?: string;
-    role?: ZodiacAgentRole;
-    planId?: string;
-    stageId?: string;
-    approvedTools?: readonly string[];
     source?: ZodiacExecutionSource;
     tools?: ZodiacToolCatalog;
     skillToolCatalog?: readonly ZodiacToolDefinition[];
@@ -32,7 +26,6 @@ export type ZodiacTurnOptions = {
     onReasoning?: (text: string) => void;
     onActivity?: (event: ZodiacActivityEvent) => void;
     onToolRequest?: (request: ZodiacToolRequest, context: ZodiacRoleContext) => Promise<ZodiacToolResult> | ZodiacToolResult;
-    loadPlanContext?: (planId: string) => Promise<unknown>;
     signal?: AbortSignal;
     maxToolRounds?: number;
 };

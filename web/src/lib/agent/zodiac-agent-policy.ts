@@ -1,3 +1,4 @@
+import roleSource from "./zodiac-roles.json" with { type: "json" };
 import type { AiConfig } from "@/stores/use-config-store";
 
 export type ZodiacAgentRole = "orchestrator" | "router" | "planner" | "executor";
@@ -10,6 +11,8 @@ export type ZodiacRoleContext = {
     role: ZodiacAgentRole;
     taskId: string;
     rootSessionId: string;
+    turnId?: string;
+    nativeCallId?: string;
     planId?: string;
     stageId?: string;
     source: ZodiacExecutionSource;
@@ -19,18 +22,12 @@ export type ZodiacRoleContext = {
 };
 
 const READ_TOOLS = new Set(["skill", "workflow", "hub_read", "hub_canvas_get_node", "hub_canvas_list_nodes", "hub_canvas_grep_text", "hub_canvas_read_text", "hub_plan_list", "hub_plan_get", "hub_list_capabilities", "hub_plugin_agent_describe"]);
-const PLAN_TOOLS = ["hub_plan_write", "hub_plan_patch_stage", "hub_plan_replan"];
-const MEDIA_TOOLS = ["hub_generate_image", "hub_generate_video", "hub_generate_audio", "hub_generate_music", "hub_video_edit"];
-const CANVAS_WRITES = ["hub_canvas_write_node", "hub_canvas_apply_text_edits", "hub_canvas_group_nodes", "hub_canvas_group_recent_outputs", "hub_canvas_ungroup_node"];
-const ORCHESTRATOR_TOOLS = new Set([...READ_TOOLS, ...PLAN_TOOLS, ...MEDIA_TOOLS, ...CANVAS_WRITES, "task", "zodiac-ui", "zodiac-ops", "hub_analyse_media", "hub_save_file_to_session", "hub_plugin_agent_invoke"]);
-const PLANNER_TOOLS = new Set([...READ_TOOLS, ...PLAN_TOOLS, "zodiac-ui", "hub_analyse_media"]);
-const ROUTER_TOOLS = new Set([...READ_TOOLS].filter((name) => name !== "hub_plan_list" && name !== "hub_plugin_agent_describe"));
-const EXECUTOR_TOOLS = new Set([...READ_TOOLS, ...MEDIA_TOOLS, ...CANVAS_WRITES, "hub_analyse_media", "hub_plugin_agent_invoke"]);
-const ROLE_LIMITS = { orchestrator: 64, router: 12, planner: 32, executor: 64 };
+const EXECUTOR_TOOLS = new Set(["hub_canvas_write_node", "hub_generate_image", "hub_generate_video", "hub_generate_audio"]);
 
 export function zodiacRoleAllowsTool(context: ZodiacRoleContext, name: string): boolean {
-    if (context.role === "executor") return EXECUTOR_TOOLS.has(name) && !!context.planId && !!context.stageId && context.approvedTools?.includes(name) === true;
-    return (context.role === "router" ? ROUTER_TOOLS : context.role === "planner" ? PLANNER_TOOLS : ORCHESTRATOR_TOOLS).has(name);
+    if (context.role === "executor" && context.planId && context.stageId) return EXECUTOR_TOOLS.has(name) && context.approvedTools?.includes(name) === true;
+    const tools: readonly string[] = roleSource.roles[context.role].appTools;
+    return tools.includes("*") || tools.includes(name);
 }
 
 export function zodiacToolsForRole(context: ZodiacRoleContext, tools: readonly ZodiacToolDefinition[]) {
@@ -92,7 +89,7 @@ export function createZodiacToolDispatcher(options: {
     const grants = new Set<string>();
     let count = 0;
     let waiting = false;
-    const maximum = Math.min(options.maxCalls ?? ROLE_LIMITS[context.role], ROLE_LIMITS[context.role]);
+    const maximum = Math.min(options.maxCalls ?? roleSource.roles[context.role].maxCalls, roleSource.roles[context.role].maxCalls);
     const dispatch = async (request: ZodiacPolicyRequest): Promise<ZodiacPolicyResult> => {
         throwIfZodiacAborted(context.signal);
         if (waiting) return { ok: false, error: "正在等待用户确认，未执行后续操作。" };
@@ -139,12 +136,3 @@ export function createZodiacToolDispatcher(options: {
         },
     };
 }
-
-export const ZODIAC_ROLE_PROMPTS: Record<ZodiacAgentRole, string> = {
-    orchestrator:
-        "你负责用户交互和创作调度。简单任务直接执行；涉及多阶段依赖的任务先 task(subagent_type=router)，再根据路由 task(subagent_type=planner)。计划先交用户审核，展示审核卡不代表已获批准；阶段执行和结果登记由应用完成。已审核的独立文件或脚本任务可以交给 executor；不能根据技能正文扩大权限。",
-    router: '你是独立的只读任务路由器。只依据本次明确意图及引用判断 direct、workflow 或 ask；需要时用 workflow 读取可用流程。不得写画布、生成、创建计划或派发任务。不要假设继承了父会话。最终只返回 JSON：{"route":"direct|workflow|ask","workflowId":"选中的流程ID或省略","reason":"简短依据","question":"需要澄清时的问题"}。不得发明流程 ID、素材内容或路径。',
-    planner:
-        '你是独立的阶段规划器。只使用本次明确意图、引用和当前服务端计划合同。先按需读取 workflow，再用 hub_plan_write、hub_plan_patch_stage 或 hub_plan_replan 编写当前阶段；大纲可列后续阶段，但不要提前编写其工作项。真正正文写入 hub_canvas_write_node 工作项的 content，不得用标题、会话说明或未来占位替代。保留已完成前缀及稳定工作项 ID。不能生成媒体、执行工作项、批准计划、改运行状态或派发任务。计划标题、目标和审核清单只描述内容、效果与用户需要决定的事项，不展示 args、字段名、哈希或工具协议，也不沿用旧合同中的开发排错清单。计划写入成功后等待用户审核。最终只返回简短 JSON，包含 planId 和当前阶段摘要；有阻碍则返回 {"blocked":true,"reason":"原因"}。',
-    executor: "你只执行应用已批准并领取的当前阶段工作项。严格使用给定工具、参数、引用与模型；不能创建或修改计划、确认审核、派发任务或扩充任务范围。复用已有成功结果，只处理明确的执行子集。工具回执之外不能宣称成功。",
-};

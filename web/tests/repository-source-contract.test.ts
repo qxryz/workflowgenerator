@@ -5,7 +5,7 @@ import test from "node:test";
 const readSource = (path: string) => readFileSync(new URL(path, import.meta.url), "utf8");
 
 test("runtime distribution pulls from the public wg-dist repository", () => {
-    // 应用源码在私有仓库 qxryz/workflowgenerator；运行时拉取的官方内容
+    // 应用源码在公开仓库 qxryz/workflowgenerator；运行时拉取的官方内容
     // （插件、Skills、提示词源、作者库）全部来自公开分发仓库 qxryz/wg-dist。
     const sources = [readSource("../src/constant/env.ts"), readSource("../src/services/api/prompt-source-presets.ts"), readSource("../src/services/skills/skill-registry.ts"), readSource("../src/services/author-library/catalog.ts")].join("\n");
 
@@ -14,14 +14,16 @@ test("runtime distribution pulls from the public wg-dist repository", () => {
     assert.doesNotMatch(sources, /qxryz\/infinite-canvas|basketikun\/infinite-canvas|canvas\.best/u);
 });
 
-test("distribution workflows publish only to their dedicated wg-dist branches", () => {
-    const plugins = readSource("../../.github/workflows/publish-plugins.yml");
-    assert.match(plugins, /HEAD:plugins-dist/u);
-    assert.match(plugins, /qxryz\/wg-dist\.git/u);
+test("plugin and skill workflows validate artifacts while prompt sync targets its dedicated branch", () => {
+    const plugins = readSource("../../.github/workflows/validate-plugins.yml");
+    assert.match(plugins, /npm run build/u);
+    assert.match(plugins, /actions\/upload-artifact@/u);
+    assert.doesNotMatch(plugins, /git push|HEAD:plugins-dist/u);
 
     const skills = readSource("../../.github/workflows/build-skills-registry.yml");
-    assert.match(skills, /HEAD:skills-dist/u);
-    assert.match(skills, /qxryz\/wg-dist\.git/u);
+    assert.match(skills, /npm run build/u);
+    assert.match(skills, /actions\/upload-artifact@/u);
+    assert.doesNotMatch(skills, /git push|HEAD:skills-dist/u);
 
     const promptWorkflow = readSource("../../.github/workflows/sync-prompt-sources.yml");
     assert.match(promptWorkflow, /HEAD:wg-prompt-sources/u);

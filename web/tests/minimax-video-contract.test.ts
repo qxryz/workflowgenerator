@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import test from "node:test";
 
-import { buildMiniMaxEndpoint, buildMiniMaxH3Request, miniMaxVideoInputModeError, resolveMiniMaxVideoInputMode } from "../src/lib/minimax-contract.ts";
+import { buildMiniMaxEndpoint, buildMiniMaxH3Request, miniMaxVideoInputModeError, resolveMiniMaxVideoInputMode, MINIMAX_H3_REFERENCE_LIMITS } from "../src/lib/minimax-contract.ts";
 
 const videoServiceSource = readFileSync(new URL("../src/services/api/video.ts", import.meta.url), "utf8");
 const videoPanelSource = readFileSync(new URL("../src/components/video-settings-panel.tsx", import.meta.url), "utf8");
@@ -79,9 +79,9 @@ test("MiniMax H3 native workbench exposes only supported controls and media limi
 
 test("MiniMax H3 guards official reference formats and keeps long tasks recoverable", () => {
     assert.match(videoServiceSource, /image\/jpeg.*image\/png.*image\/webp/u);
-    assert.match(videoServiceSource, /imageMaxBytes: 30 \* 1024 \* 1024/u);
-    assert.match(videoServiceSource, /videoMaxBytes: 50 \* 1024 \* 1024/u);
-    assert.match(videoServiceSource, /audioMaxBytes: 15 \* 1024 \* 1024/u);
+    assert.equal(MINIMAX_H3_REFERENCE_LIMITS.imageMaxBytes, 30 * 1024 * 1024);
+    assert.equal(MINIMAX_H3_REFERENCE_LIMITS.videoMaxBytes, 50 * 1024 * 1024);
+    assert.equal(MINIMAX_H3_REFERENCE_LIMITS.audioMaxBytes, 15 * 1024 * 1024);
     assert.match(videoServiceSource, /JSON\.stringify\(body\)[\s\S]*?64 \* 1024 \* 1024/u);
     assert.match(videoPageSource, /miniMaxH3ReferenceError\(activeReferences, activeVideoReferences, activeAudioReferences\)/u);
     assert.match(videoPageSource, /const \{ maxAttempts, delayMs: pollDelayMs \} = videoGenerationPollingPolicy\(log\.task\)/u);

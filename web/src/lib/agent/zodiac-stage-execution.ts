@@ -4,6 +4,7 @@ import type { AiConfig } from "../../stores/use-config-store";
 import type { ZodiacStageDraft } from "./zodiac-stage-plan";
 import type { HubToolOutcome, HubToolRequest } from "./zodiac-hub-tools";
 import type { ZodiacPlanCommand, ZodiacPlanMutation, ZodiacPlanOutput, ZodiacPlanReply, ZodiacPlanWorkItem, ZodiacStagePlan } from "./zodiac-stage-plan";
+import { pinZodiacReference, type ZodiacAssetReference } from "./zodiac-assets.ts";
 
 const EXECUTION_TOOLS = new Set(["hub_canvas_write_node", "hub_generate_image", "hub_generate_video", "hub_generate_audio"]);
 
@@ -23,9 +24,21 @@ export function zodiacStageItemArgs(plan: ZodiacStagePlan, stageId: string, item
     for (const id of item.inputItemIds || []) {
         const state = plan.stages.flatMap((stage) => Object.entries(stage.runtime.items)).find(([itemId]) => itemId === id)?.[1];
         if (state?.status !== "succeeded" || !state.output?.nodeId) throw new Error(`引用任务「${id}」尚未完成。`);
-        if (!references.some((entry) => entry && typeof entry === "object" && "nodeId" in entry && entry.nodeId === state.output!.nodeId)) references.push({ nodeId: state.output.nodeId });
+        if (!references.some((entry) => entry && typeof entry === "object" && "nodeId" in entry && entry.nodeId === state.output!.nodeId)) references.push({ ...state.output });
     }
     return { ...item.args, ...(references.length ? { references } : {}), operationId: plan.stages.find((stage) => stage.id === stageId)?.runtime.items[item.id]?.operationId || `${stageId}:${item.id}` };
+}
+
+/** Called before persisting a reviewable contract, including references to user assets. */
+export async function pinZodiacStageReferences(stage: ZodiacStageDraft, nodes: readonly CanvasNodeData[]): Promise<ZodiacStageDraft> {
+    const workItems = await Promise.all(stage.contract.workItems.map(async (item) => {
+        const args = { ...item.args };
+        for (const field of ["references", "videoReferences", "audioReferences"]) {
+            if (Array.isArray(args[field])) args[field] = await Promise.all((args[field] as ZodiacAssetReference[]).map((ref) => pinZodiacReference(ref, nodes)));
+        }
+        return { ...item, args };
+    }));
+    return { ...stage, contract: { ...stage.contract, workItems } };
 }
 
 /** Execute only an already approved stage. Callers must never resume this function on mount. */

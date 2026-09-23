@@ -5,7 +5,7 @@ import { nanoid } from "nanoid";
 import { serverStateStorage } from "@/lib/server-state-storage";
 import { normalizeAudioDefaultsForModel } from "@/lib/audio-defaults";
 import { normalizeAppLanguage, type AppLanguage } from "@/lib/i18n";
-import { defaultAdapterForVendor, legacyVendorForApiFormat, resolveAdapterForModel, type VendorId } from "@/lib/model-catalog";
+import { resolveChannelModelAdapter, defaultAdapterForVendor, legacyVendorForApiFormat, resolveAdapterForModel, type VendorId } from "@/lib/model-catalog";
 import { miniMaxBillingModeForAdapter } from "@/lib/model-adapters";
 import { getProviderDefinition, modelBelongsToProvider, type ProviderProtocol } from "@/lib/model-providers";
 import { DASH_SCOPE_BEIJING_BASE_URL, PRESET_CHANNEL_DEFAULTS, PRESET_CHANNEL_IDS, isUntouchedLegacyFreeChannel, nextCustomChannelName, type BuiltInChannelPreset } from "@/lib/preset-channels";
@@ -411,8 +411,7 @@ export function resolveModelRequestConfig(config: AiConfig, value: string) {
     const matched = findChannelModel(config, value);
     const model = modelOptionName(value || config.model);
     const vendor = channel.vendor || legacyVendorForApiFormat(channel.apiFormat);
-    const declaredAdapter = matched?.model.adapter || channel.adapter || resolveAdapterForModel(model, matched?.model.capability || guessCapability(model));
-    const adapter = vendor === "minimax-token-plan" || vendor === "minimax-api" ? defaultAdapterForVendor(vendor) : declaredAdapter;
+    const adapter = resolveChannelModelAdapter(channel, { name: model, capability: matched?.model.capability || guessCapability(model), adapter: matched?.model.adapter });
     const minimaxBillingMode: MinimaxBillingMode | undefined = miniMaxBillingModeForAdapter(adapter);
     return {
         ...config,

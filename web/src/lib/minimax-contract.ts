@@ -36,6 +36,11 @@ export const MINIMAX_VIDEO_INPUT_MODES = ["auto", "first-frame", "last-frame", "
 export const MINIMAX_HAILUO_MODELS = ["MiniMax-Hailuo-2.3", "MiniMax-Hailuo-2.3-Fast"] as const;
 export const MINIMAX_HAILUO_RESOLUTIONS = ["768P", "1080P"] as const;
 export const MINIMAX_HAILUO_DURATIONS = [6, 10] as const;
+export const MINIMAX_H3_REFERENCE_LIMITS = {
+    images: 9, videos: 3, audios: 3,
+    imageMaxBytes: 30 * 1024 * 1024, videoMaxBytes: 50 * 1024 * 1024, audioMaxBytes: 15 * 1024 * 1024,
+} as const;
+export const MINIMAX_H3_DURATION_SECONDS = { min: 4, max: 15 } as const;
 
 export type MiniMaxNativeRoute = {
     id: MiniMaxNativeTask;
@@ -318,9 +323,9 @@ export function buildMiniMaxH3Request(model: string, input: MiniMaxH3Input) {
     const images = input.images || [];
     const videos = input.videos || [];
     const audios = input.audios || [];
-    if (images.length > 9) throw new Error("MiniMax H3 最多支持 9 张参考图");
-    if (videos.length > 3) throw new Error("MiniMax H3 最多支持 3 个参考视频");
-    if (audios.length > 3) throw new Error("MiniMax H3 最多支持 3 个参考音频");
+    if (images.length > MINIMAX_H3_REFERENCE_LIMITS.images) throw new Error("MiniMax H3 最多支持 9 张参考图");
+    if (videos.length > MINIMAX_H3_REFERENCE_LIMITS.videos) throw new Error("MiniMax H3 最多支持 3 个参考视频");
+    if (audios.length > MINIMAX_H3_REFERENCE_LIMITS.audios) throw new Error("MiniMax H3 最多支持 3 个参考音频");
     const counts = { images: images.length, videos: videos.length, audios: audios.length };
     const modeError = miniMaxVideoInputModeError(input.mode, counts);
     if (modeError) throw new Error(modeError);
@@ -343,7 +348,7 @@ export function buildMiniMaxH3Request(model: string, input: MiniMaxH3Input) {
         model: model || "MiniMax-H3",
         content,
         resolution: normalizeMiniMaxVideoResolution(input.resolution),
-        duration: Math.max(4, Math.min(15, Math.floor(input.duration) || 6)),
+        duration: Math.max(MINIMAX_H3_DURATION_SECONDS.min, Math.min(MINIMAX_H3_DURATION_SECONDS.max, Math.floor(input.duration) || 6)),
         ratio: mode === "first-frame" || mode === "last-frame" || mode === "first-last" ? "adaptive" : normalizeMiniMaxVideoRatio(input.ratio, hasReference),
         ...(typeof input.watermark === "boolean" ? { aigc_watermark: input.watermark } : {}),
     };

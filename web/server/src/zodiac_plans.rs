@@ -191,6 +191,9 @@ fn validate_draft(plan: &Value, draft: &Value) -> Result<()> {
     }
     let mut ids = item_ids(plan, text(draft, "id")?);
     for item in items {
+        if item.as_object().is_none_or(|o| o.keys().any(|key| !matches!(key.as_str(), "id" | "title" | "tool" | "args" | "dependsOn" | "inputItemIds"))) {
+            return Err(invalid("工作项只能包含创作内容和依赖，不能包含运行状态"));
+        }
         let key = id(item, "id")?;
         if !ids.insert(key.to_string()) {
             return Err(invalid("工作项 ID 必须在计划内唯一"));
@@ -357,6 +360,10 @@ fn create(conn: &mut Connection, input: Value) -> Result<Value> {
         id(&input, "sessionId")?;
         plan["sessionId"] = session.clone();
     }
+    if let Some(session) = input.get("plannerSessionId") {
+        id(&input, "plannerSessionId")?;
+        plan["plannerSessionId"] = session.clone();
+    }
     let draft = &input["firstStage"];
     validate_draft(&plan, draft)?;
     if frontier(&plan).as_deref() != draft["id"].as_str() {
@@ -466,6 +473,13 @@ fn mutate(conn: &mut Connection, input: Value, lane: &str) -> Result<Value> {
     let revision = plan["revision"].as_u64().unwrap();
     if input["expectedRevision"].as_u64() != Some(revision) {
         return Err(conflict("计划版本已变化，请读取最新计划"));
+    }
+    if lane == "author" && input.get("plannerSessionId").is_some() {
+        let planner = id(&input, "plannerSessionId")?;
+        if plan.get("plannerSessionId").is_some_and(|existing| existing != planner) {
+            return Err(conflict("请继续原 Planner 会话，不能替换计划归属"));
+        }
+        plan["plannerSessionId"] = json!(planner);
     }
     let mut claim = None;
     if kind == "write_stage" || kind == "replan" {
@@ -1078,6 +1092,22 @@ mod tests {
     }
     fn input(plan: &Value, request: &str, command: Value) -> Value {
         json!({"planId":plan["id"],"expectedRevision":plan["revision"],"requestId":request,"command":command})
+    }
+    #[test]
+    fn legacy_plan_binds_a_planner_and_preserves_ownership() {
+        let mut conn = setup();
+        let plan = initial(&mut conn);
+        let mut request = input(&plan, "bind", json!({"type":"write_stage","stage":draft("s1", &["i1","i2"])}));
+        request["plannerSessionId"] = json!("ses_planner");
+        let updated = mutate(&mut conn, request, "author").unwrap()["plan"].clone();
+        assert_eq!(updated["plannerSessionId"], "ses_planner");
+        let mut request = input(&updated, "replace", json!({"type":"write_stage","stage":draft("s1", &["i1","i2"])}));
+        request["plannerSessionId"] = json!("ses_other");
+        assert!(mutate(&mut conn, request, "author").is_err());
+        assert_eq!(read(&conn, "p").unwrap()["plannerSessionId"], "ses_planner");
+        let mut invalid = draft("s1", &["i1"]);
+        invalid["contract"]["workItems"][0]["runtime"] = json!({"status":"succeeded"});
+        assert!(validate_draft(&updated, &invalid).is_err());
     }
     fn command(
         conn: &mut Connection,

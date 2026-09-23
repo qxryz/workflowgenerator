@@ -25,6 +25,11 @@ use tokio::{
     sync::{oneshot, Mutex},
 };
 
+#[path = "agent_runtime_context.rs"]
+mod context;
+#[path = "agent_runtime_assets.rs"]
+mod assets;
+
 type Result<T> = std::result::Result<T, String>;
 type Registry = Mutex<HashMap<String, Arc<Runtime>>>;
 static START_LOCK: OnceLock<Mutex<()>> = OnceLock::new();
@@ -43,6 +48,8 @@ struct Bridge {
     pending: Mutex<HashMap<String, Pending>>,
     provider: Mutex<Provider>,
     waiting_user: AtomicBool,
+    authority: Mutex<Option<context::Authority>>,
+    tickets: Mutex<HashMap<String, context::Ticket>>,
 }
 struct Runtime {
     child: Mutex<Child>,
@@ -366,6 +373,7 @@ impl Runtime {
         let mut request = self
             .client
             .request(method, format!("{}{path}", self.origin))
+            .timeout(Duration::from_secs(30))
             .basic_auth("opencode", Some(&self.password));
         if let Some(body) = body {
             request = request.json(&body);
@@ -419,6 +427,8 @@ async fn spawn(state: &AppState, input: &Start) -> Result<Arc<Runtime>> {
         pending: Mutex::new(HashMap::new()),
         provider: Mutex::new(provider),
         waiting_user: AtomicBool::new(false),
+        authority: Mutex::new(None),
+        tickets: Mutex::new(HashMap::new()),
     });
     let listener = tokio::net::TcpListener::bind("127.0.0.1:0")
         .await
@@ -434,6 +444,7 @@ async fn spawn(state: &AppState, input: &Start) -> Result<Arc<Runtime>> {
                 .get(|| async { StatusCode::METHOD_NOT_ALLOWED })
                 .delete(|| async { StatusCode::NO_CONTENT }),
         )
+        .route("/context", post(context::attest))
         .route("/provider/{*path}", post(proxy_model))
         .layer(DefaultBodyLimit::max(128 * 1024 * 1024))
         .with_state(bridge.clone());
@@ -443,19 +454,17 @@ async fn spawn(state: &AppState, input: &Start) -> Result<Arc<Runtime>> {
     let reserve = std::net::TcpListener::bind("127.0.0.1:0").map_err(|e| e.to_string())?;
     let port = reserve.local_addr().map_err(|e| e.to_string())?.port();
     drop(reserve);
+    let plugin = control.join("zodiac-context.mjs");
+    std::fs::write(&plugin, include_str!("../runtime/zodiac-context.mjs")).map_err(|e| e.to_string())?;
+    let plugin_url = reqwest::Url::from_file_path(&plugin).map_err(|_| "Agent 插件路径无效")?;
     let config = json!({"$schema":"https://opencode.ai/config.json","autoupdate":false,"share":"disabled","snapshot":false,
     "enabled_providers":["workflowgenerator"],"model":format!("workflowgenerator/{model}"),"small_model":format!("workflowgenerator/{model}"),
     "provider":{"workflowgenerator":{"npm":npm,"name":"WorkflowGenerator","options":{"baseURL":format!("{bridge_origin}/provider"),"apiKey":token},"models":{model.clone():{"name":model,"tool_call":true,"attachment":true,"modalities":{"input":["text","image"],"output":["text"]},"limit":{"context":128000,"output":16384}}}}},
     "mcp":{"wg":{"type":"remote","url":format!("{bridge_origin}/mcp"),"headers":{"Authorization":format!("Bearer {token}")},"oauth":false,"timeout":1800000}},
     "skills":{"paths":[skill_root]},
+    "plugin":[plugin_url.as_str()],
     "permission":{"*":"allow","bash":"ask","edit":"ask","external_directory":"ask","doom_loop":"ask","question":"deny"},
-    "agent":{
-        "zodiac":{"mode":"primary","steps":128,"description":"创作助手","prompt":"You are Zodiac, a creative workflow agent. Use native read/write/edit/bash for real workspace files and scripts. Application tools use the wg_ prefix. Read skills before using their procedures. Native task delegates to persistent router/planner/executor subagents. Never claim file creation or execution without tool evidence. For user decisions use wg_zodiac-ui; after a pending proposal/decision or waiting_user result, stop and await the next user message. Never bypass tool rejection. Keep work in the current session directory; preserve scripts and intermediate outputs. Do not use MiniMax private services unless explicitly configured."},
-        "router":{"mode":"subagent","steps":30,"description":"Analyze the task and choose an appropriate workflow or skill","prompt":"Read only. Inspect the explicit task, wg_workflow and enabled skills. Return a small JSON routing capsule: route direct/workflow/ask, workflowId when selected, reason, and question when clarification is needed. Do not generate, mutate canvas, create plans or delegate. Do not assume the parent transcript is visible.","permission":{"edit":"deny","bash":"deny","wg_*":"deny","wg_workflow":"allow","wg_skill":"allow","task":"deny"}},
-        "planner":{"mode":"subagent","steps":80,"description":"Read references and skills and develop a concrete creative plan","prompt":"You are the stage planner. Read wg_workflow and wg_hub_plan_get as needed. Use wg_hub_plan_write, wg_hub_plan_patch_stage or wg_hub_plan_replan to persist the complete outline and concrete current stage contract. Future stages stay unwritten. Work items must contain actual document content or concrete generation inputs. Preserve completed stages and stable item IDs. Do not execute work items or approve plans. After persisting waiting_user, stop and return planId and a concise stage summary. Resume this same task_id for subsequent stages.","permission":{"edit":"deny","bash":"deny","wg_*":"deny","wg_hub_read":"allow","wg_hub_canvas_*":"deny","wg_hub_canvas_list_nodes":"allow","wg_hub_canvas_get_node":"allow","wg_skill":"allow","wg_workflow":"allow","wg_hub_plan_write":"allow","wg_hub_plan_patch_stage":"allow","wg_hub_plan_get":"allow","wg_hub_plan_list":"allow","wg_hub_plan_replan":"allow","task":"deny"}},
-        "executor":{"mode":"subagent","description":"Execute a bounded task using workspace files, scripts and creative application tools; report actual outputs","permission":{"bash":"ask","edit":"ask","task":"deny"}},
-        "title":{"disable":true},"build":{"disable":true},"plan":{"disable":true},"general":{"disable":true},"explore":{"disable":true}
-    }});
+    "agent":context::agent_config()});
     let log = std::fs::OpenOptions::new()
         .create(true)
         .append(true)
@@ -651,6 +660,16 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
         drop(create_guard);
         let mut turn = runtime.turn.lock().await;
         if turn.as_ref().is_some_and(|(id, _)| id == &input.turn_id) {
+            let delivery = std::fs::read(runtime.control.join("submission.json")).ok()
+                .and_then(|bytes| serde_json::from_slice::<Value>(&bytes).ok());
+            if delivery.as_ref().is_some_and(|value| value["turnId"] == input.turn_id && value["state"] != "submitted") {
+                let messages = runtime.get(&format!("/session/{}/message", runtime.session)).await?;
+                let baseline = &turn.as_ref().unwrap().1;
+                if !messages.as_array().into_iter().flatten().any(|message| message["info"]["role"] == "user"
+                    && !baseline.iter().any(|id| message["info"]["id"] == *id)) {
+                    return Err("上次请求是否送达尚未确认，未重复发送。请先检查会话状态，再发起新的请求。".into());
+                }
+            }
             return Ok(json!({"sessionId":runtime.session,"resumed":true}));
         }
         let statuses = runtime.get("/session/status").await?;
@@ -661,6 +680,11 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
             return Err("这个会话仍在工作，请等待完成或停止后再发送。".into());
         }
         runtime.bridge.waiting_user.store(false, Ordering::SeqCst);
+        runtime.bridge.tickets.lock().await.clear();
+        *runtime.bridge.authority.lock().await = Some(context::Authority {
+            origin: runtime.origin.clone(), password: runtime.password.clone(), native_root: runtime.session.clone(),
+            root_session: input.session_id.clone(), turn_id: input.turn_id.clone(),
+        });
         *runtime.bridge.tools.lock().await = input.tools;
         let selected = provider(&state).await?;
         if selected.model != runtime.bridge.provider.lock().await.model {
@@ -675,7 +699,15 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
             *previous_skills = fingerprint;
         }
         drop(previous_skills);
-        materialize_assets(&state, &runtime.work, &input.assets)?;
+        let mut assets = input.assets;
+        for (index, attachment) in input.attachments.iter().enumerate() {
+            if attachment["type"] != "file" || !attachment["url"].as_str().is_some_and(|s| s.starts_with("data:image/")) {
+                return Err("图片附件无效".into());
+            }
+            assets.push(json!({"id":format!("attachment-{}-{index}", input.turn_id), "name":format!("本轮附件 {}", index + 1),
+                "type":"image","origin":"message_attachment","dataUrl":attachment["url"],"selected":true}));
+        }
+        let manifest = materialize_assets(&state, &runtime.work, &assets, false)?;
         let previous = runtime
             .get(&format!("/session/{}/message", runtime.session))
             .await?;
@@ -685,8 +717,10 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
             .flatten()
             .filter_map(|m| m["info"]["id"].as_str().map(str::to_owned))
             .collect();
-        *turn = Some((input.turn_id.clone(), ids));
-        persist_json(&runtime.control.join("turn.json"), &*turn)?;
+        let next_turn = Some((input.turn_id.clone(), ids));
+        persist_json(&runtime.control.join("submission.json"), &json!({"turnId":input.turn_id,"state":"prepared"}))?;
+        persist_json(&runtime.control.join("turn.json"), &next_turn)?;
+        *turn = next_turn;
         let text = if previous.as_array().is_some_and(|a| a.is_empty()) && !input.history.is_empty()
         {
             format!(
@@ -696,23 +730,18 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
         } else {
             input.text
         };
+        let text = format!("{text}\n\n[会话文件索引：.zodiac/assets.json；当前快照：{}。附件条目是消息附件，非画布节点。子任务读取同一工作区。]", manifest["revision"].as_str().unwrap_or(""));
         let mut parts = vec![json!({"type":"text","text":text})];
-        for attachment in input.attachments {
-            if attachment["type"] != "file"
-                || !attachment["url"]
-                    .as_str()
-                    .is_some_and(|s| s.starts_with("data:image/"))
-            {
-                return Err("图片附件无效".into());
-            }
-            parts.push(attachment);
-        }
-        runtime
+        parts.extend(input.attachments);
+        let submitted = runtime
             .post(
                 &format!("/session/{}/prompt_async", runtime.session),
                 json!({"agent":"zodiac","system":input.system,"parts":parts}),
             )
-            .await?;
+            .await;
+        persist_json(&runtime.control.join("submission.json"), &json!({"turnId":input.turn_id,
+            "state":if submitted.is_ok() { "submitted" } else { "uncertain" }}))?;
+        submitted?;
         Ok::<_, String>(json!({"sessionId":runtime.session,"workspace":runtime.work}))
     }
     .await;
@@ -763,6 +792,9 @@ async fn snapshot(State(state): State<AppState>, Json(id): Json<Identity>) -> Re
 async fn abort(State(state): State<AppState>, Json(id): Json<Identity>) -> Response {
     let result = async {
         let r = find(&state, &id).await?;
+        r.bridge.waiting_user.store(true, Ordering::SeqCst);
+        r.bridge.tickets.lock().await.clear();
+        r.bridge.pending.lock().await.clear();
         let children = r.get(&format!("/session/{}/children", r.session)).await?;
         for child in children.as_array().into_iter().flatten() {
             if let Some(id) = child["id"].as_str() {
@@ -772,7 +804,6 @@ async fn abort(State(state): State<AppState>, Json(id): Json<Identity>) -> Respo
         let result = r
             .post(&format!("/session/{}/abort", r.session), json!({}))
             .await?;
-        r.bridge.pending.lock().await.clear();
         Ok::<_, String>(result)
     }
     .await;
@@ -905,12 +936,20 @@ async fn mcp(
             {
                 return Json(json!({"jsonrpc":"2.0","id":id,"error":{"code":-32602,"message":"Unknown tool"}})).into_response();
             }
-            let call_id = match secret() {
-                Ok(v) => v,
-                Err(e) => return fail(e),
+            let mut args = body["params"]["arguments"].clone();
+            let actor = match context::consume(&bridge, name, &mut args).await {
+                Ok(actor) => actor,
+                Err(error) => return Json(json!({"jsonrpc":"2.0","id":id,"result":{"content":[{"type":"text","text":error}],"isError":true}})).into_response(),
             };
+            use sha2::{Digest, Sha256};
+            let call_id = format!("{:x}", Sha256::digest(serde_json::to_vec(&json!([
+                actor["turnId"], actor["taskId"], actor["nativeMessageId"], actor["nativeCallId"]
+            ])).unwrap()));
+            if bridge.pending.lock().await.contains_key(&call_id) {
+                return Json(json!({"jsonrpc":"2.0","id":id,"result":{"content":[{"type":"text","text":"此操作仍在执行，请等待原始回执"}],"isError":true}})).into_response();
+            }
             let (tx, rx) = oneshot::channel();
-            bridge.pending.lock().await.insert(call_id.clone(),Pending{request:json!({"callId":call_id,"name":name,"args":body["params"]["arguments"]}),reply:tx});
+            bridge.pending.lock().await.insert(call_id.clone(),Pending{request:json!({"callId":call_id,"name":name,"args":args,"context":actor}),reply:tx});
             let result = match tokio::time::timeout(Duration::from_secs(1800), rx).await {
                 Ok(Ok(v)) => v,
                 _ => json!({"ok":false,"error":"工具已停止或等待超时"}),
@@ -1081,33 +1120,8 @@ async fn events(State(state): State<AppState>, Json(id): Json<Identity>) -> Resp
         _ => (StatusCode::BAD_GATEWAY, "Agent 事件连接失败").into_response(),
     }
 }
-fn materialize_assets(state: &AppState, work: &FsPath, assets: &[Value]) -> Result<()> {
-    use sha2::{Digest, Sha256};
-    let dir = safe_child(work, ".hilo/.blobs")?;
-    std::fs::create_dir_all(&dir).map_err(|e| e.to_string())?;
-    let mut entries = Vec::new();
-    for asset in assets {
-        let Some(key) = asset["storageKey"].as_str() else {
-            continue;
-        };
-        let hash = format!("{:x}", Sha256::digest(key.as_bytes()));
-        let target = safe_child(&dir, &hash)?;
-        let (bytes, mime) = match storage::export_workspace_media(&state.storage, key, &target) {
-            Ok(value) => value,
-            Err(error) => {
-                entries.push(json!({"id":asset["id"],"name":asset["name"],"type":asset["type"],"error":error}));
-                continue;
-            }
-        };
-        entries.push(json!({"id":asset["id"],"name":asset["name"],"type":asset["type"],"blobRef":hash,"mimeType":mime,"size":bytes}));
-    }
-    let index = safe_child(work, ".hilo/assets.json")?;
-    std::fs::write(
-        index,
-        serde_json::to_vec_pretty(&entries).map_err(|e| e.to_string())?,
-    )
-    .map_err(|e| e.to_string())?;
-    Ok(())
+fn materialize_assets(state: &AppState, work: &FsPath, assets: &[Value], preserve_attachments: bool) -> Result<Value> {
+    assets::materialize(state, work, assets, preserve_attachments)
 }
 
 #[derive(Deserialize)]
@@ -1177,8 +1191,8 @@ struct AssetsRequest {
 async fn sync_assets(State(state): State<AppState>, Json(input): Json<AssetsRequest>) -> Response {
     let result = (|| {
         let work = work_dir(&state, &input.project_id, &input.session_id)?;
-        materialize_assets(&state, &work, &input.assets)?;
-        Ok::<_, String>(json!({"ok":true}))
+        let manifest = materialize_assets(&state, &work, &input.assets, true)?;
+        Ok::<_, String>(json!({"ok":true,"manifest":manifest}))
     })();
     match result {
         Ok(v) => Json(v).into_response(),

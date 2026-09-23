@@ -20,7 +20,8 @@ test("active plans gate direct root mutations and plan authoring waits for user 
     assert.match(tools, /plan\.sessionId === sessionRef\.current\.id && zodiacPlanFrontier\(plan\)/);
     assert.ok(tools.indexOf("listZodiacPlans(requestSessionKey)") < tools.indexOf("executeHubTool(request"));
     assert.match(tools, /status: "waiting_user"/);
-    assert.match(tools, /firstStage: materializeZodiacStage/);
-    assert.match(tools, /stage: materializeZodiacStage/);
+    assert.match(tools, /firstStage: await prepareStage/);
+    assert.match(tools, /await pinZodiacStageReferences\(materializeZodiacStage/);
+    assert.match(tools, /stage: await prepareStage/);
     assert.doesNotMatch(tools, /type: "approve"|type: "accept"|type: "retry"/);
 });

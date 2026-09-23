@@ -1,3 +1,6 @@
+import { zodiacPlanContext } from "@/lib/agent/zodiac-plan-context";
+import { pinZodiacStageReferences } from "@/lib/agent/zodiac-stage-execution";
+import { zodiacWorkspaceAssets } from "@/lib/agent/zodiac-assets";
 import { agentRequest } from "@/services/api/opencode-runtime";
 import { ArrowDown, History, Plus, PanelRightClose, RotateCcw } from "lucide-react";
 import { ZodiacSessionList } from "./zodiac-session-list";
@@ -404,6 +407,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             sessionId: ownerSessionId,
             turnId,
             operationNamespace,
+            defaultModels: { image: config.imageModel, video: config.videoModel, audio: config.audioModel },
             getSnapshot: () => canvasContext.getSnapshot(),
             applyOps: (ops) => canvasContext.applyOps(ops),
             runWorkflow: (startNodeIds, mode, runSignal) => canvasContext.runWorkflow(startNodeIds, mode, runSignal),
@@ -540,7 +544,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 const file = await agentRequest<{ kind: "text" | "image" | "video" | "audio"; content?: string; storageKey?: string; url?: string }>("import", { projectId: requestSessionKey, sessionId: sessionRef.current.id, path: args.path, callId: request.callId }, toolSignal);
                 toolSignal.throwIfAborted();
                 const id = `agent-file-${request.callId.slice(0, 20)}`;
-                const saved = await canvasContext.applyOps([{ type: "add_node", id, nodeType: file.kind, title: args.name || args.path?.split("/").at(-1) || "产物", metadata: { content: file.content || file.url || "", ...(file.storageKey ? { storageKey: file.storageKey } : {}), agentSessionId: sessionRef.current.id, agentTurnId: actor?.taskId || requestUser.id, status: "success" } }]);
+                const saved = await canvasContext.applyOps([{ type: "add_node", id, nodeType: file.kind, title: args.name || args.path?.split("/").at(-1) || "产物", metadata: { content: file.content || file.url || "", ...(file.storageKey ? { storageKey: file.storageKey } : {}), agentSessionId: sessionRef.current.id, agentTurnId: actor?.turnId || requestUser.id, agentTaskId: actor?.taskId, status: "success" } }]);
                 if (!saved.nodes.some(node => node.id === id)) return { ok: false, error: "产物尚未保存到画布。" };
                 return { ok: true, result: { nodeId: id, path: args.path, storageKey: file.storageKey } };
             }
@@ -554,23 +558,31 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 try {
                     const args = (request.args || {}) as Record<string, unknown>;
                     if ("runtime" in args || "command" in args) throw new Error("计划工具不能修改审核或执行状态。");
-                    if (request.name === "hub_plan_list") return { ok: true, result: { plans: await listZodiacPlans(requestSessionKey) } };
+                    if (request.name === "hub_plan_list") return { ok: true, result: { plans: (await listZodiacPlans(requestSessionKey)).filter(plan => plan.sessionId === sessionRef.current.id).map(plan => zodiacPlanContext(plan)) } };
                     const requestId = await zodiacPlanRequestId(requestUser.id, actor?.taskId || sessionRef.current.id, request.callId);
                     toolSignal.throwIfAborted();
                     if (!isCurrentRequest()) throw new DOMException("Aborted", "AbortError");
+                    const prepareStage = async (value: unknown, field = "stage") => {
+                        const stage = await pinZodiacStageReferences(materializeZodiacStage(value as ZodiacStageDraft, config, field), canvasContext.getSnapshot().nodes);
+                        toolSignal.throwIfAborted();
+                        if (!isCurrentRequest()) throw new DOMException("Aborted", "AbortError");
+                        return stage;
+                    };
                     let result;
                     if (request.name === "hub_plan_write") {
-                        result = await createZodiacPlan({ id: typeof args.id === "string" ? args.id : crypto.randomUUID(), projectId: requestSessionKey, sessionId: sessionRef.current.id, title: args.title as string, workflowId: typeof args.workflowId === "string" ? args.workflowId : "custom", outline: args.outline as ZodiacStageOutline[], firstStage: materializeZodiacStage(args.firstStage as ZodiacStageDraft, config, "firstStage"), requestId } satisfies ZodiacPlanCreate);
+                        result = await createZodiacPlan({ id: typeof args.id === "string" ? args.id : crypto.randomUUID(), projectId: requestSessionKey, sessionId: sessionRef.current.id, ...(actor?.role === "planner" ? { plannerSessionId: actor.taskId } : {}), title: args.title as string, workflowId: typeof args.workflowId === "string" ? args.workflowId : "custom", outline: args.outline as ZodiacStageOutline[], firstStage: await prepareStage(args.firstStage, "firstStage"), requestId } satisfies ZodiacPlanCreate);
                     } else {
                         if (typeof args.planId !== "string") throw new Error("请选择要读取的计划。");
                         const plan = await loadZodiacPlanForCurrentTurn(getZodiacPlan, args.planId, requestSessionKey, toolSignal, isCurrentRequest);
-                        if (request.name === "hub_plan_get") return { ok: true, result: { plan } };
+                        if (request.name === "hub_plan_get") return { ok: true, result: zodiacPlanContext(plan, args) };
+                        if (actor?.role === "planner" && plan.plannerSessionId && plan.plannerSessionId !== actor.taskId) throw new Error(`请通过 task_id=${plan.plannerSessionId} 继续此计划的 Planner。`);
+                        if (plan.sessionId && plan.sessionId !== sessionRef.current.id) throw new Error("计划不属于当前会话。");
                         if (typeof args.expectedRevision !== "number") throw new Error("请先读取计划的当前版本。");
-                        result = await mutateZodiacPlan({ planId: plan.id, expectedRevision: args.expectedRevision, requestId, command: request.name === "hub_plan_patch_stage" ? { type: "write_stage", stage: materializeZodiacStage(args.stage as ZodiacStageDraft, config) } : { type: "replan", outline: args.outline as ZodiacStageOutline[], stage: materializeZodiacStage(args.stage as ZodiacStageDraft, config), reason: args.reason as string } });
+                        result = await mutateZodiacPlan({ planId: plan.id, expectedRevision: args.expectedRevision, requestId, ...(actor?.role === "planner" ? { plannerSessionId: actor.taskId } : {}), command: request.name === "hub_plan_patch_stage" ? { type: "write_stage", stage: await prepareStage(args.stage) } : { type: "replan", outline: args.outline as ZodiacStageOutline[], stage: await prepareStage(args.stage), reason: args.reason as string } });
                     }
                     structuredReply = true;
                     window.dispatchEvent(new CustomEvent("zodiac-plans-changed", {detail:{planId:result.plan.id}}));
-                    return { ok: true, result: { plan: result.plan, status: "waiting_user" } };
+                    return { ok: true, result: { ...zodiacPlanContext(result.plan), status: "waiting_user" } };
                 } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "计划保存失败" }; }
             }
             try {
@@ -608,10 +620,10 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             // Hub 技能调用的工具：执行体在 zodiac-hub-tools，这里只把它接到当前画布与内核通道上。
             if (HUB_TOOL_EXECUTION_NAMES.includes(request.name)) {
                 if (!canvasContext) return { ok: false, error: "当前没有打开的画布，无法执行生成或读取节点。" };
-                const result = await executeHubTool(request, createHubContext(toolSignal, sessionRef.current.id, actor?.taskId || requestUser.id));
-                if (result.ok && request.name.startsWith("hub_generate_")) {
+                const result = await executeHubTool(request, { ...createHubContext(toolSignal, sessionRef.current.id, actor?.turnId || requestUser.id), taskId: actor?.taskId });
+                if (result.ok && (request.name.startsWith("hub_generate_") || ["hub_canvas_write_node", "hub_canvas_apply_text_edits"].includes(request.name))) {
                     try {
-                        await agentRequest("assets", { projectId: requestSessionKey, sessionId: sessionRef.current.id, assets: canvasContext.getSnapshot().nodes.filter(node => typeof node.metadata?.storageKey === "string" && ["image", "video", "audio"].includes(node.type)).map(node => ({ id: node.id, name: node.title || node.id, type: node.type, storageKey: node.metadata!.storageKey! })) }, toolSignal);
+                        await agentRequest("assets", { projectId: requestSessionKey, sessionId: sessionRef.current.id, assets: zodiacWorkspaceAssets(canvasContext.getSnapshot().nodes, canvasContext.getSnapshot().selectedNodeIds) }, toolSignal);
                     } catch (error) {
                         toolSignal.throwIfAborted();
                         // A secondary export failure must never turn a paid generation into a retry.
@@ -631,7 +643,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 sessionId: sessionRef.current.id,
                 projectId: requestSessionKey,
                 turnId: requestUser.id,
-                assets: snapshot?.nodes.filter(node => typeof node.metadata?.storageKey === "string" && ["image", "video", "audio"].includes(node.type)).map(node => ({ id: node.id, name: node.title || node.id, type: node.type, storageKey: node.metadata!.storageKey! })),
+                assets: snapshot ? zodiacWorkspaceAssets(snapshot.nodes, snapshot.selectedNodeIds) : [],
                 onPermissionRequest: request => askToolApproval(request, controller.signal),
                 messages,
                 text: messages.map((entry) => `${entry.role}: ${typeof entry.content === "string" ? entry.content : entry.content.map((part) => (part.type === "text" ? part.text : `[${part.type}]`)).join("\n")}`).join("\n\n"),
@@ -650,9 +662,6 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                     setItems(current => current.map(item => item.id === assistantId ? { ...item, workProcess: ((item.workProcess || "") + delta).slice(-16000) } : item));
                 },
                 onToolRequest: applyToolRequest,
-                loadPlanContext: async (planId) => {
-                    return loadZodiacPlanForCurrentTurn(getZodiacPlan, planId, requestSessionKey, controller.signal, isCurrentRequest);
-                },
                 signal: controller.signal,
             });
             if (streamFlushTimer !== null) window.clearTimeout(streamFlushTimer);

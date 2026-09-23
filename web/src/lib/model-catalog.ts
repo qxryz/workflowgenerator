@@ -205,6 +205,13 @@ export function resolveAdapterForModel(modelName: string, capability: ModelCapab
     return vendor ? "custom" : "openai-compatible";
 }
 
+/** Shared by request dispatch and Agent capability discovery. */
+export function resolveChannelModelAdapter(channel: { vendor?: string; apiFormat?: string; adapter?: string }, model: { name: string; capability: ModelCapability; adapter?: string }): string {
+    const vendor = channel.vendor || legacyVendorForApiFormat(channel.apiFormat || "openai");
+    if (vendor === "minimax-token-plan" || vendor === "minimax-api") return defaultAdapterForVendor(vendor);
+    return model.adapter || channel.adapter || resolveAdapterForModel(model.name, model.capability);
+}
+
 /** 厂商的“特征适配器”：优先取非 OpenAI 兼容的能力适配器，让切换厂商时下拉有明显变化。 */
 export function defaultAdapterForVendor(vendorId: VendorId): AdapterId {
     const vendor = getModelVendor(vendorId);
