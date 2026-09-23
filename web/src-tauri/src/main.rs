@@ -1,10 +1,27 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 use tauri::Manager;
 const FLUSH_AND_CLOSE: &str = "if (window.dispatchEvent(new Event('workflowgenerator:desktop-close', {cancelable: true}))) fetch('/api/desktop/close-ready', {method: 'POST'})";
+
+#[tauri::command]
+fn open_external_url(url: String) -> Result<(), String> {
+    let parsed = tauri::Url::parse(&url).map_err(|_| "无效链接".to_string())?;
+    if !matches!(parsed.scheme(), "https" | "http" | "mailto" | "tel") {
+        return Err("不支持的链接协议".to_string());
+    }
+    #[cfg(target_os = "macos")]
+    let mut command = std::process::Command::new("/usr/bin/open");
+    #[cfg(target_os = "windows")]
+    let mut command = std::process::Command::new("explorer.exe");
+    #[cfg(not(any(target_os = "macos", target_os = "windows")))]
+    let mut command = std::process::Command::new("xdg-open");
+    command.arg(parsed.as_str()).spawn().map_err(|error| error.to_string())?;
+    Ok(())
+}
+
 fn main() {
     let closing = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
     let close_approved = closing.clone();
-    let runtime = tauri::Builder::default().plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init()).setup(move |app| {
+    let runtime = tauri::Builder::default().plugin(tauri_plugin_updater::Builder::new().build()).plugin(tauri_plugin_process::init()).invoke_handler(tauri::generate_handler![open_external_url]).setup(move |app| {
         let data = match std::env::var_os("WG_DATA_DIR") {
             Some(path) => std::path::PathBuf::from(path),
             None => workflowgenerator_server::data_layout::desktop_root(&app.path().home_dir()?, &app.path().app_data_dir()?).map_err(std::io::Error::other)?,

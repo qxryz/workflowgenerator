@@ -7,6 +7,7 @@ import { createModelChannel, guessCapability, normalizeChannelModels, type ApiCa
 import { adapterCapabilitySupport, adapterForLegacyProtocol, capabilitySupportLabel, getModelAdapter, legacyApiFormatForAdapter, modelAdapters, type AdapterId } from "@/lib/model-adapters";
 import { defaultAdapterForVendor, legacyApiFormatForVendor, legacyVendorForApiFormat, modelCatalog, modelVendors, recommendedCatalogModelsForVendor, resolveAdapterForModel, type VendorId } from "@/lib/model-catalog";
 import { miniMaxCredentialError as getMiniMaxCredentialError } from "@/lib/minimax-contract";
+import { openExternalUrl } from "@/services/external-links";
 import { ModelSelectModal } from "./model-select-modal";
 
 const loadModelScriptEditor = () => import("./model-script-editor");
@@ -46,6 +47,11 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
     const isMiniMaxVendor = currentVendor === "minimax-token-plan" || currentVendor === "minimax-api";
     const miniMaxCredentialMode = currentVendor === "minimax-token-plan" ? "token-plan" : currentVendor === "minimax-api" ? "payg" : null;
     const minimaxCredentialError = miniMaxCredentialMode ? getMiniMaxCredentialError(miniMaxCredentialMode, draft.apiKey) : "";
+    const keyUrl = currentVendor === "agnes"
+        ? "https://platform.agnes-ai.com/settings/apiKeys"
+        : currentVendor === "qwen"
+          ? "https://bailian.console.aliyun.com/cn-beijing/model/settings/api-key"
+          : null;
 
     const changeVendor = (vendorId: VendorId) => {
         const vendor = modelVendors.find((item) => item.id === vendorId);
@@ -197,8 +203,8 @@ export function ChannelEditorDrawer({ open, channel, onSave, onClose }: { open: 
                             onChange={(event) => patch({ apiKey: event.target.value })}
                             placeholder={currentVendor === "minimax-token-plan" ? "sk-cp-..." : currentVendor === "minimax-api" ? "sk-api-..." : "sk-..."}
                         />
-                        {draft.preset === "free" && currentVendor === "agnes" ? (
-                            <Button href="https://platform.agnes-ai.com/settings/apiKeys" target="_blank" rel="noopener noreferrer" className="shrink-0">
+                        {keyUrl ? (
+                            <Button onClick={() => void openExternalUrl(keyUrl)} className="shrink-0">
                                 {t("获取 Key")}
                             </Button>
                         ) : null}
