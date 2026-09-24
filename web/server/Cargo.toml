@@ -1,6 +1,6 @@
 [package]
 name = "workflowgenerator-server"
-version = "0.1.9"
+version = "0.1.10"
 description = "WorkflowGenerator Rust application core"
 authors = ["WorkflowGenerator contributors"]
 edition = "2021"

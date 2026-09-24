@@ -208,19 +208,19 @@ function CanvasNodesTab({ nodes, selectedNodeIds, onFocusNode, onPreviewNode, th
 
     return (
         <div className="flex h-full flex-col">
-            <div className="flex items-center gap-2 px-3 pb-2.5 pt-1">
-                <span className="text-xs font-medium opacity-60">{t("画布元素")}</span>
+            <div className="flex items-center gap-1 px-3 pb-2.5 pt-1">
+                <span className="shrink-0 whitespace-nowrap text-xs font-medium opacity-60">{t("画布元素")}</span>
                 {filtered.length ? <span className="text-xs opacity-35">{filtered.length}</span> : null}
                 <button
                     type="button"
                     onClick={() => (selectMode ? exitSelect() : setSelectMode(true))}
-                    className="ml-auto flex items-center gap-1 rounded-md px-1.5 py-1 text-xs font-medium opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
+                    className="ml-auto flex shrink-0 items-center gap-1 whitespace-nowrap rounded-md px-1.5 py-1 text-xs font-medium opacity-70 transition hover:bg-black/5 hover:opacity-100 dark:hover:bg-white/10"
                     style={selectMode ? { color: theme.toolbar.activeText, opacity: 1 } : undefined}
                 >
                     <ListChecks className="size-3.5" />
                     {t(selectMode ? "取消" : "选择")}
                 </button>
-                {selectMode ? null : <Select size="small" variant="borderless" className="w-20" value={typeFilter} onChange={setTypeFilter} options={NODE_FILTER_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))} />}
+                {selectMode ? null : <Select size="small" variant="borderless" className="w-[68px] shrink-0" value={typeFilter} onChange={setTypeFilter} options={NODE_FILTER_OPTIONS.map((option) => ({ ...option, label: t(option.label) }))} />}
             </div>
             <div className="px-3 pb-2.5">
                 <Input size="small" allowClear prefix={<Search className="size-3.5 text-stone-400" />} placeholder={t("搜索节点")} value={keyword} onChange={(e) => setKeyword(e.target.value)} />
