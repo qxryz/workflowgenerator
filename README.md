@@ -8,6 +8,8 @@
 
 [![在线体验](https://img.shields.io/badge/在线体验-打开网站-2563eb?style=for-the-badge)](https://workflow.zhouzhou.dev)
 
+注意： 网页版很烂，只能看看，可以生视频做工作台但是agent聊天体验感没有桌面端好
+
 ## 下载与开始使用
 
   从 [Releases](https://github.com/qxryz/workflowgenerator/releases/latest) 下载 macOS Apple Silicon 安装包。安装后打开“模型与渠道”，填写所用模型服务的 API Key（提供一个免费渠道和语音模型预设），并在“偏好设置”选择聊天、图片等默认模型。各模型的可用额度和费用以渠道页面为准。
