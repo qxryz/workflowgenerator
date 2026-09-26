@@ -860,9 +860,11 @@ function VideoNodeContent({ node, theme }: NodeContentRendererProps) {
     const model = node.metadata.model ? modelOptionName(node.metadata.model) : "";
     const summary = [model, node.metadata.vquality, node.metadata.seconds ? `${node.metadata.seconds}s` : ""].filter(Boolean).join(" · ");
     const options = [node.metadata.minimaxVideoPromptOptimizer === "true" ? "提示词优化" : "", node.metadata.minimaxVideoFastPretreatment === "true" ? "快速预处理" : "", node.metadata.watermark === "true" ? "水印" : ""].filter(Boolean).join(" · ");
+    const auxiliaryImages = node.metadata.outputArtifacts?.filter((artifact) => artifact.kind === "image") || [];
     return (
         <div className="relative h-full w-full overflow-hidden rounded-[18px] bg-black">
             <video src={node.metadata.content} controls className="h-full w-full object-contain" data-canvas-no-zoom />
+            {auxiliaryImages.length ? <div className="absolute bottom-10 right-2 flex max-w-[55%] gap-1.5" aria-label="附加产物">{auxiliaryImages.map((artifact) => <img key={artifact.id} src={artifact.content} alt={artifact.title || "附加图片"} title={artifact.title || "附加图片"} className="h-12 w-16 rounded border border-white/40 bg-black/70 object-contain" draggable={false} />)}</div> : null}
             {summary ? (
                 <div className="pointer-events-none absolute left-2 top-2 max-w-[calc(100%-1rem)] rounded-md bg-black/60 px-2 py-1 text-[10px] leading-4 text-white backdrop-blur-sm">
                     <div className="truncate">{summary}</div>

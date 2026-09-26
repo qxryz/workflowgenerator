@@ -449,6 +449,23 @@ pub async fn native_model_json_get(url: String, api_key: String) -> Result<serde
     read_model_json_response(response).await
 }
 
+pub async fn native_model_json_delete(url: String, api_key: String) -> Result<serde_json::Value, String> {
+    let parsed = validate_credential_url(&url, "模型请求地址")?;
+    let client = reqwest::Client::builder()
+        .timeout(Duration::from_secs(30))
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .map_err(|error| format!("无法创建模型请求：{error}"))?;
+    let response = client
+        .delete(parsed)
+        .header(reqwest::header::AUTHORIZATION, format!("Bearer {api_key}"))
+        .header(reqwest::header::ACCEPT, "application/json")
+        .send()
+        .await
+        .map_err(|error| format!("模型请求失败：{error}"))?;
+    read_model_json_response(response).await
+}
+
 async fn read_model_json_response(
     response: reqwest::Response,
 ) -> Result<serde_json::Value, String> {

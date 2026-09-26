@@ -208,14 +208,15 @@ export function appendResultSlotSuccess(node: CanvasNodeData, input: AppendResul
         assertNonEmptyId(artifact.id, "产物 ID");
         if (artifactIds.has(artifact.id)) throw new Error(`结果版本包含重复产物 ID：${artifact.id}`);
         artifactIds.add(artifact.id);
-        if (artifact.kind !== slot.metadata.resultSlotMode || artifact.kind !== slot.type) {
-            throw new Error(`产物类型 ${artifact.kind} 与 ${slot.metadata.resultSlotMode} 结果槽不兼容`);
-        }
+        if (!isGenerationMode(artifact.kind)) throw new Error(`不支持的产物类型：${artifact.kind}`);
         if (!artifact.content) throw new Error(`产物 ${artifact.id} 没有可读取内容`);
         return { ...artifact };
     });
     const primaryArtifactId = input.primaryArtifactId || artifacts[0].id;
     if (!artifactIds.has(primaryArtifactId)) throw new Error(`主产物 ${primaryArtifactId} 不在当前成功版本中`);
+    if (artifacts.find((artifact) => artifact.id === primaryArtifactId)?.kind !== slot.metadata.resultSlotMode) {
+        throw new Error(`主产物必须是 ${slot.metadata.resultSlotMode} 类型`);
+    }
 
     const version: CanvasResultSlotSuccessVersion = {
         id: input.id,

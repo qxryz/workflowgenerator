@@ -25,7 +25,7 @@ type CanvasNodeHoverToolbarProps = {
     onToggleDialog: (node: CanvasNodeData) => void;
     onGenerateImage: (node: CanvasNodeData) => void;
     onUpload: (node: CanvasNodeData) => void;
-    onDownload: (node: CanvasNodeData) => void;
+    onDownload: (node: CanvasNodeData, artifactId?: string) => void;
     onSaveAsset: (node: CanvasNodeData) => void;
     onMaskEdit: (node: CanvasNodeData) => void;
     onCrop: (node: CanvasNodeData) => void;
@@ -149,6 +149,7 @@ export function CanvasNodeHoverToolbar({
         ...(canRetry ? [{ id: "retry", title: "重新生成", label: "重试", icon: <RefreshCw className="size-4" />, onClick: () => onRetry(node) }] : []),
         ...(hasImage || hasVideo || hasAudio || hasFile || isText ? [{ id: "saveAsset", title: "加入我的资产", label: "存资产", icon: <FolderPlus className="size-4" />, onClick: () => onSaveAsset(node) }] : []),
         ...(hasImage || hasVideo || hasAudio || hasFile ? [{ id: "download", title: hasFile ? "下载文件" : hasAudio ? "下载音频" : hasVideo ? "下载视频" : "下载图片", label: "下载", icon: <Download className="size-4" />, onClick: () => onDownload(node) }] : []),
+        ...(node.metadata?.outputArtifacts?.slice(1).map((artifact) => ({ id: `download-${artifact.id}`, title: `下载${artifact.title || artifact.kind}`, label: artifact.title || "产物", icon: <Download className="size-4" />, onClick: () => onDownload(node, artifact.id) })) || []),
         ...(canOpenDialog ? [{ id: "edit", title: "编辑", label: "编辑", icon: <MessageSquare className="size-4" />, onClick: () => onToggleDialog(node) }] : []),
         ...(isText ? [{ id: "editText", title: "编辑文本", label: "编辑文字", icon: <Pencil className="size-4" />, onClick: () => onEditText(node) }] : []),
         ...(isText ? [{ id: "generateImage", title: "用文本生图", label: "生图", icon: <ImageIcon className="size-4" />, onClick: () => onGenerateImage(node) }] : []),

@@ -53,7 +53,8 @@ export async function hydrateCanvasImages(nodes: CanvasNodeData[]) {
     return Promise.all(
         nodes.map(async (originalNode) => {
             const resultSlotMetadata = await hydrateResultSlotMetadata(originalNode.metadata);
-            const node = resultSlotMetadata === originalNode.metadata ? originalNode : { ...originalNode, metadata: resultSlotMetadata };
+            const outputArtifacts = resultSlotMetadata?.outputArtifacts ? await Promise.all(resultSlotMetadata.outputArtifacts.map(hydrateResultSlotArtifact)) : undefined;
+            const node = resultSlotMetadata === originalNode.metadata && !outputArtifacts ? originalNode : { ...originalNode, metadata: { ...resultSlotMetadata, ...(outputArtifacts ? { outputArtifacts } : {}) } };
             if (Array.isArray(resultSlotMetadata?.resultVersions)) return node;
 
             const content = node.metadata?.content;

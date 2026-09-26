@@ -29,6 +29,7 @@ import { canvasThemes } from "@/lib/canvas-theme";
 import { composeZodiacSystemPrompt, type ZodiacCanvasSnapshot } from "@/lib/agent/zodiac-harness";
 import { prepareZodiacCanvasVision, zodiacVisionConfig } from "@/lib/agent/zodiac-canvas-vision";
 import { uploadImage, publishUploadedImage, discardUploadedImage, imageToDataUrl, resolveImageUrl } from "@/services/image-storage";
+import { captureVideoLastFrame } from "@/lib/video-frame";
 import { uploadMediaFile, discardUploadedMedia, publishUploadedMedia, resolveMediaUrl } from "@/services/file-storage";
 import { createZodiacRun, finishZodiacRun, interruptZodiacRun, markZodiacRunApplying, markZodiacRunPlanning, settleZodiacRun, shouldShowZodiacRun, type ZodiacRun } from "@/lib/agent/zodiac-run-events";
 import { extractZodiacDecisionPayload, hasZodiacDecisionProtocol, normalizeZodiacDecisionUi, stripZodiacDecisionPayload, type ZodiacDecisionUi } from "@/lib/agent/zodiac-decision-ui";
@@ -51,12 +52,13 @@ import {
     zodiacOperationRuntimeKey,
     type ZodiacActiveOperation,
 } from "@/lib/agent/zodiac-operation-session";
-import { extractZodiacToolPayload, hasZodiacToolPayloadProtocol, normalizeZodiacCanvasOps, prepareZodiacExecutableToolProposal, stripZodiacToolPayload } from "@/lib/agent/zodiac-tool-proposal";
+import { extractZodiacToolPayload, hasZodiacToolPayloadProtocol, normalizeZodiacCanvasOps, prepareZodiacExecutableToolProposal, stripZodiacToolPayload, zodiacPromptEditProposalError } from "@/lib/agent/zodiac-tool-proposal";
 import { projectZodiacConversationHistory } from "@/lib/agent/zodiac-conversation-history";
 import { MAX_ZODIAC_SESSION_ITEMS, recentZodiacConversationItems, trimZodiacSessionItems, zodiacConversationAfterSummary } from "@/lib/agent/zodiac-session-retention";
 import type { CanvasAgentOp, CanvasAgentSnapshot } from "@/lib/canvas/canvas-agent-ops";
 import { getCanvasResourceKind } from "@/lib/canvas/canvas-resource-references";
-import { isAiConfigReady, modelOptionLabel, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
+import { isAiConfigReady, modelOptionLabel, resolveModelRequestConfig, selectableModelsByCapability, useConfigStore, useEffectiveConfig } from "@/stores/use-config-store";
+import { isSeedance25Model } from "@/lib/seedance-2-5";
 import { useAgentStore } from "@/stores/use-agent-store";
 import { useWorkflowRunStore } from "@/stores/canvas/use-workflow-run-store";
 import { useSkillStore } from "@/stores/use-skill-store";
@@ -441,6 +443,10 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             turnId,
             operationNamespace,
             defaultModels: { image: config.imageModel, video: config.videoModel, audio: config.audioModel },
+            isVideoEditModelSupported: (model) => {
+                const selected = resolveModelRequestConfig(config, model);
+                return selected.adapter === "ark-media" && isSeedance25Model(selected.model) && Boolean(selected.apiKey.trim() && selected.baseUrl.trim());
+            },
             getSnapshot: () => canvasContext.getSnapshot(),
             applyOps: (ops) => canvasContext.applyOps(ops),
             runWorkflow: (startNodeIds, mode, runSignal) => canvasContext.runWorkflow(startNodeIds, mode, runSignal),
@@ -460,6 +466,10 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 const key = typeof node.metadata?.storageKey === "string" ? node.metadata.storageKey : undefined;
                 const fallback = typeof node.metadata?.content === "string" ? node.metadata.content : "";
                 return (node.type === "image" ? await resolveImageUrl(key, fallback) : await resolveMediaUrl(key, fallback)) || null;
+            },
+            captureVideoFrame: async (url, frameSignal) => {
+                const image = await uploadImage(await captureVideoLastFrame(url, frameSignal));
+                return { image, publish: () => publishUploadedImage(image), discard: () => discardUploadedImage(image) };
             },
             signal,
         };
@@ -586,7 +596,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
 
             }
             if (!isCurrentRequest() || toolSignal.aborted) return { ok: false, error: "会话已停止，未执行此操作。" };
-            const mutationTools = ["zodiac-ops", "hub_canvas_write_node", "hub_canvas_apply_text_edits", "hub_canvas_group_nodes", "hub_canvas_group_recent_outputs", "hub_canvas_ungroup_node", "hub_save_file_to_session", "hub_import_file"];
+            const mutationTools = ["zodiac-ops", "hub_canvas_write_node", "hub_canvas_apply_text_edits", "hub_canvas_group_nodes", "hub_canvas_group_recent_outputs", "hub_canvas_ungroup_node", "hub_save_file_to_session", "hub_import_file", "hub_extract_video_frame"];
             const pluginArgs = request.args as { nodeId?: string; method?: string } | null;
             const pluginNode = request.name === "hub_plugin_agent_invoke" ? canvasContext?.getSnapshot().nodes.find((node) => node.id === pluginArgs?.nodeId) : undefined;
             const pluginWrite = request.name === "hub_plugin_agent_invoke" && (!pluginNode || getNodeDefinition(pluginNode.type)?.agent?.methods.find((method) => method.name === pluginArgs?.method)?.effect !== "read");
@@ -715,7 +725,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 const result = await executeHubTool(request, { ...createHubContext(toolSignal, sessionRef.current.id, actor?.turnId || requestUser.id), taskId: actor?.taskId });
                 if (!result.ok && request.name === "hub_analyse_media" && result.error.startsWith("分析画面失败")) imageAnalysisError = result.error;
                 if (result.ok && (result.result as { status?: string })?.status === "waiting_user") structuredReply = true;
-                if (result.ok && (request.name.startsWith("hub_generate_") || ["hub_canvas_write_node", "hub_canvas_apply_text_edits"].includes(request.name))) {
+                if (result.ok && (request.name.startsWith("hub_generate_") || ["hub_canvas_write_node", "hub_canvas_apply_text_edits", "hub_extract_video_frame"].includes(request.name))) {
                     try {
                         await agentRequest("assets", { projectId: requestSessionKey, sessionId: sessionRef.current.id, assets: zodiacWorkspaceAssets(canvasContext.getSnapshot().nodes, canvasContext.getSnapshot().selectedNodeIds) }, toolSignal);
                     } catch (error) {
@@ -1192,6 +1202,7 @@ const ZodicConversationItem = memo(function ZodicConversationItem({
         return (
             <div className="space-y-2">
                 <ZodiacWorkProcess text={item.workProcess} theme={theme} />
+                {item.text.trim() ? <AgentChatMessage minimal item={{ ...item, text: stripZodiacReasoning(cleanAssistantProtocol(item.text)) }} theme={theme} user={null} /> : null}
                 <div className="flex items-center justify-between gap-3 rounded-lg bg-black/[.025] px-3 py-2.5 dark:bg-white/[.025]" style={{ borderColor: theme.node.stroke, background: theme.node.panel }}>
                     <span className="min-w-0 text-xs leading-5" style={{ color: theme.node.text }}>
                         {recovery.message}
@@ -1512,7 +1523,8 @@ function parseToolProposal(reply: string, context: ToolProposalContext): { text:
     if (recovered) return { text: "", tool: recovered };
     if (claimsUnexecutedCanvasAction(visibleReply, context)) {
         return {
-            text: "",
+            // Keep the assistant's actual reply visible alongside the recovery action.
+            text: visibleReply,
             recovery: {
                 kind: "canvas",
                 message: "这次没有形成可执行步骤，画布没有变化。",
@@ -1538,6 +1550,8 @@ function attemptTool(ops: CanvasAgentOp[], request: string, summary?: string, pr
     }
     const reconciledOps = prepareZodiacManualOps(reconcileZodiacContinuationOps(proposal.ops, request, snapshot?.nodes, snapshot?.connections));
     if (!reconciledOps.length) return { ok: false, reason: "这些步骤已经都在画布上了，没有需要新增的内容。若要改造现有流程，请用 update_node 修改，而不是重复创建。" };
+    const promptEditError = zodiacPromptEditProposalError(request, reconciledOps, snapshot?.nodes);
+    if (promptEditError) return { ok: false, reason: promptEditError };
     const proposalChanged = reconciledOps.length !== proposal.ops.length;
     const resolvedSummary = summarizeZodiacProposalEffects(reconciledOps, snapshot, proposalChanged ? undefined : summary);
     const workOrder = buildZodiacWorkOrder(reconciledOps, snapshot, resolvedSummary);
@@ -1747,9 +1761,10 @@ function safeCanvasWorkspaceTitle(canvasContext: ReturnType<typeof useAgentStore
 
 function toolApprovalSummary(request: ZodiacToolRequest, snapshot?: CanvasAgentSnapshot) {
     const args = request.args as Record<string, unknown>;
-    const names: Record<string, string> = { path: "文件", patterns: "范围", command: "命令", filepath: "文件", filePath: "文件", diff: "修改内容", description: "说明", name: "名称", content: "内容", prompt: "提示词", text: "正文", model: "模型", count: "数量", seconds: "时长", size: "尺寸", voice: "音色", method: "操作", nodeId: "目标", references: "引用", edits: "修改", params: "参数" };
+    const names: Record<string, string> = { path: "文件", patterns: "范围", command: "命令", filepath: "文件", filePath: "文件", diff: "修改内容", description: "说明", name: "名称", content: "内容", prompt: "提示词", text: "正文", model: "模型", count: "数量", seconds: "时长", size: "尺寸", voice: "音色", method: "操作", nodeId: "目标", video: "视频", references: "引用", edits: "修改", params: "参数" };
     return Object.entries(args).filter(([key]) => key in names).map(([key, value]) => {
         if (key === "nodeId") value = snapshot?.nodes.find(node => node.id === value)?.title || "当前节点";
+        if (key === "video" && value && typeof value === "object") value = snapshot?.nodes.find(node => node.id === (value as { nodeId?: string }).nodeId)?.title || "画布视频";
         if (key === "references" && Array.isArray(value)) value = value.map(ref => snapshot?.nodes.find(node => node.id === ref.nodeId)?.title || "画布素材").join("、");
         return `${names[key]}：${typeof value === "string" ? value : JSON.stringify(value, null, 2)}`;
     }).join("\n") || "将更新当前画布中的内容。";

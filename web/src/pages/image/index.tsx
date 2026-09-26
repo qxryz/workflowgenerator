@@ -1,7 +1,7 @@
 import { ArrowLeft, ArrowRight, BookOpen, CheckSquare, ClipboardPaste, Download, FolderPlus, ImagePlus, LoaderCircle, PenLine, Plus, RefreshCw, Sparkles, Trash2, Upload } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { App, Button, Checkbox, Drawer, Empty, Image, Input, Modal, Popconfirm, Tag, Tooltip, Typography } from "antd";
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { ImageSettingsPanel } from "@/components/image-settings-panel";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -34,7 +34,7 @@ import { nanoid } from "nanoid";
 import { formatBytes, formatDuration, getDataUrlByteSize, readImageMeta } from "@/lib/image-utils";
 import { requestEdit, requestGeneration } from "@/services/api/image";
 import { deleteStoredImages, discardUploadedImage, getImageBlob, publishUploadedImage, resolveImageUrl, uploadImage, type UploadedImage } from "@/services/image-storage";
-import { createServerJsonStore } from "@/services/server-storage";
+import { createServerJsonStore, fetchRemoteBytes } from "@/services/server-storage";
 import { markMediaReferencesChanged } from "@/services/media-retention-policy";
 import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
 import { useAssetStore } from "@/stores/use-asset-store";
@@ -529,9 +529,13 @@ export default function ImagePage() {
     const downloadImage = async (image: GeneratedImage, index: number) => {
         const filename = `WorkflowGenerator-image-${index + 1}.png`;
         try {
-            const blob = image.storageKey ? await getImageBlob(image.storageKey) : await (await fetch(image.dataUrl)).blob();
+            const blob = image.storageKey ? await getImageBlob(image.storageKey) : await fetch(image.dataUrl).then((response) => {
+                if (!response.ok) throw new Error(`请求失败（${response.status}）`);
+                return response.blob();
+            }).catch(() => fetchRemoteBytes(image.dataUrl));
             if (!blob) throw new Error("找不到图片文件");
-            saveAs(blob, filename);
+            const saved = await downloadFile(blob, filename);
+            message.success(`已保存到下载文件夹：${saved}`);
         } catch (error) {
             message.error(error instanceof Error ? `下载失败：${error.message}` : "下载失败，请重试");
         }

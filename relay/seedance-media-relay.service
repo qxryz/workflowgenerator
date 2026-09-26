@@ -1,0 +1,24 @@
+[Unit]
+Description=WorkflowGenerator temporary Seedance reference-video relay
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+DynamicUser=yes
+StateDirectory=workflowgenerator-seedance-relay
+EnvironmentFile=/etc/workflowgenerator-seedance-relay/env
+Environment=WG_RELAY_DATA_DIR=/var/lib/workflowgenerator-seedance-relay
+ExecStart=/usr/bin/python3 /opt/workflowgenerator-seedance-relay/seedance_media_relay.py
+Restart=on-failure
+RestartSec=3
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=yes
+CapabilityBoundingSet=
+MemoryMax=256M
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

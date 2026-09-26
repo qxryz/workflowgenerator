@@ -1,7 +1,7 @@
 import { Copy, Download, File as FileIcon, PencilLine, Plus, Search, Trash2, Upload } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { App, Button, Card, Drawer, Dropdown, Empty, Form, Image, Input, Modal, Pagination, Select, Space, Spin, Tag, Typography } from "antd";
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { AuthorNote } from "@/components/author-library/author-note";
 import { useAppTranslation } from "@/hooks/use-app-translation";
@@ -14,6 +14,7 @@ import { uploadImage } from "@/services/image-storage";
 import { getImageBlob } from "@/services/image-storage";
 import { getMediaBlob } from "@/services/file-storage";
 import { cn } from "@/lib/utils";
+import { fetchRemoteBytes } from "@/services/server-storage";
 import { isStructuredAsset, useAssetStore, type Asset, type AssetKind, type ImageAsset, type StructuredAsset } from "@/stores/use-asset-store";
 import { resolveStructuredAssetReferencePrompt, structuredAssetRelationshipText } from "@/lib/structured-asset-reference";
 import { exportAssets, readAssetPackage } from "./asset-transfer";
@@ -175,13 +176,18 @@ export default function AssetsPage() {
         try {
             const blob = asset.data.storageKey ? (asset.kind === "image" ? await getImageBlob(asset.data.storageKey) : asset.kind === "file" ? await getAssetFileBlob(asset.data.storageKey) : await getMediaBlob(asset.data.storageKey)) : null;
             if (blob) {
-                saveAs(blob, filename);
+                const saved = await downloadFile(blob, filename);
+                message.success(t("已保存到下载文件夹：{name}", { name: saved }));
                 return;
             }
             if (asset.kind === "file") throw new Error("本地文件不存在");
             const source = asset.kind === "image" ? asset.data.dataUrl : asset.data.url;
-            const fetched = await (await fetch(source)).blob();
-            saveAs(fetched, filename);
+            const fetched = await fetch(source).then((response) => {
+                if (!response.ok) throw new Error(`请求失败（${response.status}）`);
+                return response.blob();
+            }).catch(() => fetchRemoteBytes(source));
+            const saved = await downloadFile(fetched, filename);
+            message.success(t("已保存到下载文件夹：{name}", { name: saved }));
         } catch (error) {
             message.error(error instanceof Error ? t("下载失败：{message}", { message: error.message }) : t("下载失败，请重试"));
         }

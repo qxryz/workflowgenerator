@@ -2,7 +2,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CheckSquare, ClipboardPaste, Download,
 import { useEffect, useRef, useState, type DragEvent } from "react";
 import { App, Button, Checkbox, Drawer, Empty, Input, Modal, Popconfirm, Tag, Typography } from "antd";
 import { nanoid } from "nanoid";
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -57,10 +57,10 @@ import {
 } from "@/lib/video-generation-run";
 import { deleteStoredMedia, discardUploadedMedia, getMediaBlob, publishUploadedMedia, resolveMediaUrl, uploadMediaFile } from "@/services/file-storage";
 import { deleteStoredImages, discardUploadedImage, publishUploadedImage, resolveImageUrl, uploadImage, type UploadedImage } from "@/services/image-storage";
-import { createServerJsonStore } from "@/services/server-storage";
+import { createServerJsonStore, fetchRemoteBytes } from "@/services/server-storage";
 import { markMediaReferencesChanged } from "@/services/media-retention-policy";
 import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
-import { createVideoGenerationTask, isMiniMaxH3ImageMime, miniMaxHailuoReferenceError, miniMaxH3ReferenceError, pollVideoGenerationTask, storeGeneratedVideo, videoGenerationPollingPolicy, type VideoGenerationTask } from "@/services/api/video";
+import { cancelVideoGenerationTask, createVideoGenerationTask, isMiniMaxH3ImageMime, miniMaxHailuoReferenceError, miniMaxH3ReferenceError, pollVideoGenerationTask, storeGeneratedVideo, videoGenerationPollingPolicy, type VideoGenerationTask } from "@/services/api/video";
 import { useAssetStore } from "@/stores/use-asset-store";
 import { useWorkbenchAgentStore } from "@/stores/use-workbench-agent-store";
 import { modelOptionName, resolveModelRequestConfig, useConfigStore, useEffectiveConfig, type AiConfig } from "@/stores/use-config-store";
@@ -240,7 +240,7 @@ export default function VideoPage() {
     const seedance25TaskMode = normalizeSeedance25TaskMode(selectedVideoConfig.seedance25TaskMode);
     const seedance25InputMode = normalizeSeedance25InputMode(selectedVideoConfig.seedance25InputMode);
     const seedance25FrameMode = isSeedance25 && seedance25TaskMode === "generate" && seedance25InputMode !== "reference";
-    const seedanceUsesRemoteVideoLinks = videoExperience === "seedance-video" && !seedance25FrameMode;
+    const seedanceShowsVideoLinkInput = videoExperience === "seedance-video" && !seedance25FrameMode;
     const isMiniMaxH3 = videoExperience === "minimax-video";
     const isMiniMaxHailuo = videoExperience === "minimax-hailuo-video";
     const isMiniMaxHailuoFast = isMiniMaxHailuo && isMiniMaxHailuoFastModel(modelOptionName(model));
@@ -322,7 +322,6 @@ export default function VideoPage() {
         });
         void refreshLogs();
         return () => {
-            const foregroundRunAtCleanup = runRegistry.foregroundRun();
             mountedRef.current = false;
             contextVersionRef.current += 1;
             refreshRequestRef.current += 1;
@@ -332,16 +331,8 @@ export default function VideoPage() {
                 const pendingIntent = pendingAgentGenerationRef.current;
                 pendingAgentGenerationRef.current = null;
                 if (pendingIntent?.taskId) updateAgentTask(pendingIntent.taskId, { status: "failed", successCount: 0, failCount: 1, error: "视频工作台已关闭" });
-                // Background polling is owned by the module-lifetime registry
-                // and hands off across route remounts without destructive stale
-                // rollback. Only the foreground run captured by this page is
-                // cancelled; a replacement page's run can never be mistaken for it.
-                if (foregroundRunAtCleanup && runRegistry.cancel(foregroundRunAtCleanup)) {
-                    if (foregroundRunAtCleanup.agentTaskId) {
-                        updateAgentTask(foregroundRunAtCleanup.agentTaskId, { status: "failed", successCount: 0, failCount: 1, error: "视频工作台已关闭" });
-                    }
-                    terminalizeCancelledRun(foregroundRunAtCleanup, "视频工作台已关闭");
-                }
+                // Closing the page is not a provider cancellation. The module-lifetime
+                // registry keeps polling the accepted task until it settles.
             });
         };
         // StrictMode replays setup/cleanup in development. The epoch keeps that
@@ -351,9 +342,6 @@ export default function VideoPage() {
 
     const addReferences = async (files?: FileList | null) => {
         const selectedFiles = Array.from(files || []);
-        if (seedanceUsesRemoteVideoLinks && selectedFiles.some((file) => SEEDANCE_VIDEO_MIME_TYPES.includes(file.type))) {
-            message.warning(isSeedance25 ? "Seedance 2.5 参考视频请粘贴公网 URL 或方舟素材 ID；本机视频不能直接发送给官方接口" : "Seedance 2.0 参考视频请粘贴可公开访问的 https 链接；本机视频不能直接发送给官方接口");
-        }
         if (isSeedance25 && seedance25FrameMode && selectedFiles.some((file) => isSupportedAudioFile(file))) message.warning("当前画面模式只使用图片，不能添加参考音频");
         const unsupported = selectedFiles.filter((file) => (isMiniMaxHailuo ? !file.type.startsWith("image/") : !file.type.startsWith("image/") && !SEEDANCE_VIDEO_MIME_TYPES.includes(file.type) && !isSupportedAudioFile(file)));
         if (unsupported.length) message.warning(isMiniMaxHailuo ? "Hailuo 仅支持一张首帧图片" : "已忽略不支持的参考资产，请使用图片、mp4/mov 视频或 mp3/wav 音频");
@@ -365,7 +353,7 @@ export default function VideoPage() {
                       .filter((file) => file.type.startsWith("image/") && (!(isMiniMaxH3 || isMiniMaxHailuo) || isMiniMaxH3ImageMime(file.type)) && (isMiniMaxHailuo ? file.size < imageMaxBytes : file.size <= imageMaxBytes))
                       .slice(0, Math.max(0, maxImageReferences - references.length));
         const videoFiles =
-            supportsVideoReferences && !seedanceUsesRemoteVideoLinks && !(videoExperience === "grok-video" && references.length)
+            supportsVideoReferences && !(videoExperience === "grok-video" && references.length)
                 ? selectedFiles.filter((file) => SEEDANCE_VIDEO_MIME_TYPES.includes(file.type) && file.size <= maxVideoReferenceBytes).slice(0, maxVideoReferences - videoReferences.length)
                 : [];
         const audioFiles = supportsAudioReferences ? selectedFiles.filter((file) => isSupportedAudioFile(file) && file.size <= SEEDANCE_REFERENCE_LIMITS.audioMaxBytes).slice(0, maxAudioReferences - audioReferences.length) : [];
@@ -434,13 +422,9 @@ export default function VideoPage() {
     };
 
     const addSeedance25RemoteVideo = () => {
-        const url = isSeedance25 ? normalizeSeedance25RemoteVideoUrl(seedance25VideoUrl) : seedance25VideoUrl.trim();
+        const url = normalizeSeedance25RemoteVideoUrl(seedance25VideoUrl);
         if (!url) {
-            message.warning(isSeedance25 ? "请输入 https:// 公网视频 URL 或 asset:// 方舟素材 ID" : "请输入可公开访问的 https 视频 URL");
-            return;
-        }
-        if (!isSeedance25 && !/^https:\/\//i.test(url)) {
-            message.warning("Seedance 2.0 参考视频需要可公开访问的 https 视频 URL");
+            message.warning("请输入 HTTPS 公网视频 URL 或 asset:// 方舟素材 ID");
             return;
         }
         const reference: ReferenceVideo = {
@@ -625,13 +609,34 @@ export default function VideoPage() {
         return cancelled;
     };
 
+    const stopVideoWorkbenchTask = async () => {
+        const run = runRegistry.foregroundRun();
+        if (!run) return;
+        const log = previewLog?.id === run.jobId ? previewLog : await logStore.getItem<GenerationLog>(run.jobId);
+        if (!log?.task) {
+            message.warning("视频任务正在提交，尚未取得供应商任务 ID；请稍后再停止。");
+            return;
+        }
+        try {
+            const result = await cancelVideoGenerationTask(effectiveConfig, log.task);
+            if (result.status !== "cancelled") return void message.warning(result.message);
+            cancelActiveRuns("供应商已确认视频任务取消");
+            message.success(result.message);
+        } catch (error) {
+            message.error(`供应商取消请求未确认：${error instanceof Error ? error.message : "请检查任务状态"}。任务可能继续运行和计费。`);
+        }
+    };
+
     const generate = async (agentTaskId?: string, retryLog?: GenerationLog, preserveResults = false) => {
+        if (runRegistry.foregroundRun()) {
+            message.warning("当前视频任务仍在运行，请等待完成或先取消供应商任务。");
+            return;
+        }
         const snapshot = buildRequestSnapshot();
         if (!snapshot) {
             if (agentTaskId) updateAgentTask(agentTaskId, { status: "failed", error: "视频生成参数无效" });
             return;
         }
-        cancelActiveRuns("已由新的视频任务替换");
 
         if (retryLog) {
             if (retryLog.deletedAt || !videoGenerationLogVisibility.revive(retryLog.id)) {
@@ -840,9 +845,13 @@ export default function VideoPage() {
         const extension = video.mimeType === "video/webm" ? "webm" : video.mimeType === "video/quicktime" ? "mov" : "mp4";
         const filename = `WorkflowGenerator-video.${extension}`;
         try {
-            const blob = video.storageKey ? await getMediaBlob(video.storageKey) : await (await fetch(video.url)).blob();
+            const blob = video.storageKey ? await getMediaBlob(video.storageKey) : await fetch(video.url).then((response) => {
+                if (!response.ok) throw new Error(`请求失败（${response.status}）`);
+                return response.blob();
+            }).catch(() => fetchRemoteBytes(video.url));
             if (!blob) throw new Error("找不到视频文件");
-            saveAs(blob, filename);
+            const saved = await downloadFile(blob, filename);
+            message.success(`已保存到下载文件夹：${saved}`);
         } catch (error) {
             message.error(error instanceof Error ? `下载失败：${error.message}` : "下载失败，请重试");
         }
@@ -973,10 +982,6 @@ export default function VideoPage() {
                 message.warning(isSeedance25 && seedance25FrameMode ? "当前画面模式只使用图片，不能添加参考视频" : "当前模型不支持参考视频");
                 return;
             }
-            if (seedanceUsesRemoteVideoLinks && (isSeedance25 ? !normalizeSeedance25RemoteVideoUrl(payload.url) : !/^https:\/\//i.test(payload.url))) {
-                message.warning(isSeedance25 ? "Seedance 2.5 参考视频需要公网 URL 或方舟素材 ID，请使用参考素材区的链接输入框" : "Seedance 2.0 参考视频需要可公开访问的 https 链接，请使用参考素材区的链接输入框");
-                return;
-            }
             if (videoExperience === "grok-video" && references.length) {
                 message.warning("Grok 每次只能使用参考图或参考视频，请先移除参考图");
                 return;
@@ -1009,7 +1014,7 @@ export default function VideoPage() {
     };
 
     const createSession = () => {
-        cancelActiveRuns("视频生成已取消");
+        if (runRegistry.foregroundRun()) return void message.warning("当前视频任务仍在运行，请等待完成或先取消供应商任务。");
         setPrompt("");
         setSeedance25VideoUrl("");
         setSeedance25VideoDuration(10);
@@ -1024,6 +1029,11 @@ export default function VideoPage() {
     };
 
     const deleteSelectedLogs = () => {
+        if (logs.some((log) => selectedLogIds.includes(log.id) && log.status === "生成中")) {
+            message.warning("运行中的视频任务不能直接删除，请先确认供应商已取消或等待完成。");
+            setDeleteConfirmOpen(false);
+            return;
+        }
         const idsToDelete = [...selectedLogIds];
         let cancelledForeground = false;
         for (const id of idsToDelete) {
@@ -1225,21 +1235,63 @@ export default function VideoPage() {
             setStartedAt((value) => value || performance.now());
             setResults((value) => (value.length ? value : [{ id: log.id, status: "pending" }]));
         }
-        const isMiniMaxNative = log.task.provider === "minimax";
         const { maxAttempts, delayMs: pollDelayMs } = videoGenerationPollingPolicy(log.task);
         try {
             const taskConfig = buildVideoConfig({ ...effectiveConfig, ...log.config }, log.task.model || log.model);
+            let transientPollFailures = 0;
             for (let attempt = 0; attempt < maxAttempts; attempt += 1) {
-                const state = await pollVideoGenerationTask(configOverride || taskConfig, log.task, { signal: run.controller.signal });
+                let state: Awaited<ReturnType<typeof pollVideoGenerationTask>>;
+                try {
+                    state = await pollVideoGenerationTask(configOverride || taskConfig, log.task, { signal: run.controller.signal });
+                    transientPollFailures = 0;
+                } catch (error) {
+                    if (!runRegistry.isActive(run) || run.controller.signal.aborted) return;
+                    transientPollFailures += 1;
+                    if (transientPollFailures > 6 || attempt === maxAttempts - 1) {
+                        const pendingMessage = "云端任务已提交，但暂时无法读取结果；任务仍保留在生成记录中，请稍后继续查询，不要重复生成";
+                        const pendingLog = { ...log, runId: run.runId, status: "生成中" as const, durationMs: Date.now() - log.createdAt, task: log.task, video: undefined, error: pendingMessage };
+                        const logOutcome = retryPreviousLog ? await saveRetriedLogForRun(run, retryPreviousLog, pendingLog) : await saveLogForRun(run, pendingLog);
+                        if (logOutcome.status !== "committed") {
+                            if (logOutcome.error && runRegistry.isActive(run)) throw logOutcome.error;
+                            return;
+                        }
+                        runRegistry.runIfForeground(run, () => {
+                            setPreviewLog(pendingLog);
+                            if (run.agentTaskId) updateAgentTask(run.agentTaskId, { status: "running", error: pendingMessage });
+                            message.warning(pendingMessage);
+                        });
+                        return;
+                    }
+                    await delay(pollDelayMs, run.controller.signal);
+                    continue;
+                }
                 if (!runRegistry.isActive(run)) return;
                 if (state.status === "completed") {
-                    const stored = await storeGeneratedVideo(state.result);
-                    let lastFrame: UploadedImage | undefined;
+                    let stored: Awaited<ReturnType<typeof storeGeneratedVideo>>;
                     try {
-                        lastFrame = state.result.lastFrameUrl ? await uploadImage(state.result.lastFrameUrl) : undefined;
-                    } catch (error) {
-                        await discardUploadedMedia(stored);
-                        throw error;
+                        stored = await storeGeneratedVideo(state.result);
+                    } catch {
+                        const pendingMessage = "视频任务已完成，但保存到本机失败；任务仍保留在生成记录中，请稍后继续查询或重试保存，不要重复生成";
+                        const pendingLog = { ...log, runId: run.runId, status: "生成中" as const, durationMs: Date.now() - log.createdAt, task: log.task, video: undefined, error: pendingMessage };
+                        const logOutcome = retryPreviousLog ? await saveRetriedLogForRun(run, retryPreviousLog, pendingLog) : await saveLogForRun(run, pendingLog);
+                        if (logOutcome.status !== "committed") {
+                            if (logOutcome.error && runRegistry.isActive(run)) throw logOutcome.error;
+                            return;
+                        }
+                        runRegistry.runIfForeground(run, () => {
+                            setPreviewLog(pendingLog);
+                            if (run.agentTaskId) updateAgentTask(run.agentTaskId, { status: "running", error: pendingMessage });
+                            message.warning(pendingMessage);
+                        });
+                        return;
+                    }
+                    let lastFrame: UploadedImage | undefined;
+                    if (state.result.lastFrameUrl) {
+                        try {
+                            lastFrame = await uploadImage(state.result.lastFrameUrl);
+                        } catch {
+                            lastFrame = undefined;
+                        }
                     }
                     if (!runRegistry.isActive(run)) {
                         await discardUploadedMedia(stored);
@@ -1286,22 +1338,19 @@ export default function VideoPage() {
                 }
                 if (state.status === "failed") throw new Error(state.error);
                 if (attempt === maxAttempts - 1) {
-                    if (isMiniMaxNative) {
-                        const pendingMessage = "云端任务仍在处理中，可从生成记录继续查询";
-                        const pendingLog = { ...log, runId: run.runId, status: "生成中" as const, durationMs: Date.now() - log.createdAt, task: log.task, video: undefined, error: pendingMessage };
-                        const logOutcome = retryPreviousLog ? await saveRetriedLogForRun(run, retryPreviousLog, pendingLog) : await saveLogForRun(run, pendingLog);
-                        if (logOutcome.status !== "committed") {
-                            if (logOutcome.error && runRegistry.isActive(run)) throw logOutcome.error;
-                            return;
-                        }
-                        runRegistry.runIfForeground(run, () => {
-                            setPreviewLog(pendingLog);
-                            if (run.agentTaskId) updateAgentTask(run.agentTaskId, { status: "running", error: pendingMessage });
-                            message.warning(pendingMessage);
-                        });
+                    const pendingMessage = "云端任务仍在处理中，可从生成记录继续查询，不要重复生成";
+                    const pendingLog = { ...log, runId: run.runId, status: "生成中" as const, durationMs: Date.now() - log.createdAt, task: log.task, video: undefined, error: pendingMessage };
+                    const logOutcome = retryPreviousLog ? await saveRetriedLogForRun(run, retryPreviousLog, pendingLog) : await saveLogForRun(run, pendingLog);
+                    if (logOutcome.status !== "committed") {
+                        if (logOutcome.error && runRegistry.isActive(run)) throw logOutcome.error;
                         return;
                     }
-                    throw new Error("视频生成超时，请稍后重试");
+                    runRegistry.runIfForeground(run, () => {
+                        setPreviewLog(pendingLog);
+                        if (run.agentTaskId) updateAgentTask(run.agentTaskId, { status: "running", error: pendingMessage });
+                        message.warning(pendingMessage);
+                    });
+                    return;
                 }
                 await delay(pollDelayMs, run.controller.signal);
             }
@@ -1333,7 +1382,7 @@ export default function VideoPage() {
 
     const previewGenerationLog = (log: GenerationLog) => {
         const alreadyForeground = runRegistry.foregroundJobId() === log.id;
-        if (!alreadyForeground) cancelActiveRuns("已切换到其他视频记录");
+        if (!alreadyForeground && runRegistry.foregroundRun()) return void message.warning("当前视频任务仍在运行，请等待完成或先取消供应商任务。");
         setPreviewLog(log);
         setLogsOpen(false);
         setPrompt(log.prompt);
@@ -1401,7 +1450,7 @@ export default function VideoPage() {
                                     <h2>{t("生成结果")}</h2>
                                     <p>{t(results.length ? "当前视频" : "结果会显示在这里")}</p>
                                 </div>
-                                {running ? <Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-2.5 py-1 text-[color:var(--wg-studio-accent-strong)]">{t("生成中 · {time}", { time: formatDuration(elapsedMs) })}</Tag> : null}
+                                {running ? <><Tag className="m-0 border-0 bg-[color:var(--wg-studio-accent-soft)] px-2.5 py-1 text-[color:var(--wg-studio-accent-strong)]">{t("生成中 · {time}", { time: formatDuration(elapsedMs) })}</Tag><Popconfirm title="停止视频任务？" description="先请求供应商取消；仅在确认取消后结束本地任务。" okText="停止" cancelText="继续生成" onConfirm={() => void stopVideoWorkbenchTask()}><Button size="small" danger>停止</Button></Popconfirm></> : null}
                             </div>
                             <VideoResultStage
                                 results={results}
@@ -1485,14 +1534,14 @@ export default function VideoPage() {
                                     </Button>
                                 </div>
                             </div>
-                            {seedanceUsesRemoteVideoLinks ? (
+                            {seedanceShowsVideoLinkInput ? (
                                 <div className="grid gap-2 sm:grid-cols-[minmax(0,1fr)_112px]">
                                     <Input.Search
                                         value={seedance25VideoUrl}
                                         onChange={(event) => setSeedance25VideoUrl(event.target.value)}
                                         onSearch={addSeedance25RemoteVideo}
                                         enterButton={t("添加视频")}
-                                        placeholder={t(isSeedance25 ? "粘贴 https:// 公网视频 URL 或 asset:// 方舟素材 ID" : "粘贴可公开访问的 https:// 视频 URL")}
+                                        placeholder={t("粘贴 HTTPS 视频 URL 或 asset:// 方舟素材 ID")}
                                         aria-label={isSeedance25 ? "Seedance 2.5 参考视频地址" : "Seedance 2.0 参考视频地址"}
                                     />
                                     <Input
@@ -1625,10 +1674,10 @@ export default function VideoPage() {
                 accept={
                     isMiniMaxHailuo
                         ? "image/jpeg,image/png,image/webp"
-                        : seedanceUsesRemoteVideoLinks
+                        : seedanceShowsVideoLinkInput
                           ? seedance25FrameMode
                               ? "image/*"
-                              : "image/*,audio/mpeg,audio/wav,audio/x-wav,.mp3,.wav"
+                              : "image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav,audio/x-wav,.mp3,.wav"
                           : supportsAudioReferences
                             ? "image/*,video/mp4,video/quicktime,audio/mpeg,audio/wav,audio/x-wav,.mp3,.wav"
                             : supportsVideoReferences

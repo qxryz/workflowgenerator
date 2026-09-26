@@ -1,5 +1,5 @@
 import { App } from "antd";
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 import { RefreshCw } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -267,7 +267,7 @@ export default function DirectorPage() {
             try {
                 const blob = await getImageBlob(image.storageKey);
                 if (!blob) throw new Error("截图文件不存在");
-                saveAs(blob, fileName);
+                await downloadFile(blob, fileName);
                 message.success(`已下载：${fileName}`);
             } catch (error) {
                 message.error(error instanceof Error ? `下载失败：${error.message}` : "下载失败，请重试");

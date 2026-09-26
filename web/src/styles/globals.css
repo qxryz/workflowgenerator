@@ -1513,6 +1513,11 @@ html[data-wg-route-fallback="return-workflow"] #main-content {
     min-width: 92px;
 }
 
+.wg-sd25-source-fields > .wg-sd25-local-video-button {
+    grid-column: 1 / -1;
+    justify-self: start;
+}
+
 .wg-media-reference-heading {
     align-items: center;
     margin-top: 14px;

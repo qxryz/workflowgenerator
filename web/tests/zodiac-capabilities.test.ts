@@ -8,7 +8,7 @@ test("capability projection excludes credentials, endpoints and disabled capabil
     const config = { channels: [{ id: "c", name: "private", apiKey: "SECRET", baseUrl: "https://private.invalid", capabilities: { video: false }, models: [{ name: "image", capability: "image", script: "private script" }, { name: "video", capability: "video" }] }] } as unknown as AiConfig;
     const result = buildZodiacCapabilities(config);
     assert.deepEqual(result.models, [{ id: "c::image", name: "image", capability: "image", configured: true, adapter: "openai-compatible", support: "native", contract: null }]);
-    assert.doesNotMatch(JSON.stringify(result), /SECRET|private|script/);
+    assert.doesNotMatch(JSON.stringify(result), /SECRET|private\.invalid|private script|"script":|"name":"private"/);
 });
 
 test("workflow lookup uses explicit catalog ids and does not accept local paths", () => {

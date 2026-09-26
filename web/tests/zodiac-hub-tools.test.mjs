@@ -32,6 +32,7 @@ function context(overrides = {}) {
     const base = {
         calls,
         generationPolicy: "execute",
+        isVideoEditModelSupported: (model) => model.includes("seedance-2-5"),
         sessionId: "session-1",
         turnId: "turn-1",
         resolveMediaUrl: async (node) => `/media/media/${encodeURIComponent(node.metadata.storageKey)}`,
@@ -54,6 +55,7 @@ function context(overrides = {}) {
         saveSessionFile: async ({ path, content, storageKey }) => ({ path, bytes: content ? content.length : storageKey.length }),
         analyseImage: async () => "一张竖版海报，主体居中，标题在上方。",
         readImageDataUrl: async (nodeId) => (nodeId === "poster-1" ? "data:image/png;base64,AAAA" : null),
+        captureVideoFrame: async () => ({ image: { url: "/media/images/new-frame", storageKey: "image:new-frame", width: 1280, height: 720, bytes: 512, mimeType: "image/png" }, publish: () => true, discard: async () => undefined }),
     };
     return Object.assign(base, overrides, { calls: { ...calls, ...(overrides.calls || {}) } });
 }
@@ -65,6 +67,11 @@ test("导出的执行集保留技能工具契约，未接入能力须明确失�
         "hub_generate_audio",
         "hub_generate_music",
         "hub_video_edit",
+        "hub_extract_video_frame",
+        "hub_video_trim",
+        "hub_merge_videos",
+        "hub_extract_audio",
+        "hub_media_transcribe",
         "hub_analyse_media",
         "hub_read",
         "hub_canvas_get_node",
@@ -78,6 +85,50 @@ test("导出的执行集保留技能工具契约，未接入能力须明确失�
         "hub_canvas_ungroup_node",
         "hub_save_file_to_session",
     ]);
+});
+
+test("视频尾帧：已有供应商尾帧直接复用，同一操作重试不复制节点或重新生成", async () => {
+    const ctx = context();
+    ctx.getSnapshot().nodes.push({ id: "video-1", type: "video", title: "镜头", position: { x: 0, y: 1200 }, width: 420, height: 240, metadata: {
+        status: "success", storageKey: "video:original", content: "/media/media/original",
+        outputArtifacts: [{ id: "last", kind: "image", role: "last_frame", storageKey: "image:provider-frame", content: "/media/images/provider-frame", naturalWidth: 1280, naturalHeight: 720 }],
+    } });
+    let captures = 0;
+    ctx.captureVideoFrame = async () => { captures++; throw new Error("已有尾帧不应解码"); };
+    const request = { callId: "same-call", name: "hub_extract_video_frame", args: { video: { nodeId: "video-1" } } };
+    const first = await executeHubTool(request, ctx);
+    const second = await executeHubTool(request, ctx);
+    assert.equal(first.ok, true, JSON.stringify(first));
+    assert.equal(second.ok, true, JSON.stringify(second));
+    assert.equal(first.result.nodeId, second.result.nodeId);
+    assert.equal(first.result.reusedSavedFrame, true);
+    assert.equal(ctx.getSnapshot().nodes.find((node) => node.id === first.result.nodeId).metadata.storageKey, "image:provider-frame");
+    assert.equal(ctx.calls.applied.length, 1);
+    assert.equal(ctx.calls.ran.length, 0);
+    assert.equal(captures, 0);
+});
+
+test("视频尾帧：无供应商尾帧时解码、保存图片；画布保存失败则撤销临时文件", async () => {
+    const ctx = context();
+    ctx.getSnapshot().nodes.push({ id: "video-1", type: "video", title: "镜头", position: { x: 0, y: 1200 }, width: 420, height: 240, metadata: { status: "success", storageKey: "video:original", content: "/media/media/original" } });
+    let published = 0, discarded = 0, captured = "";
+    ctx.captureVideoFrame = async (url) => {
+        captured = url;
+        return { image: { url: "/media/images/extracted", storageKey: "image:extracted", width: 1280, height: 720, bytes: 1024, mimeType: "image/png" }, publish: () => { published++; return true; }, discard: async () => { discarded++; } };
+    };
+    const request = { callId: "extract-call", name: "hub_extract_video_frame", args: { video: { nodeId: "video-1" } } };
+    const saved = await executeHubTool(request, ctx);
+    assert.equal(saved.ok, true, JSON.stringify(saved));
+    assert.equal(saved.result.reusedSavedFrame, false);
+    assert.equal(captured, "/media/media/video%3Aoriginal");
+    assert.equal(published, 1);
+    assert.equal(discarded, 0);
+    assert.equal(ctx.calls.ran.length, 0);
+    const failed = context({ getSnapshot: ctx.getSnapshot, resolveMediaUrl: ctx.resolveMediaUrl, captureVideoFrame: ctx.captureVideoFrame, applyOps: async () => { throw new Error("CAS conflict"); } });
+    const outcome = await executeHubTool({ ...request, callId: "another-call" }, failed);
+    assert.equal(outcome.ok, false);
+    assert.match(outcome.error, /CAS conflict/);
+    assert.equal(discarded, 1);
 });
 
 test("hub_generate_video：建动作节点 + 同类型结果槽 + 连线，然后交给运行器，回报产物位置", async () => {
@@ -128,9 +179,53 @@ test("生成类：运行器报错时把供应商原因带回来，不谎报成�
     assert.match(outcome.error, /模型不存在/);
 });
 
+test("hub_video_edit：准备 Seedance 2.5 原片编辑，连接原视频但不提交付费任务", async () => {
+    const ctx = context({ generationPolicy: "prepare", defaultModels: { video: "seedance-channel::doubao-seedance-2-5" } });
+    ctx.getSnapshot().nodes.push({ id: "video-1", type: "video", title: "原片", position: { x: 0, y: 1200 }, width: 420, height: 240, metadata: { status: "success", storageKey: "video:original", content: "/media/media/original", durationMs: 5000, mimeType: "video/mp4" } });
+    const request = { callId: "edit-1", name: "hub_video_edit", args: { prompt: "把天空改为黄昏，保留人物动作", video: { nodeId: "video-1" }, operationId: "edit-shot-1" } };
+    const first = await executeHubTool(request, ctx);
+    const second = await executeHubTool({ ...request, callId: "retry" }, ctx);
+    assert.equal(first.ok, true, JSON.stringify(first));
+    assert.equal(first.result.status, "waiting_user");
+    assert.equal(second.result.nodeId, first.result.nodeId);
+    const ops = ctx.calls.applied[0];
+    assert.equal(ops[0].metadata.seedance25TaskMode, "edit");
+    assert.equal(ops[0].metadata.model, "seedance-channel::doubao-seedance-2-5");
+    assert.equal(ops[0].metadata.agentSourceReferences[0].storageKey, "video:original");
+    assert.deepEqual(ops.at(-1), { type: "connect_nodes", fromNodeId: "video-1", toNodeId: ops[0].id });
+    assert.equal(ctx.calls.applied.length, 1);
+    assert.equal(ctx.calls.ran.length, 0);
+});
+
+test("hub_video_edit：延长模式保留原片；错误模型或非视频原片直接拒绝", async () => {
+    const ctx = context({ generationPolicy: "prepare", defaultModels: { video: "seedance-channel::doubao-seedance-2-5" } });
+    ctx.getSnapshot().nodes.push({ id: "video-1", type: "video", title: "原片", position: { x: 0, y: 1200 }, width: 420, height: 240, metadata: { status: "success", storageKey: "video:original", content: "/media/media/original" } });
+    const extended = await executeHubTool({ callId: "extend-1", name: "hub_video_edit", args: { prompt: "自然延长", video: { nodeId: "video-1" }, mode: "extend", seconds: 10 } }, ctx);
+    assert.equal(extended.ok, true, JSON.stringify(extended));
+    assert.equal(ctx.calls.applied[0][0].metadata.seedance25TaskMode, "extend");
+    assert.equal(ctx.calls.applied[0][0].metadata.seconds, "10");
+    const wrongSource = await executeHubTool({ callId: "wrong-source", name: "hub_video_edit", args: { prompt: "编辑", video: { nodeId: "poster-1" } } }, ctx);
+    assert.equal(wrongSource.ok, false);
+    assert.match(wrongSource.error, /原片必须是已保存的视频节点/);
+    const wrongModel = context({ defaultModels: { video: "minimax-channel::MiniMax-H3" } });
+    wrongModel.getSnapshot().nodes.push(ctx.getSnapshot().nodes.find((node) => node.id === "video-1"));
+    const unsupported = await executeHubTool({ callId: "wrong-model", name: "hub_video_edit", args: { prompt: "编辑", video: { nodeId: "video-1" } } }, wrongModel);
+    assert.equal(unsupported.ok, false);
+    assert.match(unsupported.error, /Seedance 2.5/);
+    assert.equal(wrongModel.calls.applied.length, 0);
+    const wrongAdapter = context({ generationPolicy: "prepare", defaultModels: { video: "seedance-channel::doubao-seedance-2-5" }, isVideoEditModelSupported: () => false });
+    wrongAdapter.getSnapshot().nodes.push(ctx.getSnapshot().nodes.find((node) => node.id === "video-1"));
+    const unsupportedAdapter = await executeHubTool({ callId: "wrong-adapter", name: "hub_video_edit", args: { prompt: "编辑", video: { nodeId: "video-1" } } }, wrongAdapter);
+    assert.equal(unsupportedAdapter.ok, false);
+    assert.equal(wrongAdapter.calls.applied.length, 0);
+});
+
 for (const [name, args] of [
-    ["hub_video_edit", { prompt: "延长 2 秒", video: { nodeId: "poster-1" } }],
     ["hub_generate_music", { prompt: "钢琴配乐", lyrics: "歌词" }],
+    ["hub_video_trim", { video: { nodeId: "video-1" }, startSeconds: 0, endSeconds: 2 }],
+    ["hub_merge_videos", { videos: [{ nodeId: "video-1" }, { nodeId: "video-2" }] }],
+    ["hub_extract_audio", { video: { nodeId: "video-1" } }],
+    ["hub_media_transcribe", { asset: { nodeId: "video-1" } }],
 ]) {
     test(`${name}：未接入能力明确失败，不产生付费生成或画布修改`, async () => {
         const ctx = context();

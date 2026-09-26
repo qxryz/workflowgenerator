@@ -1,4 +1,4 @@
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { normalizeAiConfig, useConfigStore, type AiConfig, type WebdavSyncConfig } from "@/stores/use-config-store";
 import { usePromptSourceStore, type PromptSourceSchedule } from "@/stores/use-prompt-source-store";
@@ -20,6 +20,7 @@ export function stripConfigCredentials(config: AiConfig): AiConfig {
     return {
         ...config,
         apiKey: "",
+        seedanceVideoRelayToken: "",
         channels: config.channels.map((channel) => ({ ...channel, apiKey: "" })),
     };
 }
@@ -37,12 +38,12 @@ export function sanitizeImportedConfig(config: AiConfig) {
         }),
     }));
     return {
-        config: { ...config, apiKey: "", channels },
+        config: { ...config, apiKey: "", seedanceVideoRelayToken: "", channels },
         strippedScripts,
     };
 }
 
-export function exportAppConfig() {
+export async function exportAppConfig() {
     const { config, webdav } = useConfigStore.getState();
     const { sources, schedule } = usePromptSourceStore.getState();
     const data: AppConfigFile = {
@@ -53,7 +54,7 @@ export function exportAppConfig() {
         webdav: { ...webdav, password: "" },
         promptSources: { sources, schedule },
     };
-    saveAs(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), "workflowgenerator-config.json");
+    await downloadFile(new Blob([JSON.stringify(data, null, 2)], { type: "application/json;charset=utf-8" }), "workflowgenerator-config.json");
 }
 
 export async function importAppConfig(file: File) {

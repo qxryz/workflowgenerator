@@ -240,3 +240,17 @@ test("approved node parameters override later defaults, including empty prompt p
     assert.equal(result.videoGenerateAudio, "false");
     assert.equal(result.videoWatermark, "false");
 });
+
+test("Seedance 2.5 canvas task and frame options are read from the node before generation", () => {
+    const config = { model: "global-video", seedance25TaskMode: "generate", seedance25InputMode: "reference", seedance25ReturnLastFrame: "false" };
+    const shot = node("shot", "video", {
+        model: "doubao-seedance-2-5-260628",
+        seedance25TaskMode: "extend",
+        seedance25InputMode: "first-last",
+        seedance25ReturnLastFrame: "true",
+    });
+    const result = buildGenerationConfig(config, shot, "video");
+    assert.equal(result.seedance25TaskMode, "extend");
+    assert.equal(result.seedance25InputMode, "first-last");
+    assert.equal(result.seedance25ReturnLastFrame, "true");
+});

@@ -76,6 +76,7 @@ pub fn router() -> Router<AppState> {
             post(model_proxy_post).layer(DefaultBodyLimit::max(MAX_MODEL_PROXY_REQUEST_BYTES)),
         )
         .route("/api/model/json-get", post(model_json_get))
+        .route("/api/model/json-delete", post(model_json_delete))
         .route("/api/media/fetch-remote", post(fetch_remote_media))
         .route("/api/media/proxy-bytes", post(media_proxy_bytes))
         .route("/api/publisher/verify", post(publisher::verify))
@@ -505,6 +506,13 @@ async fn model_json_get(Json(request): Json<ModelListRequest>) -> Response {
     }
 }
 
+async fn model_json_delete(Json(request): Json<ModelListRequest>) -> Response {
+    match proxy::native_model_json_delete(request.url, request.api_key).await {
+        Ok(payload) => Json(payload).into_response(),
+        Err(error) => fail(error),
+    }
+}
+
 async fn fetch_remote_media(
     state: State<Arc<NativeStorage>>,
     Json(request): Json<RemoteMediaRequest>,
@@ -575,5 +583,15 @@ mod request_limit_tests {
         let response = app.oneshot(Request::post("/api/store/set").header("content-type", "application/json")
             .body(Body::from(serde_json::json!({"namespace":"fixture", "key":"large", "value":padding}).to_string())).unwrap()).await.unwrap();
         assert_eq!(response.status(), StatusCode::PAYLOAD_TOO_LARGE);
+    }
+
+    #[tokio::test]
+    async fn model_delete_route_uses_the_credential_url_guard() {
+        let dir = tempfile::tempdir().unwrap();
+        let state = AppState { storage: Arc::new(storage::initialize(dir.path()).unwrap()) };
+        let response = router().with_state(state).oneshot(Request::post("/api/model/json-delete")
+            .header("content-type", "application/json")
+            .body(Body::from(serde_json::json!({"url":"http://public.example/video/1", "apiKey":"fixture"}).to_string())).unwrap()).await.unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
     }
 }

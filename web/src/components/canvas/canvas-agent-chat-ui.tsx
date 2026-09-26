@@ -387,6 +387,7 @@ export function AgentChatComposer({
                     style={{ color: theme.node.text }}
                     placeholder={placeholder}
                 />
+                {!attachments.length && !prompt.trim() && !sending ? <div className="mt-1 px-1 text-[11px] leading-5" style={{ color: theme.node.muted }}>点击加号添加媒体文件</div> : null}
                 <div className="mt-1 flex items-center justify-between gap-2">
                     <div className="flex min-w-0 items-center gap-1">
                         {onAddFiles ? (

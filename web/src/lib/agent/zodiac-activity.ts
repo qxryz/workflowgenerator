@@ -33,6 +33,8 @@ const labels: Record<string, string> = {
     hub_canvas_apply_text_edits: "修改文档",
     hub_generate_image: "准备图片生成",
     hub_generate_video: "准备视频生成",
+    hub_extract_video_frame: "提取视频尾帧",
+    hub_video_edit: "准备视频编辑",
     hub_generate_audio: "准备语音合成",
     hub_analyse_media: "分析图片",
     hub_plugin_agent_describe: "读取插件能力",
@@ -62,4 +64,6 @@ export const zodiacToolNeedsApproval = (name: string) =>
         "hub_plugin_agent_invoke",
         "hub_save_file_to_session",
         "hub_import_file",
+        "hub_extract_video_frame",
+        "hub_video_edit",
     ].includes(name);

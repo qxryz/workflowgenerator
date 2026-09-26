@@ -358,7 +358,7 @@ export function buildMiniMaxH3Request(model: string, input: MiniMaxH3Input) {
 
 export type MiniMaxH3TaskResponse = {
     task_id?: string;
-    task?: { status?: string; content?: { url?: string }; error?: { message?: string } | string };
+    task?: { status?: string; content?: { url?: string; video_url?: string }; url?: string; video_url?: string; error?: { message?: string } | string };
     base_resp?: { status_code?: number; status_msg?: string };
 };
 
@@ -370,11 +370,11 @@ export function parseMiniMaxH3CreateResponse(payload: MiniMaxH3TaskResponse) {
 export function parseMiniMaxH3QueryResponse(payload: MiniMaxH3TaskResponse): { status: "pending" | "completed" | "failed"; url?: string; error?: string } {
     assertMiniMaxResponse(payload);
     const status = payload.task?.status?.toLowerCase();
-    if (status === "succeeded") {
-        const url = payload.task?.content?.url;
-        return url ? { status: "completed", url } : { status: "failed", error: "MiniMax H3 任务成功但没有返回视频地址" };
+    if (["succeeded", "completed", "success", "done"].includes(status || "")) {
+        const url = payload.task?.content?.url || payload.task?.content?.video_url || payload.task?.url || payload.task?.video_url;
+        return url ? { status: "completed", url } : { status: "pending" };
     }
-    if (status === "failed" || status === "cancelled") {
+    if (["failed", "cancelled", "expired"].includes(status || "")) {
         const error = payload.task?.error;
         return { status: "failed", error: typeof error === "string" ? error : error?.message || "MiniMax H3 视频生成失败" };
     }

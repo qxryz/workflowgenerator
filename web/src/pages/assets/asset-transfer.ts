@@ -1,4 +1,4 @@
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { fileExtension as originalFileExtension } from "@/lib/asset-file";
 import { createZip, readZip } from "@/lib/zip";
@@ -68,7 +68,7 @@ export async function exportAssets(assets: Asset[]) {
 
     const data: AssetExportFile = { app: "infinite-canvas", version: 1, exportedAt: new Date().toISOString(), assets, files };
     const zip = await createZip([{ name: "assets.json", data: JSON.stringify(data, null, 2) }, ...zipFiles]);
-    saveAs(zip, "我的资产.zip");
+    await downloadFile(zip, "我的资产.zip");
 }
 
 export async function readAssetPackage(file: File) {

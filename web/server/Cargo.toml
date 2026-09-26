@@ -12,7 +12,8 @@ path = "src/main.rs"
 
 [dependencies]
 axum = { version = "0.8", features = ["macros"] }
-tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs", "process", "sync", "time", "signal"] }
+tokio = { version = "1", features = ["rt-multi-thread", "macros", "net", "fs", "io-util", "process", "sync", "time", "signal"] }
+futures-util = "0.3"
 tower-http = { version = "0.6", features = ["fs", "trace"] }
 http = "1"
 bytes = "1"

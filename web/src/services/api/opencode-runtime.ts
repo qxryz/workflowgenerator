@@ -47,7 +47,7 @@ const delay = (signal?: AbortSignal) =>
 /** Shared by runtime registration and the in-app tool reference. Native task is not an MCP tool. */
 export function registeredZodiacTools(tools: readonly ZodiacToolDefinition[] = nativeTools(), skillTools: readonly ZodiacToolDefinition[] = []) {
     return [WORKSPACE_IMPORT_TOOL, ...tools, ...skillTools].filter(
-        (tool, index, all) => !["task", "hub_generate_music", "hub_video_edit"].includes(tool.name) && all.findIndex(t => t.name === tool.name) === index,
+        (tool, index, all) => !["task", "hub_generate_music"].includes(tool.name) && all.findIndex(t => t.name === tool.name) === index,
     );
 }
 

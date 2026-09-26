@@ -10,8 +10,14 @@ fn main() {
             Some(path) => std::path::PathBuf::from(path),
             None => workflowgenerator_server::data_layout::desktop_root(&app.path().home_dir()?, &app.path().app_data_dir()?).map_err(std::io::Error::other)?,
         };
-        let assets = if cfg!(debug_assertions) { std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dist") } else { app.path().resource_dir()?.join("web") };
+        let bundled_assets = app.path().resource_dir()?.join("web");
+        let assets = if cfg!(debug_assertions) && !bundled_assets.join("index.html").exists() {
+            std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dist")
+        } else {
+            bundled_assets
+        };
         if !assets.join("index.html").exists() { return Err("界面资源缺失，请重新安装应用。".into()); }
+        let downloads = app.path().download_dir()?;
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;
         listener.set_nonblocking(true)?;
         let address = listener.local_addr()?;
@@ -22,11 +28,12 @@ fn main() {
         let close: std::sync::Arc<dyn Fn() + Send + Sync> = std::sync::Arc::new(move || { approved.store(true, std::sync::atomic::Ordering::SeqCst); handle.exit(0); });
         tauri::async_runtime::spawn(async move {
             let listener = tokio::net::TcpListener::from_std(listener).expect("desktop listener");
-            if let Err(error) = workflowgenerator_server::serve_desktop(listener, &data, &assets, token, close).await { eprintln!("{error}"); }
+            if let Err(error) = workflowgenerator_server::serve_desktop(listener, &data, &assets, &downloads, token, close).await { eprintln!("{error}"); }
         });
         let origin = format!("http://{address}");
+        let window_title = if app.config().identifier.ends_with(".dev") || cfg!(debug_assertions) { "WorkflowGenerator Dev" } else { "WorkflowGenerator" };
         tauri::WebviewWindowBuilder::new(app, "main", tauri::WebviewUrl::External(url.parse()?))
-            .title("WorkflowGenerator").inner_size(1440.0, 940.0).min_inner_size(1000.0, 680.0)
+            .title(window_title).inner_size(1440.0, 940.0).min_inner_size(1000.0, 680.0)
             .on_navigation(move |url| url.origin().ascii_serialization() == origin)
             .on_new_window(|url, _| {
                 #[cfg(target_os = "macos")]

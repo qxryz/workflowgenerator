@@ -282,12 +282,12 @@ export function AppConfigPanel({ showDoneButton = false, initialTab = "channels"
     return (
         <>
             <div className="flex flex-wrap items-center justify-between gap-3 border-b border-stone-200 pb-3 dark:border-stone-800">
-                <div className="text-xs text-stone-500">{t("导出文件不包含 API Key 和 WebDAV 密码。")}</div>
+                <div className="text-xs text-stone-500">{t("导出文件不包含 API Key、视频中转凭证和 WebDAV 密码。")}</div>
                 <div className="flex gap-2">
                     <Button icon={<Upload className="size-4" />} onClick={() => configInputRef.current?.click()}>
                         {t("导入配置")}
                     </Button>
-                    <Button icon={<Download className="size-4" />} onClick={exportAppConfig}>
+                    <Button icon={<Download className="size-4" />} onClick={() => void exportAppConfig().catch((error) => message.error(error instanceof Error ? error.message : t("导出失败")))}>
                         {t("导出配置")}
                     </Button>
                     <input ref={configInputRef} type="file" accept="application/json,.json" className="hidden" onChange={(event) => event.target.files?.[0] && void loadConfigFile(event.target.files[0])} />

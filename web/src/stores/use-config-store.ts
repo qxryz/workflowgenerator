@@ -85,6 +85,10 @@ export type AiConfig = {
     seedance25ReturnLastFrame: string;
     seedance25WebSearch: string;
     seedance25CameraFixed: string;
+    /** Built-in relay or a user-operated relay for local Seedance videos. */
+    seedanceVideoRelayMode: "official" | "custom";
+    seedanceVideoRelayUrl: string;
+    seedanceVideoRelayToken: string;
     minimaxVideoInputMode: MiniMaxVideoInputMode;
     minimaxVideoPromptOptimizer: string;
     minimaxVideoFastPretreatment: string;
@@ -100,6 +104,8 @@ export type AiConfig = {
     canvasImageCount: string;
     allowPrivateNetworkMedia: boolean;
 };
+
+const LEGACY_OFFICIAL_SEEDANCE_RELAY_URL = "https://wg.coco120.cn/seedance-media";
 
 export type WebdavSyncConfig = {
     url: string;
@@ -164,6 +170,9 @@ export const defaultConfig: AiConfig = {
     seedance25ReturnLastFrame: "true",
     seedance25WebSearch: "false",
     seedance25CameraFixed: "false",
+    seedanceVideoRelayMode: "official",
+    seedanceVideoRelayUrl: "",
+    seedanceVideoRelayToken: "",
     minimaxVideoInputMode: "auto",
     minimaxVideoPromptOptimizer: "true",
     minimaxVideoFastPretreatment: "false",
@@ -293,7 +302,7 @@ export const useConfigStore = create<ConfigStore>()(
         {
             name: CONFIG_STORE_KEY,
             storage: createJSONStorage(() => serverStateStorage),
-            version: 3,
+            version: 4,
             partialize: (state) => ({ config: state.config, webdav: state.webdav }),
             migrate: (persistedState) => persistedState as ConfigStore,
             merge: (persisted, current) => {
@@ -513,6 +522,8 @@ export function normalizeAiConfig(persistedConfig: Partial<AiConfig>): AiConfig 
         instructions: config.audioInstructions,
     });
     const firstChannel = channels[0];
+    const legacyOfficialRelay = persistedConfig.seedanceVideoRelayUrl?.trim().replace(/\/+$/, "") === LEGACY_OFFICIAL_SEEDANCE_RELAY_URL;
+    const relayMode = legacyOfficialRelay ? "official" : persistedConfig.seedanceVideoRelayMode === "custom" || (!persistedConfig.seedanceVideoRelayMode && !!persistedConfig.seedanceVideoRelayUrl) ? "custom" : "official";
     return {
         ...config,
         language: normalizeAppLanguage(config.language),
@@ -547,6 +558,9 @@ export function normalizeAiConfig(persistedConfig: Partial<AiConfig>): AiConfig 
         seedance25ReturnLastFrame: config.seedance25ReturnLastFrame === "false" ? "false" : "true",
         seedance25WebSearch: config.seedance25WebSearch === "true" ? "true" : "false",
         seedance25CameraFixed: config.seedance25CameraFixed === "true" ? "true" : "false",
+        seedanceVideoRelayMode: relayMode,
+        seedanceVideoRelayUrl: legacyOfficialRelay ? "" : config.seedanceVideoRelayUrl?.trim() || "",
+        seedanceVideoRelayToken: legacyOfficialRelay ? "" : config.seedanceVideoRelayToken?.trim() || "",
         minimaxVideoInputMode: normalizeMiniMaxVideoInputMode(config.minimaxVideoInputMode),
         minimaxVideoPromptOptimizer: config.minimaxVideoPromptOptimizer || "true",
         minimaxVideoFastPretreatment: config.minimaxVideoFastPretreatment || "false",

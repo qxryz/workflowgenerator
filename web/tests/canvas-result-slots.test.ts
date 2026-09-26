@@ -137,12 +137,26 @@ test("deleting any attempt preserves a deterministic usable selection", () => {
 
 test("slot invariants reject incompatible artifacts, duplicate versions, failed selections, and foreign writers", () => {
     const slot = createCanvasResultSlot({ id: "slot", sourceNodeId: "owner", mode: "video", position: { x: 0, y: 0 } });
-    assert.throws(() => appendResultSlotSuccess(slot, { id: "bad-kind", sourceNodeId: "owner", artifacts: [{ id: "image", kind: "image", content: "blob:image" }] }), /不兼容/);
+    assert.throws(() => appendResultSlotSuccess(slot, { id: "bad-kind", sourceNodeId: "owner", artifacts: [{ id: "image", kind: "image", content: "blob:image" }] }), /主产物必须/);
     assert.throws(() => appendResultSlotFailure(slot, { id: "foreign", sourceNodeId: "other", errorDetails: "失败" }), /不能写入/);
 
     const failed = appendResultSlotFailure(slot, { id: "attempt", sourceNodeId: "owner", errorDetails: "失败" });
     assert.throws(() => appendResultSlotFailure(failed, { id: "attempt", errorDetails: "再次失败" }), /已存在/);
     assert.throws(() => selectResultSlotVersion(failed, "attempt"), /失败版本/);
+});
+
+test("a video result version retains an image tail frame alongside its primary video", () => {
+    const slot = createCanvasResultSlot({ id: "video-slot", mode: "video", position: { x: 0, y: 0 } });
+    const saved = appendResultSlotSuccess(slot, {
+        id: "v1",
+        artifacts: [
+            { id: "video", kind: "video", content: "/media/video", storageKey: "video:stored", mimeType: "video/mp4" },
+            { id: "tail", kind: "image", content: "/media/tail", storageKey: "image:stored", mimeType: "image/png" },
+        ],
+    });
+    assert.equal(saved.metadata.resultVersions[0].status, "success");
+    assert.deepEqual(readCurrentResultSlotOutput(saved)?.artifacts.map((item) => item.kind), ["video", "image"]);
+    assert.equal(readCurrentResultSlotArtifact(saved)?.kind, "video");
 });
 
 test("lifecycle updates remain pure and keep an existing preview while persisting", () => {

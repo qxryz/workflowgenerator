@@ -9,7 +9,8 @@ const mocks = {
     "lucide-react": "export const ArrowUp='ArrowUp', LoaderCircle='LoaderCircle', Square='Square';",
     antd: "export const Button='Button';",
     "@/components/model-picker": "export const ModelPicker='ModelPicker';",
-    "@/stores/use-config-store": "export const defaultConfig={}; export const resolveModelForCapability=()=> 'test-model'; export const useEffectiveConfig=()=>({}); export const useConfigStore=fn=>fn({openConfigDialog:()=>{}});",
+    "@/stores/use-config-store": "export const useEffectiveConfig=()=>globalThis.__canvasPromptPanelHarness.config; export const useConfigStore=fn=>fn({openConfigDialog:()=>{}});",
+    "@/lib/canvas/canvas-generation-helpers": "export const buildGenerationConfig=(...args)=>globalThis.__canvasPromptPanelHarness.buildGenerationConfig(...args);",
     "@/lib/canvas-theme": "export const canvasThemes={test:{toolbar:{},node:{}}};",
     "@/stores/use-theme-store": "export const useThemeStore=fn=>fn({theme:'test'});",
     "@/types/canvas": "export const CanvasNodeType={Image:'image',Text:'text',Video:'video',Audio:'audio'};",
@@ -51,8 +52,11 @@ function createPanel(node) {
     let dirty = false;
     const generated = [];
     const persisted = [];
-    let props = { node, isRunning: false, onGenerate: (...args) => generated.push(args), onPromptChange: (...args) => persisted.push(args), onConfigChange: () => {}, onStop: () => {} };
+    const configChanges = [];
+    let props = { node, isRunning: false, onGenerate: (...args) => generated.push(args), onPromptChange: (...args) => persisted.push(args), onConfigChange: (...args) => configChanges.push(args), onStop: () => {} };
     const harness = {
+        config: { model: "test-model", videoModel: "doubao-seedance-2-5-260628" },
+        buildGenerationConfig: (globalConfig, currentNode) => ({ ...globalConfig, ...currentNode.metadata }),
         useState(initial) {
             const index = cursor++;
             if (!hooks[index]) hooks[index] = { value: typeof initial === "function" ? initial() : initial };
@@ -75,7 +79,7 @@ function createPanel(node) {
             }
         },
     };
-    const render = (patch = {}) => {
+    const render = (patch = {}, requestedType = "CanvasPromptChipInput") => {
         props = { ...props, ...patch };
         globalThis.__canvasPromptPanelHarness = harness;
         let tree;
@@ -88,10 +92,22 @@ function createPanel(node) {
             effects.forEach((effect) => effect());
             assert.ok(++renders < 10, "state updates settle");
         } while (dirty);
-        return allNodes(tree).find((item) => item.type === "CanvasPromptChipInput").props;
+        return allNodes(tree).find((item) => item.type === requestedType).props;
     };
-    return { render, generated, persisted };
+    return { render, generated, persisted, configChanges };
 }
+
+test("Seedance 2.5 画布选项从节点配置读回，点击任务模式写回同一节点", () => {
+    const node = { id: "shot", type: "video", metadata: { model: "doubao-seedance-2-5-260628", seedance25TaskMode: "extend", seedance25InputMode: "first-last", seconds: "10" } };
+    const panel = createPanel(node);
+    const settings = panel.render({}, "CanvasVideoSettingsPopover");
+    assert.equal(settings.config.seedance25TaskMode, "extend");
+    assert.equal(settings.config.seedance25InputMode, "first-last");
+    settings.onConfigChange("seedance25TaskMode", "edit");
+    assert.deepEqual(panel.configChanges.at(-1), ["shot", { seedance25TaskMode: "edit" }]);
+    const changed = panel.render({ node: { ...node, metadata: { ...node.metadata, seedance25TaskMode: "edit" } } }, "CanvasVideoSettingsPopover");
+    assert.equal(changed.config.seedance25TaskMode, "edit");
+});
 
 test("same-node external prompt updates replace stale references in the editor and submitted request", () => {
     const node = { id: "scene", type: "image", metadata: { prompt: "采用 @[node:removed]" } };

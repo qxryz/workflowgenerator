@@ -1,5 +1,12 @@
 export type TraceInterval = { id: string; start: number; end?: number; lane?: string };
 
+/** A lane represents an agent role, not a runtime session instance. */
+export function traceAgentLane(row: { parentId?: string; info: { agent?: string; role?: string } }) {
+    if (row.info.role === "user") return "zodiac";
+    const agent = row.info.agent?.trim().toLowerCase();
+    return agent || (row.parentId ? "subagent" : "zodiac");
+}
+
 /** A chronological strip: brief events stay clickable and long waits are bounded. */
 export function layoutTraceTimeline(intervals: TraceInterval[], viewportWidth: number, zoom: number, laneOrder: string[] = ["zodiac"]) {
     const ordered = intervals.filter((entry) => Number.isFinite(entry.start)).toSorted((a, b) => a.start - b.start);

@@ -157,7 +157,8 @@ export function normalizeZodiacCanvasOps(value: unknown): CanvasAgentOp[] {
                 return [];
             }
             const patch = normalizeNodePatch(raw.patch);
-            const metadata = normalizeOperationMetadata(raw);
+            if (patch?.metadata) patch.metadata = synchronizePromptFields(patch.metadata);
+            const metadata = synchronizePromptFields(normalizeOperationMetadata(raw));
             return [{ type, id, ...(patch ? { patch } : {}), ...(metadata ? { metadata } : {}) }];
         }
         if (type === "delete_node") {
@@ -214,6 +215,20 @@ export function normalizeZodiacCanvasOps(value: unknown): CanvasAgentOp[] {
     });
     if (normalized.some((op) => op.type === "run_generation" && (proposedPluginNodeIds.has(op.nodeId) || (proposedNodeTypes.has(op.nodeId) && !isActionNodeType(proposedNodeTypes.get(op.nodeId)))))) return [];
     return normalized;
+}
+
+export function zodiacPromptEditProposalError(request: string, ops: CanvasAgentOp[], knownNodes: ZodiacKnownCanvasNode[] = []) {
+    const asksForPromptEdit = /(?:修改|更改|调整|改写|优化|替换|更新).{0,16}(?:提示词|prompt)|(?:提示词|prompt).{0,16}(?:修改|更改|调整|改写|优化|替换|更新)/iu.test(request);
+    if (!asksForPromptEdit) return undefined;
+    const knownById = new Map(knownNodes.map((node) => [node.id, node]));
+    const changesLivePrompt = ops.some((op) => {
+        if (op.type !== "update_node") return false;
+        const current = knownById.get(op.id);
+        if (current?.type !== "config") return false;
+        const nextPrompt = op.metadata?.composerContent ?? op.metadata?.prompt ?? op.patch?.metadata?.composerContent ?? op.patch?.metadata?.prompt;
+        return typeof nextPrompt === "string" && nextPrompt.trim() !== (current.metadata?.composerContent ?? current.metadata?.prompt ?? "").trim();
+    });
+    return changesLivePrompt ? undefined : "用户要求修改生成提示词，但提案没有更新已有配置节点的实际提示词。请用 update_node 修改该节点的 metadata.prompt 和 metadata.composerContent，不能只改标题。";
 }
 
 /** Extract the first valid proposal and remove only that protocol block from user-visible copy. */
@@ -1853,6 +1868,15 @@ function normalizeCanvasMetadata(value: unknown): CanvasNodeMetadata | undefined
     if (raw.generationType === "generation" || raw.generationType === "edit") metadata.generationType = raw.generationType;
     if (raw.reasoningEffort === "auto" || raw.reasoningEffort === "low" || raw.reasoningEffort === "medium" || raw.reasoningEffort === "high" || raw.reasoningEffort === "xhigh") metadata.reasoningEffort = raw.reasoningEffort;
     return Object.keys(metadata).length ? (metadata as CanvasNodeMetadata) : undefined;
+}
+
+function synchronizePromptFields(metadata: CanvasNodeMetadata | undefined) {
+    if (!metadata) return metadata;
+    // Existing action nodes may already have both fields. The editor reads
+    // composerContent first, so an update to prompt alone must replace it too.
+    if (metadata.prompt && !metadata.composerContent) return { ...metadata, composerContent: metadata.prompt };
+    if (metadata.composerContent && !metadata.prompt) return { ...metadata, prompt: metadata.composerContent };
+    return metadata;
 }
 
 /**

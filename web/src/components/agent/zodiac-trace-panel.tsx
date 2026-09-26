@@ -3,7 +3,7 @@ import { useAppTranslation } from "@/hooks/use-app-translation";
 import { Button, Empty, Input, Modal, Select, Slider, Spin } from "antd";
 import { agentRequest } from "@/services/api/opencode-runtime";
 import { ArrowDownToLine, ChevronLeft, ChevronRight, Minus, Plus } from "lucide-react";
-import { layoutTraceTimeline } from "@/lib/agent/zodiac-trace-layout";
+import { layoutTraceTimeline, traceAgentLane } from "@/lib/agent/zodiac-trace-layout";
 import "./zodiac-trace.css";
 import type { ZodiacActivity } from "@/lib/agent/zodiac-activity";
 import type { TraceTokens, TraceUsage } from "@/lib/agent/zodiac-trace-usage";
@@ -18,7 +18,7 @@ type TraceRecord = {
     parentId?: string;
     usage?: TraceTokens | null;
     info: { role?: string; agent?: string; tokens?: unknown; modelID?: string; error?: unknown };
-    part: { type: string; text?: string; tool?: string; state?: { status?: string; input?: unknown; output?: unknown; error?: string; time?: { start?: number; end?: number } }; time?: { start?: number; end?: number } };
+    part: { type: string; text?: string; filename?: string; mime?: string; tool?: string; state?: { status?: string; input?: unknown; output?: unknown; error?: string; time?: { start?: number; end?: number } }; time?: { start?: number; end?: number } };
 };
 type TracePage = { records: TraceRecord[]; before: number | null; usage: TraceUsage };
 export function traceText(value: unknown): string {
@@ -37,9 +37,6 @@ function traceTime(row: TraceRecord) {
 }
 function traceStatus(row: TraceRecord) {
     return row.info.error || row.part.state?.error ? "error" : row.part.state?.status || "";
-}
-function traceLane(row: TraceRecord) {
-    return row.parentId ? `${row.sessionId}:${row.info.agent || "agent"}` : "zodiac";
 }
 function traceTone(row: TraceRecord) {
     if (traceStatus(row) === "error") return "error";
@@ -145,7 +142,7 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
     useEffect(() => {
         if (!open || loading) return;
         setLaneOrder((current) => {
-            const next = [...new Set([...current, ...rows.map(traceLane)])];
+            const next = [...new Set([...current, ...rows.map(traceAgentLane)])];
             return next.length === current.length ? current : next;
         });
     }, [rows, open, loading]);
@@ -162,6 +159,30 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
             }),
         );
     }, [rows]);
+    const attachmentOrigins = useMemo(() => {
+        const groups = new Map<string, TraceRecord[]>();
+        for (const row of rows) {
+            if (row.info.role !== "user" || row.part.type !== "file") continue;
+            const group = groups.get(row.messageId) || [];
+            group.push(row);
+            groups.set(row.messageId, group);
+        }
+        return new Map(Array.from(groups.values()).flatMap((group) => {
+            const text = rows.filter((candidate) => candidate.messageId === group[0].messageId && candidate.part.type === "text").map((candidate) => candidate.part.text || "").join("\n");
+            const names = text.match(/本轮附带的图片文件：([^。\n]+)/u)?.[1]?.split("、").map((name) => name.trim()).filter(Boolean) || [];
+            const canvasRefs = [...text.matchAll(/画布参考图\s*\d+：\s*(\{[^\n]*?\})/gu)].map((match) => {
+                try {
+                    const data = JSON.parse(match[1]) as { title?: string; nodeId?: string };
+                    return data.title ? `画布节点「${data.title}」` : data.nodeId ? `画布节点 ${data.nodeId}` : "画布参考图";
+                } catch { return "画布参考图"; }
+            });
+            return group.map((row, index) => [row.id, {
+                index: index + 1,
+                count: group.length,
+                source: index < names.length ? `聊天附件「${names[index]}」` : canvasRefs[index - names.length] || "本轮消息附加的图片",
+            }] as const);
+        }));
+    }, [rows]);
     const visible = useMemo(
         () => rows.filter((row) => (filter === "all" || (filter === "error" ? traceStatus(row) === "error" : (row.info.agent || "zodiac") === filter)) && traceText(row).toLowerCase().includes(query.toLowerCase())),
         [rows, filter, query],
@@ -171,14 +192,21 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
     const layout = useMemo(
         () =>
             layoutTraceTimeline(
-                visible.map((row) => ({ id: row.id, lane: traceLane(row), ...traceTime(row) })),
+                visible.map((row) => ({ id: row.id, lane: traceAgentLane(row), ...traceTime(row) })),
                 viewportWidth,
                 zoom,
                 laneOrder,
             ),
         [visible, viewportWidth, zoom, laneOrder],
     );
-    const recordLabel = (row: TraceRecord) => row.part.tool || t(kindText[row.part.type] || row.part.type);
+    const recordLabel = (row: TraceRecord) => row.part.type === "file" && attachmentOrigins.has(row.id)
+        ? `附件 ${attachmentOrigins.get(row.id)!.index}/${attachmentOrigins.get(row.id)!.count}`
+        : row.part.tool || t(kindText[row.part.type] || row.part.type);
+    const attachmentOriginLabel = (row: TraceRecord) => {
+        const origin = attachmentOrigins.get(row.id);
+        if (!origin) return "";
+        return `${origin.source} · ${clockLabel(row.at)} 发送给 Zodiac`;
+    };
     const actorLabel = (row: TraceRecord) => (row.info.role === "user" ? t("你") : row.info.agent || (row.parentId ? row.title : "Zodiac"));
     const clockLabel = (at: number) => new Date(at).toLocaleTimeString([], { hour12: false });
     const selectRecord = (id: string) => {
@@ -401,7 +429,7 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
                                             <span>
                                                 {" "}
                                                 · {actorLabel(row)}
-                                                {preview ? ` · ${preview.slice(0, 240)}` : ""}
+                                                {attachmentOriginLabel(row) ? ` · ${attachmentOriginLabel(row)}` : preview ? ` · ${preview.slice(0, 240)}` : ""}
                                             </span>
                                         </span>
                                         <span className="zodiac-trace-state" data-tone={traceTone(row)}>
@@ -428,6 +456,7 @@ export function ZodiacTracePanel({ open, onClose, projectId, sessionId, running,
                                 {clockLabel(traceTime(detail).start)}
                                 {traceTime(detail).end != null ? ` · ${t("耗时 {seconds} 秒", { seconds: (Math.max(0, traceTime(detail).end! - traceTime(detail).start) / 1000).toFixed(2) })}` : ""}
                             </p>
+                            {attachmentOriginLabel(detail) ? <p className="zodiac-trace-detail-meta">{attachmentOriginLabel(detail)}{detail.part.filename ? ` · ${detail.part.filename}` : ""}{detail.part.mime ? ` · ${detail.part.mime}` : ""}</p> : null}
                             {[
                                 { label: "输入", value: detail.part.state?.input },
                                 { label: "输出", value: detail.part.state?.output ?? detail.part.text },

@@ -40,7 +40,7 @@ test("Director project JSON export and import round-trip through the validated c
 
 test("Director exposes real project actions without browser business persistence", () => {
     for (const label of ["导入工程", "导出工程", "保存为最近工程", "恢复最近工程"]) assert.match(menuSource, new RegExp(label, "u"));
-    assert.match(menuSource, /saveAs\(new Blob/u);
+    assert.match(menuSource, /await downloadFile\(new Blob/u);
     assert.match(menuSource, /replaceProject\(parseProject\(await file\.text\(\)\)\)/u);
     assert.match(bridgeSource, /project\.snapshot\.save/u);
     assert.match(bridgeSource, /project\.snapshot\.restore/u);

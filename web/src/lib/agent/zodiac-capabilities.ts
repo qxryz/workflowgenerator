@@ -1,4 +1,4 @@
-import type { AiConfig } from "@/stores/use-config-store";
+import { resolveModelRequestConfig, type AiConfig } from "@/stores/use-config-store";
 import { resolveChannelModelAdapter } from "../model-catalog.ts";
 import { seedreamImageContract } from "../model-providers.ts";
 import { adapterCapabilitySupport, isMiniMaxAdapter } from "../model-adapters.ts";
@@ -12,7 +12,7 @@ function videoContract(adapter: string, model: string) {
         if (isMiniMaxHailuoModel(model)) return { inputModes: model.toLowerCase().endsWith("-fast") ? ["first-frame"] : ["text", "first-frame"], references: { images: 1, videos: 0, audios: 0 }, durationSeconds: MINIMAX_HAILUO_DURATIONS, resolutions: MINIMAX_HAILUO_RESOLUTIONS };
         if (model.toLowerCase() === "minimax-h3") return { inputModes: MINIMAX_VIDEO_INPUT_MODES, references: MINIMAX_H3_REFERENCE_LIMITS, durationSeconds: MINIMAX_H3_DURATION_SECONDS, resolutions: MINIMAX_VIDEO_RESOLUTIONS, ratios: MINIMAX_VIDEO_RATIOS };
     }
-    if (adapter === "ark-media" && isSeedance25Model(model)) return { inputModes: SEEDANCE_25_INPUT_MODES.map(mode => mode.value), references: SEEDANCE_25_REFERENCE_LIMITS, durationSeconds: SEEDANCE_25_GENERATION_DURATIONS };
+    if (adapter === "ark-media" && isSeedance25Model(model)) return { inputModes: SEEDANCE_25_INPUT_MODES.map(mode => mode.value), taskModes: ["generate", "edit", "extend"], references: SEEDANCE_25_REFERENCE_LIMITS, durationSeconds: SEEDANCE_25_GENERATION_DURATIONS };
     return null;
 }
 
@@ -23,12 +23,22 @@ export const ZODIAC_CAPABILITIES_TOOL = {
 };
 
 export function buildZodiacCapabilities(config: AiConfig) {
+    const selectedVideo = config.videoModel ? resolveModelRequestConfig(config, config.videoModel) : null;
+    const videoEditingConfigured = Boolean(selectedVideo && selectedVideo.adapter === "ark-media" && isSeedance25Model(selectedVideo.model) && selectedVideo.apiKey.trim() && selectedVideo.baseUrl.trim());
     return {
         runtime: { engine: "opencode", files: ["read", "write", "edit", "search", "import_to_canvas"], assetIndex: ".zodiac/assets.json", versionedAssets: true, commands: "approval_required", subagents: ["router", "planner", "executor"] },
         generation: ["image", "video", "speech"],
         documents: ["write", "read", "search", "edit_with_content_hash"],
         workflows: ["ad-tvc", "drama-series", "mv", "custom"],
-        unavailable: ["music_generation", "video_editing", "comfyui", "browser_control"],
+        videoEditing: { supported: videoEditingConfigured, model: "Seedance 2.5", execution: "prepare_then_user_run" },
+        mediaEngineeringTools: [
+            { name: "hub_extract_video_frame", supported: true, result: "saved_image_node" },
+            { name: "hub_video_trim", supported: false },
+            { name: "hub_merge_videos", supported: false },
+            { name: "hub_extract_audio", supported: false },
+            { name: "hub_media_transcribe", supported: false },
+        ],
+        unavailable: ["music_generation", ...(videoEditingConfigured ? [] : ["video_editing"]), "video_trimming", "video_merging", "audio_extraction", "media_transcription", "comfyui", "browser_control"],
         defaults: {
             textModel: config.textModel, imageModel: config.imageModel, videoModel: config.videoModel, audioModel: config.audioModel,
             imageSize: config.size, imageCount: config.canvasImageCount, videoSeconds: config.videoSeconds,

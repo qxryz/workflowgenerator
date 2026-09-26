@@ -187,6 +187,10 @@ export async function getModelJson<T>(url: string, apiKey: string) {
     return request<T>("/api/model/json-get", { url, apiKey });
 }
 
+export async function deleteModelJson<T>(url: string, apiKey: string) {
+    return request<T>("/api/model/json-delete", { url, apiKey });
+}
+
 /** Sends one file plus string fields through the server's HTTP client. The
  * file payload must be raw base64 without a data-URL prefix. */
 export async function postModelMultipart(url: string, apiKey: string, file: ServerModelMultipartFile, fields: Record<string, string> = {}) {

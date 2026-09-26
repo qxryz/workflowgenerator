@@ -37,6 +37,24 @@ const webdavModule = await server.ssrLoadModule("/src/services/webdav-sync.ts");
 const limitedResponseModule = await server.ssrLoadModule("/src/lib/limited-response.ts");
 const syncValidationModule = await server.ssrLoadModule("/src/services/app-sync-validation.ts");
 
+test("legacy official Seedance relay credentials are removed without changing a custom server", () => {
+    const legacy = configModule.normalizeAiConfig({
+        seedanceVideoRelayUrl: "https://wg.coco120.cn/seedance-media/",
+        seedanceVideoRelayToken: "old-private-token",
+    });
+    assert.equal(legacy.seedanceVideoRelayMode, "official");
+    assert.equal(legacy.seedanceVideoRelayUrl, "");
+    assert.equal(legacy.seedanceVideoRelayToken, "");
+    const custom = configModule.normalizeAiConfig({
+        seedanceVideoRelayMode: "custom",
+        seedanceVideoRelayUrl: "https://relay.example/media",
+        seedanceVideoRelayToken: "user-token",
+    });
+    assert.equal(custom.seedanceVideoRelayMode, "custom");
+    assert.equal(custom.seedanceVideoRelayUrl, "https://relay.example/media");
+    assert.equal(custom.seedanceVideoRelayToken, "user-token");
+});
+
 function miniMaxConfig(vendor: "minimax-token-plan" | "minimax-api", overrides: Record<string, unknown> = {}) {
     const channel = configModule.createModelChannel({
         id: vendor,
@@ -264,23 +282,26 @@ test("a deleted namespaced Token Plan channel never falls back to the first API 
 test("configuration export strips each vendor channel Key without mutating saved config", () => {
     const token = miniMaxConfig("minimax-token-plan").channels[0];
     const payg = miniMaxConfig("minimax-api").channels[0];
-    const config = { ...miniMaxConfig("minimax-api"), channels: [token, payg] };
+    const config = { ...miniMaxConfig("minimax-api"), channels: [token, payg], seedanceVideoRelayToken: "relay-secret" };
     const stripped = fileModule.stripConfigCredentials(config);
     assert.equal(stripped.channels[0].apiKey, "");
     assert.equal(stripped.channels[1].apiKey, "");
+    assert.equal(stripped.seedanceVideoRelayToken, "");
+    assert.equal(config.seedanceVideoRelayToken, "relay-secret");
     assert.equal(config.channels[0].apiKey, "plan-key");
     assert.equal(config.channels[1].apiKey, "payg-key");
 });
 
 test("configuration import strips executable model scripts and credentials", () => {
-    const config = miniMaxConfig("minimax-api", {
+    const config = { ...miniMaxConfig("minimax-api", {
         models: [{ name: "MiniMax-M3", capability: "text", script: "globalThis.pwned = true" }],
-    });
+    }), seedanceVideoRelayToken: "relay-secret" };
     const result = fileModule.sanitizeImportedConfig(config);
 
     assert.equal(result.strippedScripts, 1);
     assert.equal(result.config.channels[0].apiKey, "");
     assert.equal(result.config.apiKey, "");
+    assert.equal(result.config.seedanceVideoRelayToken, "");
     assert.equal(Object.hasOwn(result.config.channels[0].models[0], "script"), false);
     assert.equal(config.channels[0].models[0].script, "globalThis.pwned = true");
 });

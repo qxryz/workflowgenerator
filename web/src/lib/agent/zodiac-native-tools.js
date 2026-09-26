@@ -154,6 +154,7 @@ const metadata = {
     properties: {
         generationMode: { type: "string", enum: ["text", "image", "video", "audio"] },
         prompt: text(20000, "生成动作的提示词"),
+        composerContent: text(20000, "生成动作编辑器里的完整提示词；修改已有提示词时与 prompt 同步更新"),
         model: text(200, "模型 id"),
         reasoningEffort: { type: "string", enum: ["minimal", "low", "medium", "high"] },
         size: text(40, "尺寸"),
@@ -377,9 +378,33 @@ export const HUB_TOOL_DEFINITIONS = {
         parameters: {
             type: "object",
             required: ["prompt", "video"],
-            properties: { prompt: text(20000, "编辑指令"), video: hubReference, references: hubReferenceList },
+            properties: { prompt: text(20000, "编辑或延长原片的具体指令"), video: hubReference, mode: { type: "string", enum: ["edit", "extend"], description: "edit 修改原片，extend 延长原片；不填为 edit" }, seconds: { type: "number", minimum: 4, maximum: 30, description: "仅延长时使用的目标片段时长" }, references: hubReferenceList, operationId: text(200, "本次编辑的稳定 ID；重试保持相同") },
         },
-        description: `${HUB_DESCRIPTION_PREFIX}按指令编辑或延长一段已有视频。当前渠道不支持该能力时返回明确失败，不要假装成功。`,
+        description: `${HUB_DESCRIPTION_PREFIX}使用已配置的 Seedance 2.5 准备原片编辑或延长节点，连接画布原片与参考素材。由用户核对后点击运行；准备动作不会提交付费任务。抽取尾帧请使用 hub_extract_video_frame。`,
+    },
+    hub_extract_video_frame: {
+        parameters: {
+            type: "object",
+            required: ["video"],
+            properties: { video: hubReference, title: text(80, "新图片节点的名称；不填使用视频标题加尾帧") },
+        },
+        description: `${HUB_DESCRIPTION_PREFIX}从已保存的画布视频保留真实尾帧为图片节点。优先复用视频已有的尾帧产物；否则从本机视频解码末帧，不生成新视频。返回已保存图片节点。`,
+    },
+    hub_video_trim: {
+        parameters: { type: "object", required: ["video", "startSeconds", "endSeconds"], properties: { video: hubReference, startSeconds: { type: "number", minimum: 0 }, endSeconds: { type: "number", minimum: 0 } } },
+        description: "未接入：裁切已保存的视频片段。此名称供工程处理能力查询使用，调用只会返回未接入，不会修改文件或画布。",
+    },
+    hub_merge_videos: {
+        parameters: { type: "object", required: ["videos"], properties: { videos: { type: "array", minItems: 2, maxItems: 20, items: hubReference } } },
+        description: "未接入：按顺序合并已保存的视频。调用只会返回未接入，不会修改文件或画布。",
+    },
+    hub_extract_audio: {
+        parameters: { type: "object", required: ["video"], properties: { video: hubReference } },
+        description: "未接入：从已保存的视频提取音轨。调用只会返回未接入，不会修改文件或画布。",
+    },
+    hub_media_transcribe: {
+        parameters: { type: "object", required: ["asset"], properties: { asset: hubReference } },
+        description: "未接入：转写已保存的音频或视频。调用只会返回未接入，不会修改文件或画布。",
     },
     hub_analyse_media: {
         parameters: {

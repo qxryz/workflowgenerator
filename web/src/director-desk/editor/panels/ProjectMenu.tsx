@@ -1,6 +1,6 @@
 import { ChevronDown, Download, FolderOpen, History, Save, Upload } from "lucide-react";
 import { useEffect, useRef, useState, type ChangeEvent } from "react";
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 import "../../styles/project-menu.css";
 import { serializeProject } from "../io/exportProjectJson";
 import { restoreDirectorDeskRecentProject, saveDirectorDeskRecentProject, subscribeDirectorProjectSnapshotResult } from "../io/hostBridge";
@@ -73,9 +73,13 @@ export function ProjectMenu() {
         }
     }
 
-    function handleExport() {
-        saveAs(new Blob([serializeProject(project)], { type: "application/json;charset=utf-8" }), "workflowgenerator-director-project.json");
-        setStatus({ tone: "normal", text: "工程文件已导出" });
+    async function handleExport() {
+        try {
+            await downloadFile(new Blob([serializeProject(project)], { type: "application/json;charset=utf-8" }), "workflowgenerator-director-project.json");
+            setStatus({ tone: "normal", text: "工程文件已导出" });
+        } catch (error) {
+            setStatus({ tone: "error", text: error instanceof Error ? error.message : "工程文件导出失败" });
+        }
     }
 
     function handleSaveRecent() {

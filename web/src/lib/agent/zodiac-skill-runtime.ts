@@ -35,7 +35,6 @@ export function buildZodiacSkillRuntimeReport(skill: SkillRuntimeInput) {
     if (mediaIndex) { mediaIndex.status = "check_required"; mediaIndex.detail = "当前画布已保存素材会导出为会话 .hilo/assets.json 与 .hilo/.blobs；基础索引可读取，但须核对旧脚本需要的字段、产物命名和实际媒体，不能推断所有旧脚本兼容。"; }
     const missingTools: Array<[RegExp, string, string]> = [
         [/\bhub_generate_music\b|\bmusic_generation_[a-z_]+\b/, "音乐生成", "当前没有已接入的音乐生成工具，不得用语音合成替代。"],
-        [/\bhub_video_edit\b/, "视频编辑或延长", "当前 Hub 工具没有接入此任务，不能将编辑请求改成重新生成。"],
         [/\bread_media\b/, "read_media 输入契约", "旧工具使用 file_path/file_paths，不能原样调用。已在画布上的单张图片可映射到 hub_analyse_media(asset.nodeId)；视频、音频和 PDF 分析尚未由该工具支持。"],
         [/\baudios_generation\b/, "旧批量语音生成接口", "旧接口的 texts/voice_id/filenames 与音频索引回执未适配。单段语音可映射到 hub_generate_audio(text,voice)，不能据此承诺旧脚本或批量流程兼容。"],
         [/\bget_voice_id\b/, "语义音色搜索", "当前没有 get_voice_id 工具；只能使用已配置供应商的真实音色，不能把旧音色 ID 自动套用到另一供应商。"],
@@ -79,6 +78,7 @@ export function buildZodiacSkillRuntimeReport(skill: SkillRuntimeInput) {
     if (matchingFiles(/\bquestion\b|\bAskUserQuestion\b/).length) toolMappings.push({ from: "question / AskUserQuestion", to: "zodiac-ui", note: "按当前决策卡 schema 收集答案；技能中的问答不自动授予生成、命令或发布权限。" });
     toolMappings.push({ from: "技能文件、references、scripts", to: "skill(name,path)", note: "使用文件清单中的相对 path 按需读取，保留完整目录结构；此工具只读，不提供旧安装路径。" });
     if (matchingFiles(/\bhub_read\b/).length) toolMappings.push({ from: "hub_read", to: "hub_canvas_get_node / skill", note: "画布读取必须提供真实 nodeId；技能中的模板文件路径交给 skill(name,path)，不能将路径当 nodeId。" });
+    if (matchingFiles(/\bhub_video_edit\b/).length) toolMappings.push({ from: "hub_video_edit", to: "hub_video_edit", note: "仅使用已配置的 Seedance 2.5 准备编辑或延长节点；需真实原片，用户核对后运行。旧技能中的其它供应商参数不自动兼容。" });
     return {
         guidanceReadable: true,
         scriptFiles,

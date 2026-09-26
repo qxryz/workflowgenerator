@@ -5205,6 +5205,7 @@ dependencies = [
  "base64 0.22.1",
  "bytes",
  "flate2",
+ "futures-util",
  "http",
  "minisign-verify",
  "reqwest",

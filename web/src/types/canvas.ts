@@ -40,6 +40,8 @@ export type CanvasResultSlotState = "empty" | "waiting" | "running" | "persistin
 export type CanvasResultSlotArtifact = {
     id: string;
     kind: CanvasGenerationMode;
+    /** Optional semantic use of an output, independent of its media kind. */
+    role?: string;
     /** Text content for text artifacts; a readable URL for media artifacts. */
     content: string;
     title?: string;
@@ -120,10 +122,12 @@ export type CanvasNodeMetadata = {
         id: string;
         provider: string;
         model: string;
-        state: "running" | "completed" | "failed";
+        state: "running" | "completed" | "failed" | "unknown" | "cancelled";
         createdAt: string;
         updatedAt: string;
     };
+    /** All durable outputs of one generation, including auxiliary media. */
+    outputArtifacts?: CanvasResultSlotArtifact[];
     audioVoice?: string;
     audioFormat?: string;
     audioSpeed?: string;

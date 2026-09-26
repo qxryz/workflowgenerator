@@ -1,6 +1,15 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { layoutTraceTimeline } from "../src/lib/agent/zodiac-trace-layout.ts";
+import { layoutTraceTimeline, traceAgentLane } from "../src/lib/agent/zodiac-trace-layout.ts";
+
+test("同一代理的多个子会话共用一条轨迹线", () => {
+    const first = traceAgentLane({ parentId: "root", info: { agent: "executor" } });
+    const second = traceAgentLane({ parentId: "root", info: { agent: "Executor" } });
+    assert.equal(first, "executor");
+    assert.equal(second, first);
+    assert.equal(traceAgentLane({ info: { agent: "zodiac" } }), "zodiac");
+    assert.equal(traceAgentLane({ parentId: "root", info: { agent: "zodiac" } }), "zodiac");
+});
 
 test("trace keeps dense and overlapping events independently clickable", () => {
     const entries = Array.from({ length: 130 }, (_, index) => ({ id: `${index}`, start: 1000 + index, end: index === 0 ? 600000 : undefined }));

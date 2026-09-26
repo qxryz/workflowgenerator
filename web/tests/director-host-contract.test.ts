@@ -58,7 +58,7 @@ test("capture publication happens only after durable asset persistence and failu
     assert.ok(upload >= 0 && persist > upload && publish > persist);
     assert.match(pageSource, /message\.success\(`已将 \$\{saved\} 张镜头截图保存到我的资产`\)/u);
     assert.match(pageSource, /const blob = await getImageBlob\(image\.storageKey\)/u);
-    assert.match(pageSource, /saveAs\(blob, fileName\)/u);
+    assert.match(pageSource, /await downloadFile\(blob, fileName\)/u);
     assert.match(cameraPanelSource, /getDirectorCaptureDestinationLabel/u);
     assert.match(cameraPanelSource, /<span>\{captureDestinationLabel\}<\/span>/u);
     assert.match(directorStoreSource, /id: `\$\{camera\.id\}-capture-\$\{crypto\.randomUUID\(\)\}`/u);

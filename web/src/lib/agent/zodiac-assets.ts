@@ -34,7 +34,7 @@ export const ZODIAC_REFERENCE_ROLES = ["source_edit", "identity", "style", "layo
 export type ZodiacAssetReference = { nodeId: string; role?: string; label?: string; storageKey?: string; resultVersionId?: string; contentHash?: string };
 
 const roleInstructions: Record<string, string> = {
-    source_edit: "待修改原图；只改变指定部分，保留其余内容", identity: "人物或主体身份参考；保持外形与识别特征",
+    source_edit: "待修改原素材；只改变指定部分，保留其余内容", identity: "人物或主体身份参考；保持外形与识别特征",
     style: "风格参考；不替换主体身份", layout: "构图参考", scene: "场景参考", first_frame: "视频首帧", last_frame: "视频尾帧", audio: "声音参考",
 };
 

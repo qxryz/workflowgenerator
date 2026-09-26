@@ -29,6 +29,9 @@ test("the harness distinguishes declared outputs from exploratory results", () =
     assert.match(prompt, /不要在正文里输出 JSON 代码块/);
     assert.match(prompt, /提案都只加入画布，由用户点击运行/);
     assert.match(prompt, /不要因此改动结果槽自身的 advanceMode/);
+    assert.match(prompt, /修改已有生成步骤的提示词时/);
+    assert.match(prompt, /metadata\.prompt 和 metadata\.composerContent/);
+    assert.match(prompt, /只改标题、结果槽标题或产物节点的 prompt 不会改变下一次生成输入/);
 });
 
 test("the harness asks one material question through safe declarative UI", () => {
@@ -221,6 +224,23 @@ function readCanvasContext(snapshot: ZodiacCanvasSnapshot) {
     const section = prompt.slice(prompt.lastIndexOf("# 当前画布快照"));
     return JSON.parse(section.slice(section.indexOf("{")));
 }
+
+test("canvas status tells Zodiac a completed video apart from an active task", () => {
+    const snapshot: ZodiacCanvasSnapshot = {
+        title: "视频工作流",
+        selectedNodeIds: ["done"],
+        nodes: [
+            { id: "done", type: "video", title: "视频结果", position: { x: 0, y: 0 }, metadata: { status: "success", storageKey: "video:saved", content: "/media/saved.mp4", videoTask: { id: "task-done", provider: "doubao", model: "seedance", state: "completed", updatedAt: "2026-09-26T00:00:00Z" } } },
+            { id: "active", type: "video", title: "正在生成", position: { x: 0, y: 0 }, metadata: { status: "loading", videoTask: { id: "task-active", provider: "doubao", model: "seedance", state: "running", updatedAt: "2026-09-26T00:00:00Z" } } },
+        ],
+        connections: [],
+    };
+    const context = readCanvasContext(snapshot);
+    assert.deepEqual(context.canvasIndex.map((node: { status: string }) => node.status), ["success", "loading"]);
+    assert.equal(context.nodes.find((node: { id: string }) => node.id === "done").videoTask.state, "completed");
+    assert.equal(context.nodes.find((node: { id: string }) => node.id === "active").videoTask.state, "running");
+    assert.match(composeZodiacSystemPrompt(snapshot), /status 是本轮快照的当前状态：success 表示已完成，loading 才表示正在生成/);
+});
 
 test("selected asset groups retain membership and character details beyond the old node and text cutoffs", () => {
     const details = `${"日常设定。".repeat(80)}固定橘色绒毛、柚子叶发饰、粉色泡泡裙，与同伴等高。`;

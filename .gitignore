@@ -6,6 +6,8 @@ node_modules/
 data/
 *.log
 *.tsbuildinfo
+__pycache__/
+*.pyc
 .DS_Store
 .idea
 

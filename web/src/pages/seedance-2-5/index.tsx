@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { App, Button, Drawer, Input, Modal, Switch } from "antd";
 import { BookOpen, Clapperboard, Download, Film, FolderPlus, GripVertical, ImagePlus, LoaderCircle, Music2, Plus, Sparkles, Trash2, Video as VideoIcon } from "lucide-react";
 import { nanoid } from "nanoid";
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -36,8 +36,8 @@ import {
 import { formatDuration } from "@/lib/image-utils";
 import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
 import { markMediaReferencesChanged } from "@/services/media-retention-policy";
-import { createServerJsonStore } from "@/services/server-storage";
-import { deleteStoredMedia, discardUploadedMedia, getMediaBlob, publishUploadedMedia, resolveMediaUrl, type UploadedFile } from "@/services/file-storage";
+import { createServerJsonStore, fetchRemoteBytes } from "@/services/server-storage";
+import { deleteStoredMedia, discardUploadedMedia, getMediaBlob, publishUploadedMedia, resolveMediaUrl, uploadMediaFile, type UploadedFile } from "@/services/file-storage";
 import { deleteStoredImages, discardUploadedImage, publishUploadedImage, resolveImageUrl, uploadImage, type UploadedImage } from "@/services/image-storage";
 import { requestVideoGeneration, storeGeneratedVideo } from "@/services/api/video";
 import { useAssetStore, type AssetKind } from "@/stores/use-asset-store";
@@ -94,6 +94,7 @@ export default function Seedance25Page() {
     const { message } = App.useApp();
     const runtimeReferencesRef = useRef<unknown>(null);
     const imageInputRef = useRef<HTMLInputElement>(null);
+    const videoInputRef = useRef<HTMLInputElement>(null);
     const config = useConfigStore((state) => state.config);
     const effectiveConfig = useEffectiveConfig();
     const updateConfig = useConfigStore((state) => state.updateConfig);
@@ -271,6 +272,30 @@ export default function Seedance25Page() {
         setSelectedRecordId(undefined);
     };
 
+    const addSourceVideoFile = async (file?: File) => {
+        if (!file) return;
+        if (!["video/mp4", "video/quicktime"].includes(file.type) || file.size > SEEDANCE_25_REFERENCE_LIMITS.videoMaxBytes) {
+            message.warning("请选择不超过 200MB 的 MP4 或 MOV 视频");
+            return;
+        }
+        let stored: UploadedFile | undefined;
+        try {
+            stored = await uploadMediaFile(file, "seedance-source");
+            const error = seedance25ReferenceError(mode, [toReferenceVideo(stored, "原片")]);
+            if (error) throw new Error(error);
+            publishUploadedMedia(stored);
+            setSourceVideo(stored);
+            setSourceVideoDuration(Math.round((stored.durationMs || 10_000) / 1000));
+            setSourceVideoUrl("");
+            updateConfig("seedance25WebSearch", "false");
+            updateConfig("seedance25CameraFixed", "false");
+            setSelectedRecordId(undefined);
+        } catch (error) {
+            if (stored) await discardUploadedMedia(stored);
+            message.error(error instanceof Error ? error.message : "本机视频添加失败");
+        }
+    };
+
     const addReferenceImages = async (files: FileList | File[]) => {
         const maxImages = mode === "generate" && inputMode === "first-frame" ? 1 : mode === "generate" && inputMode === "first-last" ? 2 : SEEDANCE_25_REFERENCE_LIMITS.images;
         const candidates = Array.from(files)
@@ -352,14 +377,10 @@ export default function Seedance25Page() {
             return;
         }
         if (payload.kind === "video") {
-            const remoteUrl = normalizeSeedance25RemoteVideoUrl(payload.url);
-            if (!remoteUrl) {
-                message.warning("Seedance 2.5 参考视频需要公网 URL 或方舟素材 ID，本机视频暂不能直接使用");
-                return;
-            }
+            const remoteUrl = normalizeSeedance25RemoteVideoUrl(payload.url) || payload.url;
             const video: UploadedFile = {
                 url: remoteUrl,
-                storageKey: "",
+                storageKey: payload.storageKey || "",
                 bytes: payload.bytes || 0,
                 mimeType: payload.mimeType || (/\.mov(?:$|[?#])/i.test(remoteUrl) ? "video/quicktime" : "video/mp4"),
                 width: payload.width,
@@ -540,9 +561,15 @@ export default function Seedance25Page() {
             const generated = await requestVideoGeneration(requestConfig, requestPrompt, references, referenceVideos, audioReferences);
             const stored = await storeGeneratedVideo(generated);
             let lastFrame: UploadedImage | undefined;
+            if (generated.lastFrameUrl) {
+                try {
+                    lastFrame = await uploadImage(generated.lastFrameUrl);
+                } catch {
+                    lastFrame = undefined;
+                }
+            }
+            const completed: BoardRecord = { ...pending, status: "成功", video: stored, lastFrame, remoteVideoUrl: generated.url, remoteLastFrameUrl: generated.lastFrameUrl };
             try {
-                lastFrame = generated.lastFrameUrl ? await uploadImage(generated.lastFrameUrl) : undefined;
-                const completed: BoardRecord = { ...pending, status: "成功", video: stored, lastFrame, remoteVideoUrl: generated.url, remoteLastFrameUrl: generated.lastFrameUrl };
                 await persistRecord(completed);
                 if (!publishUploadedMedia(stored)) throw new Error("视频未能完成保存，请重试");
                 if (lastFrame && !publishUploadedImage(lastFrame)) throw new Error("尾帧未能完成保存，请重试");
@@ -567,9 +594,13 @@ export default function Seedance25Page() {
         const extension = video.mimeType === "video/quicktime" ? "mov" : "mp4";
         const filename = `WorkflowGenerator-SD2.5.${extension}`;
         try {
-            const blob = video.storageKey ? await getMediaBlob(video.storageKey) : await (await fetch(video.url)).blob();
+            const blob = video.storageKey ? await getMediaBlob(video.storageKey) : await fetch(video.url).then((response) => {
+                if (!response.ok) throw new Error(`请求失败（${response.status}）`);
+                return response.blob();
+            }).catch(() => fetchRemoteBytes(video.url));
             if (!blob) throw new Error("找不到视频文件");
-            saveAs(blob, filename);
+            const saved = await downloadFile(blob, filename);
+            message.success(`已保存到下载文件夹：${saved}`);
         } catch (error) {
             message.error(error instanceof Error ? error.message : "下载失败");
         }
@@ -796,6 +827,7 @@ export default function Seedance25Page() {
                         </div>
 
                         <input ref={imageInputRef} type="file" accept="image/*" multiple={inputMode !== "first-frame"} hidden onChange={(event) => void addReferenceImages(event.target.files || [])} />
+                        <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,.mp4,.mov" hidden onChange={(event) => { void addSourceVideoFile(event.target.files?.[0]); event.target.value = ""; }} />
                         <div className="wg-sd25-composer">
                             {mode !== "generate" ? (
                                 <section className="wg-sd25-composer-block" aria-labelledby="sd25-source-heading">
@@ -813,6 +845,7 @@ export default function Seedance25Page() {
                                             <Input type="number" min={mode === "edit" ? 4 : 2} max={30} suffix="秒" value={sourceVideoDuration} onChange={(event) => setSourceVideoDuration(Number(event.target.value))} aria-label="原片时长" />
                                         </label>
                                         <Button onClick={addSourceVideoUrl}>{sourceActionLabel}</Button>
+                                        <Button className="wg-sd25-local-video-button" onClick={() => videoInputRef.current?.click()}>选择本机视频</Button>
                                     </div>
                                 </section>
                             ) : null}
@@ -935,6 +968,7 @@ export default function Seedance25Page() {
                                             <Input type="number" min={2} max={30} suffix="秒" value={sourceVideoDuration} onChange={(event) => setSourceVideoDuration(Number(event.target.value))} aria-label="参考视频时长" />
                                         </label>
                                         <Button onClick={addSourceVideoUrl}>{sourceActionLabel}</Button>
+                                        <Button className="wg-sd25-local-video-button" onClick={() => videoInputRef.current?.click()}>选择本机视频</Button>
                                     </div>
                                 </section>
                             ) : null}

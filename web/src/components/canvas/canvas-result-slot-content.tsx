@@ -22,7 +22,7 @@ export type CanvasResultSlotContentProps = {
     onRegenerate?: () => void;
     onContinue?: (versionId: string) => void;
     onAdvanceModeChange?: (mode: CanvasResultSlotNode["metadata"]["advanceMode"]) => void;
-    onDownload?: () => void;
+    onDownload?: (artifactId?: string) => void;
     onSaveAsset?: () => void;
     onLayoutColumnsChange?: (columns?: number) => void;
     /** Saves an edited text as a new slot version without calling the model. */
@@ -530,8 +530,13 @@ function ResultActions({
                     <span className="truncate">重新生成</span>
                 </button>
             ) : null}
-            {showDownload ? (
-                <button
+            {showDownload ? (current && current.artifacts.length > 1 ?
+                <Dropdown trigger={["click"]} menu={{ items: current.artifacts.map((artifact) => ({ key: artifact.id, label: `下载${artifact.title || MODE_COPY[artifact.kind]}` })), onClick: ({ key, domEvent }) => { domEvent.stopPropagation(); onDownload?.(key); } }}>
+                    <button type="button" className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md px-2 text-[11px] font-medium transition-colors hover:bg-black/5 dark:hover:bg-white/10" style={{ color: theme.node.text }} disabled={busy} onMouseDown={stopMousePropagation} onPointerDown={stopPointerPropagation} onClick={(event) => event.stopPropagation()}>
+                        <Download className="size-3.5" /><span>下载</span>
+                    </button>
+                </Dropdown>
+                : <button
                     type="button"
                     className="inline-flex h-8 shrink-0 items-center justify-center gap-1 rounded-md px-2 text-[11px] font-medium transition-colors hover:bg-black/5 focus-visible:outline-none focus-visible:ring-2 dark:hover:bg-white/10 disabled:opacity-45"
                     style={{ color: theme.node.text }}

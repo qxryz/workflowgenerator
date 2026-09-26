@@ -25,6 +25,8 @@
         "hub_plan_replan",
         "hub_generate_image",
         "hub_generate_video",
+        "hub_extract_video_frame",
+        "hub_video_edit",
         "hub_generate_audio",
         "hub_canvas_write_node",
         "hub_canvas_apply_text_edits",

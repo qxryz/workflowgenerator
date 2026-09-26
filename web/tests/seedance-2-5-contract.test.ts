@@ -148,7 +148,7 @@ test("Seedance 2.5 uses the existing Ark task endpoint and conditional request f
     assert.match(videoServiceSource, /camera_fixed: true/u);
     assert.match(videoServiceSource, /seedance25ImageRole\(inputMode, index\)/u);
     assert.match(videoServiceSource, /lastFrameUrl: state\.content\?\.last_frame_url/u);
-    assert.match(videoServiceSource, /官方接口不接受本机视频 Base64/u);
+    assert.match(videoServiceSource, /publishSeedanceReferenceVideo\(config, video, signal\)/u);
     assert.match(videoServiceSource, /请求内容不能超过 64MB/u);
     assert.match(videoServiceSource, /seedance25 \? \(normalizeSeedanceResolution\(config\.vquality\) === "480p" \? "480p" : "720p"\)/u);
     assert.match(videoServiceSource, /generate_audio: boolConfig/u);
@@ -193,7 +193,7 @@ test("Seedance 2.5 frame modes hide every reference-video affordance in the vide
     assert.match(videoPageSource, /const seedance25ReferenceTitle = seedance25FrameMode/u);
     assert.match(videoPageSource, /拖入 1 张开场图片，或点此选择/u);
     assert.match(videoPageSource, /拖入开始和结束两张图片，或点此选择/u);
-    assert.match(videoPageSource, /seedanceUsesRemoteVideoLinks[\s\S]*?seedance25FrameMode\s*\?\s*"image\/\*"/u);
+    assert.match(videoPageSource, /seedanceShowsVideoLinkInput[\s\S]*?seedance25FrameMode\s*\?\s*"image\/\*"/u);
     assert.match(videoPageSource, /当前画面模式只使用图片，不能添加参考视频/u);
     assert.match(videoPageSource, /当前画面模式只使用图片，不能添加参考音频/u);
     assert.match(videoPanelSource, /inputMode === "first-frame"[\s\S]*?添加 1 张开场图片后生成/u);

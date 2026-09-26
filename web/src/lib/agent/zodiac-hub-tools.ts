@@ -23,6 +23,7 @@ import type { WorkflowExecutionMode, WorkflowRunSnapshot } from "../canvas/workf
 import type { CanvasGenerationMode, CanvasNodeData } from "../../types/canvas.ts";
 import { pinZodiacReference, zodiacReferenceInstructions, zodiacVideoReferenceSettings, type ZodiacAssetReference } from "./zodiac-assets.ts";
 import { validateSeedreamSize } from "../model-providers.ts";
+import { isSeedance25Model } from "../seedance-2-5.ts";
 
 /** 与 Zodiac transport 的工具结果同形；这里单独声明避免服务层反向依赖组件。 */
 export type HubToolOutcome = { ok: true; result: unknown } | { ok: false; error: string; requiresReconciliation?: true; nodeId?: string; actionNodeId?: string };
@@ -41,6 +42,7 @@ export type HubExecutorContext = {
     turnId?: string;
     taskId?: string;
     defaultModels?: Partial<Record<CanvasGenerationMode, string>>;
+    isVideoEditModelSupported?: (model: string) => boolean;
     operationNamespace?: string;
     resolveMediaUrl?: (node: CanvasNodeData) => Promise<string | null>;
     getSnapshot: () => CanvasAgentSnapshot;
@@ -53,6 +55,12 @@ export type HubExecutorContext = {
     analyseImage: (input: { dataUrl: string; question?: string }) => Promise<string>;
     /** 读取一个画布图片节点的 data URL；读不到时返回 null（不抛）。 */
     readImageDataUrl: (nodeId: string) => Promise<string | null>;
+    /** Browser decoder + managed image upload; the upload stays provisional until the node is saved. */
+    captureVideoFrame: (url: string, signal?: AbortSignal) => Promise<{
+        image: { url: string; storageKey: string; width: number; height: number; bytes: number; mimeType: string };
+        publish: () => boolean;
+        discard: () => Promise<unknown>;
+    }>;
     signal?: AbortSignal;
 };
 
@@ -62,6 +70,7 @@ const GENERATION_MODES: Record<string, CanvasGenerationMode> = {
     hub_generate_image: "image",
     hub_generate_video: "video",
     hub_generate_audio: "audio",
+    hub_video_edit: "video",
 };
 
 /** 结果槽节点类型：与画布既有约定一致（产物类型直接作为 nodeType）。 */
@@ -122,9 +131,14 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
     if (!mode) return { ok: false, error: `不支持的生成工具：${name}` };
     const prompt = str(args.prompt) ?? str(args.text);
     if (!prompt) return { ok: false, error: `${name} 缺少 prompt（音频工具用 text），请把技能里写好的成稿原样传入。` };
+    const videoEdit = name === "hub_video_edit";
+    const editMode = str(args.mode) || "edit";
+    if (videoEdit && editMode !== "edit" && editMode !== "extend") return { ok: false, error: "视频操作只能是编辑或延长。" };
 
     const snapshot = context.getSnapshot();
-    const referenceIds = [...new Set([...referenceNodeIds(args, "references"), ...referenceNodeIds(args, "videoReferences"), ...referenceNodeIds(args, "audioReferences")])];
+    const sourceVideoId = videoEdit ? singleReference(args, "video") : undefined;
+    if (videoEdit && !sourceVideoId) return { ok: false, error: "视频编辑需要一个画布原片节点。" };
+    const referenceIds = [...new Set([...(sourceVideoId ? [sourceVideoId] : []), ...referenceNodeIds(args, "references"), ...referenceNodeIds(args, "videoReferences"), ...referenceNodeIds(args, "audioReferences")])];
     const missing = referenceIds.filter((nodeId) => !nodeById(snapshot, nodeId));
     if (missing.length) {
         return { ok: false, error: `这些参考素材不在当前画布上：${missing.join("、")}。请先用 hub_canvas_get_node 或 hub_canvas_list_nodes 确认可用的节点 id。` };
@@ -137,6 +151,16 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
             return { ok: false, error: `参考素材 ${nodeId} 还不能作为生成输入（不是资源节点，或内容还没准备好）。请先让上游生成完成。` };
         }
     }
+    if (sourceVideoId && nodeById(snapshot, sourceVideoId)?.type !== "video") return { ok: false, error: "视频编辑的原片必须是已保存的视频节点。" };
+    if (videoEdit && sourceVideoId) {
+        const source = nodeById(snapshot, sourceVideoId)!;
+        const durationMs = Number(source.metadata?.durationMs || 0);
+        const minimumMs = editMode === "edit" ? 4000 : 2000;
+        if (durationMs > 0 && (durationMs < minimumMs || durationMs > 30000)) return { ok: false, error: `原片时长需在 ${minimumMs / 1000}–30 秒之间，未创建编辑节点。` };
+        if (source.metadata?.mimeType && !["video/mp4", "video/quicktime"].includes(source.metadata.mimeType)) return { ok: false, error: "Seedance 2.5 原片仅支持 MP4 或 MOV，未创建编辑节点。" };
+        const editSeconds = num(args.seconds);
+        if (args.seconds !== undefined && (editMode !== "extend" || editSeconds === undefined || editSeconds < 4 || editSeconds > 30)) return { ok: false, error: "仅延长模式可设置 4–30 秒时长，未创建编辑节点。" };
+    }
 
     const actionId = `${mode}-action-${operation.id}`;
     const ownedSlots = snapshot.nodes.filter(node => node.metadata?.role === "result-slot" && node.metadata.resultSlotSourceNodeId === actionId && node.type === mode);
@@ -148,8 +172,10 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
     if (ready && canvasResourceReady(ready) && ready.metadata?.storageKey) return { ok: true, result: await outputReceipt(ready, context, operation, actionId) };
     if (existing && ["loading", "running", "generating"].includes(String(existing.metadata?.status))) return { ok: false, error: "此操作仍在运行，请先核对真实状态，不要重复提交", requiresReconciliation: true, nodeId: slotId, actionNodeId: actionId };
     const sourceReferences: ZodiacAssetReference[] = [];
+    if (sourceVideoId) sourceReferences.push(await pinZodiacReference({ ...asArgs(args.video), nodeId: sourceVideoId, role: "source_edit" }, snapshot.nodes));
     for (const field of ["references", "videoReferences", "audioReferences"]) {
         for (const ref of (args[field] || []) as ZodiacAssetReference[]) {
+            if (ref.nodeId === sourceVideoId) continue;
             const node = nodeById(snapshot, ref.nodeId)!;
             sourceReferences.push(node.type === "text" || node.metadata?.storageKey || ref.storageKey || ref.resultVersionId || ref.contentHash
                 ? await pinZodiacReference(ref, snapshot.nodes) : { ...ref });
@@ -159,8 +185,12 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
     const execute = context.generationPolicy === "execute";
     // A model-supplied preference cannot replace the user's channel selection.
     const model = execute ? str(args.model) || context.defaultModels?.[mode] : context.defaultModels?.[mode];
+    if (videoEdit && (!model || !isSeedance25Model(model.split("::").at(-1) || "") || !context.isVideoEditModelSupported?.(model))) {
+        return { ok: false, error: "视频编辑与延长当前需要在设置中选用 Seedance 2.5 视频模型；原片未提交，也没有创建付费任务。" };
+    }
     const referenceSettings = mode === "video" ? zodiacVideoReferenceSettings(model || "", sourceReferences, snapshot.nodes) : {};
     const metadata: Record<string, unknown> = { generationMode: mode, prompt: zodiacReferenceInstructions(sourceReferences) + prompt, status: "idle", agentSourceReferences: sourceReferences, ...operation.metadata, ...referenceSettings };
+    if (videoEdit) metadata.seedance25TaskMode = editMode;
     if (model) metadata.model = model;
     const size = str(args.size);
     if (execute && mode === "image" && model) validateSeedreamSize(model, size);
@@ -211,7 +241,7 @@ async function runGeneration(context: HubExecutorContext, name: string, args: Hu
 
     if (!execute) return { ok: true, result: {
         status: "waiting_user", prepared: true, actionNodeId: actionId, nodeId: slotId,
-        message: "提示词与参考素材已加入画布。请检查模型和参数后点击运行。",
+        message: videoEdit ? "原片、提示词与编辑模式已加入画布。请检查模型和参数后点击运行。" : "提示词与参考素材已加入画布。请检查模型和参数后点击运行。",
     } };
 
     // 走运行器：与手动运行同一条链路（含产物落盘与结果槽推进）。失败要把原因原样带回去。
@@ -254,6 +284,8 @@ function readNode(snapshot: CanvasAgentSnapshot, nodeId: string) {
 
 async function nodePayload(node: CanvasNodeData, snapshot: CanvasAgentSnapshot, context: HubExecutorContext) {
     const content = node.metadata?.content ?? "";
+    const currentVersion = node.metadata?.resultVersions?.find((version) => version.status === "success" && version.id === node.metadata?.currentResultVersionId);
+    const outputs = node.metadata?.outputArtifacts?.length ? node.metadata.outputArtifacts : currentVersion?.status === "success" ? currentVersion.artifacts : [];
     return {
         nodeId: node.id,
         type: node.type,
@@ -266,6 +298,7 @@ async function nodePayload(node: CanvasNodeData, snapshot: CanvasAgentSnapshot, 
         model: node.metadata?.model ?? null,
         storageKey: node.metadata?.storageKey ?? null,
         resultVersionId: node.metadata?.currentResultVersionId ?? null,
+        outputs: outputs.map((output) => ({ id: output.id, kind: output.kind, role: output.role ?? null, title: output.title ?? null, storageKey: output.storageKey ?? null })),
         sourceReferences: node.metadata?.agentSourceReferences ?? [],
         url: node.metadata?.storageKey && context.resolveMediaUrl ? await context.resolveMediaUrl(node) : null,
         upstream: snapshot.connections.filter((connection) => connection.toNodeId === node.id).map((connection) => connection.fromNodeId),
@@ -304,10 +337,59 @@ async function executeHubToolUnsafe(request: HubToolRequest, context: HubExecuto
     if (request.name === "hub_generate_music") {
         return { ok: false, error: "此工具尚未接入音乐生成，不能使用语音合成替代。" };
     }
+    if (["hub_video_trim", "hub_merge_videos", "hub_extract_audio", "hub_media_transcribe"].includes(request.name)) {
+        return { ok: false, error: `${request.name} 尚未接入，未修改媒体或画布；请不要把占位工具当作已执行。` };
+    }
     if (CANVAS_TOOLS.includes(request.name)) return executeCanvasTool(request, context, args);
 
-    if (request.name === "hub_video_edit") {
-        return { ok: false, error: "此工具尚未接入视频编辑或延长，请在视频工作台选择对应任务；不会改为生成新视频。" };
+    if (request.name === "hub_extract_video_frame") {
+        const reference = asArgs(args.video);
+        const videoId = str(reference.nodeId);
+        if (!videoId) return { ok: false, error: "请选择画布上的视频节点。" };
+        const source = context.getSnapshot().nodes.find((node) => node.id === videoId);
+        if (!source || source.type !== "video" || !canvasResourceReady(source)) return { ok: false, error: "视频节点不存在或尚未保存完成。" };
+        const pinned = await pinZodiacReference({ nodeId: videoId, storageKey: str(reference.storageKey), resultVersionId: str(reference.resultVersionId) }, context.getSnapshot().nodes);
+        const operation = await operationIdentity(request, context);
+        const imageId = `image-frame-${operation.id}`;
+        const existing = context.getSnapshot().nodes.find((node) => node.id === imageId);
+        if (existing) {
+            if (existing.type !== "image" || existing.metadata?.agentOperationFingerprint !== operation.fingerprint || existing.metadata?.agentSourceReferences?.[0]?.storageKey !== pinned.storageKey) {
+                return { ok: false, error: "这次取帧操作的源视频或参数已改变，请重新发起操作。" };
+            }
+            if (canvasResourceReady(existing) && existing.metadata?.storageKey) return { ok: true, result: await outputReceipt(existing, context, operation) };
+            return { ok: false, error: "尾帧节点保存状态不明，请先检查画布。" };
+        }
+        const currentVersion = source.metadata?.resultVersions?.find((version) => version.status === "success" && version.id === source.metadata?.currentResultVersionId);
+        const outputs = source.metadata?.outputArtifacts?.length ? source.metadata.outputArtifacts : currentVersion?.status === "success" ? currentVersion.artifacts : [];
+        const savedFrame = outputs.find((output) => output.kind === "image" && output.storageKey?.startsWith("image:") && (output.role === "last_frame" || /last[-_ ]?frame|尾帧/i.test(`${output.id} ${output.title || ""}`)));
+        let staged: Awaited<ReturnType<HubExecutorContext["captureVideoFrame"]>> | undefined;
+        const image = savedFrame ? {
+            url: savedFrame.content, storageKey: savedFrame.storageKey!, width: savedFrame.naturalWidth || 0, height: savedFrame.naturalHeight || 0,
+            bytes: savedFrame.bytes || 0, mimeType: savedFrame.mimeType || "image/png",
+        } : await (async () => {
+            if (!context.resolveMediaUrl) throw new Error("无法读取已保存的视频文件");
+            const url = await context.resolveMediaUrl(source);
+            if (!url) throw new Error("视频文件已丢失，无法提取尾帧");
+            staged = await context.captureVideoFrame(url, context.signal);
+            return staged.image;
+        })();
+        try {
+            context.signal?.throwIfAborted();
+            const saved = await context.applyOps([{ type: "add_node", id: imageId, nodeType: "image", title: (str(args.title) || `${source.title} · 尾帧`).slice(0, 80),
+                position: { x: source.position.x + source.width + 96, y: source.position.y },
+                metadata: { ...operation.metadata, content: image.url, storageKey: image.storageKey, mimeType: image.mimeType, bytes: image.bytes,
+                    naturalWidth: image.width || undefined, naturalHeight: image.height || undefined, status: "success",
+                    agentSourceReferences: [{ ...pinned, role: "last_frame" }],
+                },
+            }]);
+            const node = saved.nodes.find((entry) => entry.id === imageId);
+            if (!node || node.metadata?.storageKey !== image.storageKey) throw new Error("尾帧未能保存到画布");
+            if (staged && !staged.publish()) throw new Error("尾帧文件未能完成保存，请检查画布");
+            return { ok: true, result: { ...(await outputReceipt(node, context, operation)), sourceVideoNodeId: videoId, reusedSavedFrame: Boolean(savedFrame) } };
+        } catch (error) {
+            if (staged) await staged.discard();
+            throw error;
+        }
     }
 
     if (request.name === "hub_read" || request.name === "hub_canvas_get_node") {
@@ -531,4 +613,4 @@ async function executeCanvasTool(request: HubToolRequest, context: HubExecutorCo
 }
 
 /** 判断一个工具名是否属于浏览器侧执行集（其余直接拒绝或交给宿主桥接）。 */
-export const HUB_TOOL_EXECUTION_NAMES = ["hub_generate_image", "hub_generate_video", "hub_generate_audio", "hub_generate_music", "hub_video_edit", "hub_analyse_media", "hub_read", "hub_canvas_get_node", ...CANVAS_TOOLS, "hub_save_file_to_session"];
+export const HUB_TOOL_EXECUTION_NAMES = ["hub_generate_image", "hub_generate_video", "hub_generate_audio", "hub_generate_music", "hub_video_edit", "hub_extract_video_frame", "hub_video_trim", "hub_merge_videos", "hub_extract_audio", "hub_media_transcribe", "hub_analyse_media", "hub_read", "hub_canvas_get_node", ...CANVAS_TOOLS, "hub_save_file_to_session"];

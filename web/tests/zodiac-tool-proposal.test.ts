@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { extractZodiacToolPayload, hasZodiacToolPayloadProtocol, normalizeZodiacCanvasOps, prepareZodiacExecutableToolProposal, prepareZodiacToolProposal, stripZodiacToolPayload } from "../src/lib/agent/zodiac-tool-proposal.ts";
+import { extractZodiacToolPayload, hasZodiacToolPayloadProtocol, normalizeZodiacCanvasOps, prepareZodiacExecutableToolProposal, prepareZodiacToolProposal, stripZodiacToolPayload, zodiacPromptEditProposalError } from "../src/lib/agent/zodiac-tool-proposal.ts";
 import { resolveCanvasInputBindings } from "../src/lib/canvas/canvas-input-bindings.ts";
 import { registerNodeDefinitions, unregisterPluginNodes } from "../src/lib/canvas/node-registry.ts";
 
@@ -22,6 +22,20 @@ test("legacy provider operation aliases normalize to the current canvas contract
         { type: "connect_nodes", fromNodeId: "prompt", toNodeId: "result" },
         { type: "run_generation", nodeId: "prompt", mode: "image" },
     ]);
+});
+
+test("a prompt-only agent edit updates the canvas editor's live prompt too", () => {
+    const [operation] = normalizeZodiacCanvasOps([{ type: "update_node", id: "video-action", metadata: { prompt: "新的完整视频提示词" } }]);
+    assert.equal(operation?.type, "update_node");
+    if (operation?.type !== "update_node") return;
+    assert.equal(operation.metadata?.prompt, "新的完整视频提示词");
+    assert.equal(operation.metadata?.composerContent, "新的完整视频提示词");
+});
+
+test("a title-only proposal cannot satisfy a request to change an existing prompt", () => {
+    const nodes = [{ id: "video-action", type: "config" as const, title: "旧标题", metadata: { generationMode: "video" as const, prompt: "旧提示词", composerContent: "旧提示词" } }];
+    assert.match(zodiacPromptEditProposalError("把这个节点的提示词修改一下", [{ type: "update_node", id: "video-action", patch: { title: "新标题" } }], nodes) || "", /没有更新已有配置节点/);
+    assert.equal(zodiacPromptEditProposalError("把这个节点的提示词修改一下", normalizeZodiacCanvasOps([{ type: "update_node", id: "video-action", metadata: { prompt: "新提示词" } }]), nodes), undefined);
 });
 
 test("provider-flattened prompts and parameters are assembled into node metadata", () => {

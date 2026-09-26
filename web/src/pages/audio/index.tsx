@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { App, Button, Drawer, Input, InputNumber, Modal, Select, Switch, Tag } from "antd";
 import { BookOpen, Check, Copy, Download, FileAudio, FolderPlus, LoaderCircle, Mic2, Sparkles, Speech, Trash2, Upload, WandSparkles } from "lucide-react";
 import { nanoid } from "nanoid";
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -16,7 +16,7 @@ import { formatBytes, formatDuration } from "@/lib/image-utils";
 import { qwenAudioLanguageOptions, qwenAudioNativeRoute } from "@/lib/qwen-audio-contract";
 import { miniMaxNativeRoute, normalizeMiniMaxVoiceId } from "@/lib/minimax-contract";
 import { isMiniMaxAdapter } from "@/lib/model-adapters";
-import { createServerJsonStore } from "@/services/server-storage";
+import { createServerJsonStore, fetchRemoteBytes } from "@/services/server-storage";
 import { deleteStoredMedia, discardUploadedMedia, getMediaBlob, publishUploadedMedia, resolveMediaUrl, uploadMediaFile, type UploadedFile } from "@/services/file-storage";
 import { markMediaReferencesChanged } from "@/services/media-retention-policy";
 import { assertMiniMaxCloneAudioDuration, assertMiniMaxCloneAudioFile, isMiniMaxAudioModelForTask, requestMiniMaxSpeech, requestMiniMaxVoiceClone } from "@/services/api/minimax-audio";
@@ -269,10 +269,15 @@ export default function AudioPage() {
 
     const download = async (item: AudioWorkbenchLog) => {
         if (!item.audio) return;
-        const blob = await getMediaBlob(item.audio.storageKey);
+        const blob = item.audio.storageKey ? await getMediaBlob(item.audio.storageKey) : await fetchRemoteBytes(item.audio.url);
         if (!blob) return message.error("本地音频文件不存在");
         const extension = item.audio.mimeType.includes("flac") ? "flac" : item.audio.mimeType.includes("wav") ? "wav" : "mp3";
-        saveAs(blob, `speech-${item.id}.${extension}`);
+        try {
+            const saved = await downloadFile(blob, `speech-${item.id}.${extension}`);
+            message.success(`已保存到下载文件夹：${saved}`);
+        } catch (error) {
+            message.error(error instanceof Error ? `下载失败：${error.message}` : "下载失败，请重试");
+        }
     };
 
     const insertPickedAsset = async (payload: InsertAssetPayload) => {

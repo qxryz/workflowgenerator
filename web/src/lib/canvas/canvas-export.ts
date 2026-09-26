@@ -1,4 +1,4 @@
-import { saveAs } from "file-saver";
+import { downloadFile } from "@/services/download-file";
 
 import { createZip } from "@/lib/zip";
 import { normalizeCanvasProject } from "@/lib/canvas/canvas-portability";
@@ -34,7 +34,7 @@ export async function exportCanvasProjects(projects: CanvasProject[], fileName =
 
     const data: CanvasExportFile = { app: "infinite-canvas", version: 3, exportedAt: new Date().toISOString(), projects: exportedProjects };
     const zip = await createZip([{ name: "projects.json", data: JSON.stringify(data, null, 2) }, ...zipFiles]);
-    saveAs(zip, `${safeFileName(fileName)}.zip`);
+    await downloadFile(zip, `${safeFileName(fileName)}.zip`);
 }
 
 export async function exportCanvasNodes(nodes: CanvasNodeData[], fileName = "画布元素") {
@@ -67,7 +67,7 @@ export async function exportCanvasNodes(nodes: CanvasNodeData[], fileName = "画
     );
 
     const zip = await createZip(zipFiles);
-    saveAs(zip, `${safeFileName(fileName)}.zip`);
+    await downloadFile(zip, `${safeFileName(fileName)}.zip`);
 }
 
 function collectStorageKeys(value: unknown, keys = new Set<string>()) {

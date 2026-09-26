@@ -135,7 +135,6 @@ export function seedanceVideoReferenceError(videos: ReferenceVideo[]) {
     for (let index = 0; index < videos.length; index += 1) {
         const video = videos[index];
         const label = seedanceReferenceLabel("video", index);
-        if (!/^https:\/\//i.test(video.url || "")) return `${label} 需要可公开访问的 https 视频链接；Seedance 2.0 不能直接发送本机视频`;
         if (!SEEDANCE_VIDEO_MIME_TYPES.includes(video.type)) return `${label} 仅支持 mp4/mov 格式`;
         if (video.bytes && video.bytes > SEEDANCE_REFERENCE_LIMITS.videoMaxBytes) return `${label} 超过 200MB，请压缩后再上传`;
         if (video.durationMs) {
@@ -154,4 +153,4 @@ export function seedanceVideoReferenceError(videos: ReferenceVideo[]) {
     return "";
 }
 
-export const seedanceVideoReferenceHint = "参考视频需要可公开访问的 https 链接，并使用 mp4/mov、H.264/H.265、FPS 24-60。";
+export const seedanceVideoReferenceHint = "参考视频支持本机 MP4/MOV 或可公开访问的 HTTPS 链接，编码需为 H.264/H.265、FPS 24-60。";

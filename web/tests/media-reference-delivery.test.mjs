@@ -24,7 +24,7 @@ const mocks = new Map([
         export const buildApiUrl = (base, path) => base + path;`,
     ],
     ["@/services/image-storage", `export const imageToDataUrl = async image => image.resolvedDataUrl ?? image.dataUrl;`],
-    ["@/services/file-storage", `export const getMediaBlob = async () => null; export const uploadMediaFile = async () => null;`],
+    ["@/services/file-storage", `export const getMediaBlob = async () => globalThis.__mediaReferenceDeliveryVideoBlob ?? null; export const uploadMediaFile = async () => null;`],
     // Seedance (and the raw/minimax adapters) route provider JSON through the
     // server bridge instead of axios. Without this mock the real module loads,
     // calls fetch("/api/model/json-post") and dies on a relative URL in Node.
@@ -35,6 +35,7 @@ const mocks = new Map([
             return { id: "task", request_id: "task", status: "queued" };
         };
         export const getModelJson = async () => ({ id: "task", status: "queued" });
+        export const deleteModelJson = async () => ({});
         export const postModelRawJson = async () => ({ id: "task" });
         export const postModelMultipart = async () => ({ id: "task" });
         export const proxyModelPost = async () => new Response("");
@@ -200,14 +201,83 @@ test("Seedance sends all supported images, videos and audio in original order", 
     assert.equal(content.filter((item) => item.type === "audio_url").length, 3);
 });
 
-test("Seedance refuses a local reference video before creating an invalid provider task", async () => {
+test("Seedance custom server requires its own upload credentials", async () => {
     calls.length = 0;
     await assert.rejects(
-        createVideoGenerationTask(config("ark"), "延续参考视频的动作", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]),
-        /视频1.*https.*本机视频/u,
+        createVideoGenerationTask(config("ark", { seedanceVideoRelayMode: "custom" }), "延续参考视频的动作", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]),
+        /自定义视频服务器/u,
     );
     assert.equal(calls.length, 0);
 });
+
+test("Seedance official server uploads without a shared secret", async () => {
+    calls.length = 0;
+    globalThis.__mediaReferenceDeliveryVideoBlob = new Blob(["video bytes"], { type: "video/mp4" });
+    const originalFetch = globalThis.fetch;
+    const uploads = [];
+    globalThis.fetch = async (url, init) => {
+        uploads.push({ url: String(url), ...init });
+        return new Response(JSON.stringify({ url: "https://wg.coco120.cn/seedance-media/v1/media/abc.mp4" }), { status: 201, headers: { "Content-Type": "application/json" } });
+    };
+    try {
+        await createVideoGenerationTask(config("ark", { seedanceVideoRelayMode: "official", seedanceVideoRelayUrl: "https://relay.example/media", seedanceVideoRelayToken: "leftover-token" }), "延续参考视频", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]);
+        assert.equal(uploads[0].url, "https://wg.coco120.cn/seedance-media/v1/public-upload");
+        assert.equal(uploads[0].headers.Authorization, undefined);
+        assert.equal(uploads.some(upload => upload.url.includes("relay.example") || JSON.stringify(upload.headers).includes("leftover-token")), false);
+        assert.equal(calls.length, 1);
+    } finally {
+        globalThis.fetch = originalFetch;
+        globalThis.__mediaReferenceDeliveryVideoBlob = null;
+    }
+});
+
+test("failed Seedance upload does not create a paid provider task", async () => {
+    calls.length = 0;
+    globalThis.__mediaReferenceDeliveryVideoBlob = new Blob(["video bytes"], { type: "video/mp4" });
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = async () => new Response(JSON.stringify({ error: "upload unavailable" }), { status: 503, headers: { "Content-Type": "application/json" } });
+    try {
+        await assert.rejects(
+            createVideoGenerationTask(config("ark", { seedanceVideoRelayMode: "official" }), "延续参考视频", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]),
+            /参考视频上传失败/u,
+        );
+        assert.equal(calls.length, 0);
+    } finally {
+        globalThis.fetch = originalFetch;
+        globalThis.__mediaReferenceDeliveryVideoBlob = null;
+    }
+});
+
+for (const model of ["doubao-seedance-2-0-260128", "doubao-seedance-2-5-260628"]) {
+    test(`${model} uploads a local reference video before creating the provider task`, async () => {
+        calls.length = 0;
+        globalThis.__mediaReferenceDeliveryVideoBlob = new Blob(["video bytes"], { type: "video/mp4" });
+        const originalFetch = globalThis.fetch;
+        const uploads = [];
+        globalThis.fetch = async (url, init) => {
+            uploads.push({ url: String(url), ...init });
+            return new Response(JSON.stringify({ url: "https://relay.example/media/v1/media/abc.mp4" }), { status: 201, headers: { "Content-Type": "application/json" } });
+        };
+        try {
+            await createVideoGenerationTask(config("ark", {
+                model,
+                videoModel: model,
+                seedanceVideoRelayMode: "custom",
+                seedanceVideoRelayUrl: "https://relay.example/media",
+                seedanceVideoRelayToken: "private-token",
+            }), "延续参考视频的动作", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]);
+            assert.equal(uploads.length, 1);
+            assert.equal(uploads[0].url, "https://relay.example/media/v1/upload");
+            assert.equal(uploads[0].method, "PUT");
+            assert.equal(uploads[0].headers.Authorization, "Bearer private-token");
+            assert.equal(calls.length, 1);
+            assert.equal(calls[0].body.content.find((item) => item.type === "video_url").video_url.url, "https://relay.example/media/v1/media/abc.mp4");
+        } finally {
+            globalThis.fetch = originalFetch;
+            globalThis.__mediaReferenceDeliveryVideoBlob = null;
+        }
+    });
+}
 
 test("accepted video references keep their bytes at each adapter's boundary", async () => {
     for (const [format, count] of [

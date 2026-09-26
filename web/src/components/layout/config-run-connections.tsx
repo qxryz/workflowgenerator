@@ -1,12 +1,14 @@
-import { App, Button, Switch } from "antd";
+import { App, Button, Input, Radio, Switch } from "antd";
 import { useEffect, useState } from "react";
 import { FolderOpen } from "lucide-react";
+import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useConfigStore } from "@/stores/use-config-store";
 import { getZodiacRuntimeMonitor, revealAppData, revealWorkspace, type ZodiacRuntimeMonitor } from "@/services/server-storage";
 
 const labels: Record<string, string> = { busy: "运行中", retry: "重试中", idle: "待命", stopped: "已停止", unavailable: "暂时无法连接" };
 export function ConfigRunConnections() {
     const { message } = App.useApp();
+    const { t } = useAppTranslation();
     const config = useConfigStore(s => s.config);
     const updateConfig = useConfigStore(s => s.updateConfig);
     const [monitor, setMonitor] = useState<ZodiacRuntimeMonitor | null>(null);
@@ -52,6 +54,18 @@ export function ConfigRunConnections() {
         <section className="border-t border-stone-200 pt-6 dark:border-stone-800" aria-labelledby="private-network-media-heading">
             <div className="flex items-start justify-between gap-6"><div><h3 id="private-network-media-heading" className="text-sm font-semibold">允许私有网络媒体下载</h3><p className="mt-2 text-xs leading-5 opacity-60">使用本机、局域网媒体服务或 Fake-IP / TUN 代理时开启。默认关闭。</p></div><Switch checked={config.allowPrivateNetworkMedia} onChange={value => updateConfig("allowPrivateNetworkMedia", value)} aria-label="允许私有网络媒体下载" /></div>
             {config.allowPrivateNetworkMedia ? <p className="mt-3 rounded-lg bg-amber-500/10 p-3 text-xs leading-5 text-amber-700 dark:text-amber-300">开启后，媒体下载可访问本机、局域网及代理映射地址。请只使用可信的模型渠道和插件。</p> : null}
+        </section>
+        <section className="border-t border-stone-200 pt-6 dark:border-stone-800" aria-labelledby="seedance-relay-heading">
+            <h3 id="seedance-relay-heading" className="text-sm font-semibold">{t("Seedance 参考视频上传")}</h3>
+            <p className="mt-2 text-xs leading-5 opacity-60">{t("提交 Seedance 任务时，本机参考视频会上传到所选服务器，供生成服务读取。")}</p>
+            <Radio.Group className="mt-4" value={config.seedanceVideoRelayMode} onChange={event => updateConfig("seedanceVideoRelayMode", event.target.value)} aria-label={t("视频上传服务器")}>
+                <Radio value="official">{t("官方服务器")}</Radio>
+                <Radio value="custom">{t("自定义服务器")}</Radio>
+            </Radio.Group>
+            {config.seedanceVideoRelayMode === "custom" ? <div className="mt-4 space-y-3">
+                <Input aria-label={t("服务器 HTTPS 地址")} placeholder="https://example.com/seedance-media" value={config.seedanceVideoRelayUrl} onChange={event => updateConfig("seedanceVideoRelayUrl", event.target.value)} />
+                <Input.Password aria-label={t("上传凭证")} placeholder={t("上传凭证")} autoComplete="off" value={config.seedanceVideoRelayToken} onChange={event => updateConfig("seedanceVideoRelayToken", event.target.value)} />
+            </div> : <p className="mt-2 text-xs leading-5 opacity-60">{t("官方服务器的临时视频 48 小时后删除。")}</p>}
         </section>
     </div>;
 }
