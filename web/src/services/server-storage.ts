@@ -55,6 +55,9 @@ export type ServerModelMultipartFile = {
 const MEDIA_CHUNK_BYTES = 4 * 1024 * 1024;
 const CHUNKED_MEDIA_THRESHOLD = 8 * 1024 * 1024;
 const pendingWrites = new Set<Promise<unknown>>();
+// Persisted Zustand snapshots for one key must reach SQLite in the same order
+// they were produced, especially when several skills are installed in a row.
+const storeWrites = new Map<string, Promise<void>>();
 
 /** Sends a request and surfaces the server's own error message. The Rust
  * handlers return user-facing Chinese text in the error body, so it is passed
@@ -83,7 +86,16 @@ export async function getStoredValue(namespace: string, key: string) {
 }
 
 export async function setStoredValue(namespace: string, key: string, value: string) {
-    await trackWrite(request<void>("/api/store/set", { namespace, key, value }));
+    const identity = `${namespace}\0${key}`;
+    const previous = storeWrites.get(identity);
+    const write = (previous || Promise.resolve()).catch(() => undefined)
+        .then(() => request<void>("/api/store/set", { namespace, key, value }));
+    storeWrites.set(identity, write);
+    try {
+        await trackWrite(write);
+    } finally {
+        if (storeWrites.get(identity) === write) storeWrites.delete(identity);
+    }
 }
 
 export async function removeStoredValue(namespace: string, key: string) {

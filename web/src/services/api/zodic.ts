@@ -144,7 +144,7 @@ export function nativeTools() {
         { name: "zodiac-ops", description: "提交画布操作提案并等待用户批准；不要声称已经执行。", parameters: ZODIAC_OPS_PARAMETERS },
         {
             name: "skill",
-            description: "读取已启用或本轮附加技能的正文。首次只传 name；读取文件时传文件清单中的相对 path。此工具只读取技能包中的文件；脚本由 Runtime 的原生 bash 工具在会话工作目录中执行，执行前需要审批。",
+            description: "读取已加入当前工作流的技能正文。首次只传 name；读取文件时传文件清单中的相对 path。此工具只读取技能包中的文件；脚本由 Runtime 的原生 bash 工具执行，执行前需要审批。",
             parameters: { type: "object", required: ["name"], properties: { name: { type: "string", description: "技能 id 或显示名" }, path: { type: "string", description: "可选，技能包文件相对路径，默认 SKILL.md" } } },
         },
         ZODIAC_WORKFLOW_TOOL,

@@ -183,6 +183,26 @@ pub(crate) fn sync_skill_files(storage: &NativeStorage) -> Result<(), String> {
         let value: serde_json::Value = serde_json::from_str(&decode_store_value(bytes, &encoding)?).map_err(|e| e.to_string())?;
         if let Some(skills) = value["state"]["skills"].as_array() {
             crate::agent_runtime::materialize_skills(&app_data_root(storage)?, skills)?;
+            if let Some(workflows) = value["state"]["workflowSkillIds"].as_object() {
+                let workspace = workspace_root(storage)?;
+                for (workflow_id, ids) in workflows {
+                    let selected: Vec<serde_json::Value> = skills
+                        .iter()
+                        .filter(|skill| {
+                            skill["enabled"].as_bool() == Some(true)
+                                && skill["id"].as_str().is_some_and(|skill_id| {
+                                    ids.as_array().is_some_and(|ids| {
+                                        ids.iter().any(|id| id.as_str() == Some(skill_id))
+                                    })
+                                })
+                        })
+                        .cloned()
+                        .collect();
+                    let skill_root = crate::agent_runtime::workflow_skill_root(&workspace, workflow_id)?;
+                    let workflow = skill_root.parent().ok_or("工作流目录无效")?;
+                    crate::agent_runtime::materialize_skills(workflow, &selected)?;
+                }
+            }
         }
     }
     Ok(())
@@ -2018,6 +2038,7 @@ pub fn workspace_root(storage: &NativeStorage) -> Result<PathBuf, String> {
 #[cfg(test)]
 mod workspace_root_tests {
     use super::*;
+    use serde_json::json;
     #[test]
     fn opening_workspace_preserves_existing_outputs_and_returns_one_root() {
         let temp = tempfile::tempdir().unwrap();
@@ -2030,6 +2051,42 @@ mod workspace_root_tests {
             "保留已有产物"
         );
         assert_eq!(fs::read_dir(&root).unwrap().count(), 1);
+    }
+
+    #[test]
+    fn installed_skills_are_shared_but_only_selected_workflows_index_them() {
+        let temp = tempfile::tempdir().unwrap();
+        let storage = initialize(temp.path()).unwrap();
+        let state = json!({"state": {"skills": [
+            {"id":"film-cut","enabled":true,"body":"Cut video"},
+            {"id":"image-only","enabled":false,"body":"Edit image"}
+        ], "workflowSkillIds": {"first": ["film-cut", "image-only"], "second": []}}});
+        let (bytes, encoding) = encode_store_value(state.to_string().as_bytes()).unwrap();
+        storage.lock().unwrap().execute(
+            "INSERT INTO kv_store(namespace,key,value,encoding,updated_at) VALUES ('zustand-v1','workflowgenerator:skills-v1',?1,?2,0)",
+            params![bytes, encoding],
+        ).unwrap();
+        sync_skill_files(&storage).unwrap();
+        let data = app_data_root(&storage).unwrap();
+        let workspace = workspace_root(&storage).unwrap();
+        assert!(data.join("skills/film-cut/SKILL.md").is_file());
+        assert!(data.join("skills/image-only/SKILL.md").is_file());
+        assert!(workspace.join("workflows/first/skills/film-cut/SKILL.md").is_file());
+        assert!(!workspace.join("workflows/first/skills/image-only").exists());
+        assert!(!workspace.join("workflows/second/skills/film-cut").exists());
+
+        let updated = json!({"state": {"skills": [
+            {"id":"film-cut","enabled":true,"body":"Cut video"}
+        ], "workflowSkillIds": {"first": [], "second": ["film-cut"]}}});
+        let (bytes, encoding) = encode_store_value(updated.to_string().as_bytes()).unwrap();
+        storage.lock().unwrap().execute(
+            "UPDATE kv_store SET value=?1, encoding=?2 WHERE namespace='zustand-v1' AND key='workflowgenerator:skills-v1'",
+            params![bytes, encoding],
+        ).unwrap();
+        sync_skill_files(&storage).unwrap();
+        assert!(!workspace.join("workflows/first/skills/film-cut").exists());
+        assert!(workspace.join("workflows/second/skills/film-cut/SKILL.md").is_file());
+        assert!(!data.join("skills/image-only").exists());
     }
 }
 

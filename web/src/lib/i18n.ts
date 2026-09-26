@@ -10,6 +10,17 @@ export function normalizeAppLanguage(value: unknown): AppLanguage {
 }
 
 const englishMessages: Record<string, string> = {
+    "如何使用技能": "How to use skills",
+    "下载 / 导入": "Download / import",
+    "技能保存在公共技能库，不会自动加入工作流。": "Skills are saved to your shared library. They are not added to workflows automatically.",
+    "只有已启用技能可加入工作流；停用后暂不可用。": "Only enabled skills can be added to a workflow. Disabled skills are unavailable.",
+    "添加到工作流": "Add to a workflow",
+    "进入目标工作流，在 Zodiac 对话框点「+」→「添加技能」。加入后仅该工作流可用。": "Open a workflow, then select + → Add skill in Zodiac chat. The skill becomes available only in that workflow.",
+    "当前工作流技能": "Current workflow skills",
+    "添加后，这个工作流的 Zodiac 即可使用该技能。": "Add a skill to make it available to Zodiac in this workflow.",
+    "「{name}」已安装，可在工作流中添加": "{name} installed. Add it in a workflow to use it.",
+    "对话技能": "Conversation skill",
+    "创作技能": "Creation skill",
     "会话 Token 用量": "Session token usage",
     "会话累计": "Session total",
     "含子 Agent": "Includes subagents",

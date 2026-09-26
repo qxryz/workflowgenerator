@@ -84,7 +84,7 @@ export async function runOpenCodeTurn(options: ZodiacTurnOptions): Promise<strin
             .filter((m) => m.role === "system")
             .map((m) => content(m.content))
             .join("\n\n") +
-        "\n\nRuntime tools: application tools have the wg_ prefix (for example wg_hub_canvas_write_node). Use native task for persistent subagents, with subagent_type router, planner or executor. Native read/write/edit/bash operate on actual files. Skill packages and scripts are under ./skills/. Keep intermediate files and scripts in this session workspace. A successful tool result that waits for the user ends this turn; do not continue mutating the canvas. Never claim execution without tool results.";
+        "\n\nRuntime tools: application tools have the wg_ prefix (for example wg_hub_canvas_write_node). Use native task for persistent subagents, with subagent_type router, planner or executor. Native read/write/edit/bash operate on actual files. Added skill packages and scripts are under the parent workflow's skills/ directory. Keep intermediate files and scripts in this session workspace. A successful tool result that waits for the user ends this turn; do not continue mutating the canvas. Never claim execution without tool results.";
     const tools = registeredZodiacTools(typeof options.tools === "function" ? options.tools() : options.tools || nativeTools(), options.skillToolCatalog);
     const dispatchers = new Map<string, ReturnType<typeof createZodiacToolDispatcher>>();
     const handled = new Set<string>();

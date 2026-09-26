@@ -148,7 +148,7 @@ export function SkillsManager() {
         setInstallingId(entry.id);
         try {
             save(await downloadRegistrySkill(entry));
-            message.success(`「${entry.name}」已可使用`);
+            message.success(t("「{name}」已安装，可在工作流中添加", { name: entry.name }));
         } catch (error) {
             message.error(error instanceof Error ? error.message : "Skill 安装失败");
         } finally {
@@ -286,6 +286,21 @@ export function SkillsManager() {
             </header>
 
             <main className="wg-library-content min-h-0 flex-1 overflow-y-auto">
+                <ol aria-label={t("如何使用技能")} className="mx-auto mb-5 grid max-w-7xl gap-3 rounded-xl border px-4 py-3 sm:grid-cols-3" style={{ borderColor: "var(--wg-home-line)" }}>
+                    {[
+                        { title: t("下载 / 导入"), detail: t("技能保存在公共技能库，不会自动加入工作流。") },
+                        { title: t("启用"), detail: t("只有已启用技能可加入工作流；停用后暂不可用。") },
+                        { title: t("添加到工作流"), detail: t("进入目标工作流，在 Zodiac 对话框点「+」→「添加技能」。加入后仅该工作流可用。") },
+                    ].map((step, index) => (
+                        <li key={step.title} className="flex min-w-0 gap-3 text-xs leading-5">
+                            <span className="shrink-0 font-mono font-semibold" style={{ color: "var(--wg-home-accent)" }}>{index + 1}</span>
+                            <div className="min-w-0">
+                                <div className="font-semibold">{step.title}</div>
+                                <div style={{ color: "var(--wg-home-muted-strong)" }}>{step.detail}</div>
+                            </div>
+                        </li>
+                    ))}
+                </ol>
                 <div className="mx-auto grid max-w-7xl items-start gap-4 lg:grid-cols-[220px_minmax(0,1fr)] lg:gap-5">
                     <SkillFilterRail
                         options={["官方", "作者私藏", "我的"]}

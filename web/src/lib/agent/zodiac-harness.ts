@@ -184,7 +184,7 @@ function renderSkillContext(skills: ZodiacSkillContext[]) {
     if (!active.length) return "";
     return [
         "# 可用 Skills",
-        "以下技能已在本会话启用；先用 `skill` 工具读取正文，按需读取文件清单中的 references/scripts。技能包已同步到会话的 skills 目录；可用 read 读取，使用 bash 执行脚本前检查依赖并等待工具审批。",
+        "以下技能已加入当前工作流；先用 `skill` 工具读取正文，按需读取文件清单中的 references/scripts。技能包已同步到工作流的 skills 目录；可用 read 读取，使用 bash 执行脚本前检查依赖并等待工具审批。",
         ...active.map((skill) => renderSkillEntry(skill)),
     ].join("\n\n");
 }

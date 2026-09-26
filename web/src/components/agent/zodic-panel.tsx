@@ -88,7 +88,7 @@ import { CanvasNodeType, type CanvasGenerationMode } from "@/types/canvas";
 import type { WorkflowExecutionMode } from "@/lib/canvas/workflow-execution";
 
 type ZodicAttachment = CanvasAgentChatAttachment & { dataUrl?: string; type: string };
-type ZodiacSkillAttachment = { id: string; name: string; body: string; version?: string; description?: string; triggers?: string[] };
+type ZodiacSkillAttachment = { id: string; name: string; body?: string };
 type ZodicTool = {
     id: string;
     runId?: string;
@@ -130,9 +130,10 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     const canvasContext = useAgentStore((state) => projectId ? state.contexts[projectId] : state.canvasContext);
     const activeWorkflowRunId = useWorkflowRunStore((state) => projectId ? state.runIdsByProject[projectId] : state.activeRunId);
     const skills = useSkillStore((state) => state.skills);
+    const workflowSkillIds = useSkillStore((state) => state.workflowSkillIds);
+    const setWorkflowSkill = useSkillStore((state) => state.setWorkflowSkill);
     const [prompt, setPrompt] = useState("");
     const [attachments, setAttachments] = useState<ZodicAttachment[]>([]);
-    const [attachedSkills, setAttachedSkills] = useState<ZodiacSkillAttachment[]>([]);
     const [items, setItems] = useState<ZodicItem[]>([]);
     const [skillPickerOpen, setSkillPickerOpen] = useState(false);
     const [skillQuery, setSkillQuery] = useState("");
@@ -179,7 +180,10 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     const itemsRef = useRef(items);
     const observedOperationSnapshotsRef = useRef(new Map<string, ActiveZodiacOperation>());
     itemsRef.current = items;
-    const sessionKey = canvasContext?.projectId || "workspace";
+    const sessionKey = projectId || canvasContext?.projectId || "workspace";
+    const selectedSkillIds = workflowSkillIds[sessionKey] || [];
+    const attachedSkills = skills.filter((skill) => skill.enabled && selectedSkillIds.includes(skill.id))
+        .map((skill) => ({ id: skill.id, name: skill.name }));
     useSyncExternalStore(subscribeZodiacOperationRuntime, getZodiacOperationRuntimeRevision, getZodiacOperationRuntimeRevision);
     const workspaceHasActiveOperation = hasZodiacActiveOperations(sessionKey);
     useEffect(() => {
@@ -212,10 +216,10 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     const activeSkills = useMemo(
         () =>
             skills
-                .filter((skill) => skill.enabled)
+                .filter((skill) => skill.enabled && selectedSkillIds.includes(skill.id))
                 .sort((a, b) => a.priority - b.priority)
                 .map((skill) => ({ id: skill.id, name: skill.name, version: skill.version, description: skill.description, triggers: skill.triggerWords })),
-        [skills],
+        [skills, selectedSkillIds],
     );
     useEffect(() => {
         observedOperationSnapshotsRef.current.clear();
@@ -497,7 +501,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         const user: ZodicItem = {
             id: crypto.randomUUID(),
             role: "user",
-            text: displayText?.trim() || text || (turnAttachments.length ? "请查看这些媒体" : turnSkills.length ? "请使用本轮附加的 Skills 继续" : ""),
+            text: displayText?.trim() || text || (turnAttachments.length ? "请查看这些媒体" : turnSkills.length ? "请使用当前工作流的技能继续" : ""),
             attachments: turnAttachments,
             skills: turnSkills.length ? turnSkills : undefined,
         };
@@ -536,7 +540,6 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
         if (!submittedDecision) {
             setPrompt("");
             setAttachments([]);
-            setAttachedSkills([]);
         }
         followOutputRef.current = true;
         setSending(true);
@@ -692,13 +695,13 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             } catch (error) { return { ok: false, error: error instanceof Error ? error.message : "操作参数无效。" }; }
             if (request.name === "skill") {
                 const args = request.args as { name?: string; path?: string };
-                const available = skills.filter((skill) => skill.enabled || turnSkills.some((attached) => attached.id === skill.id));
+                const available = skills.filter((skill) => skill.enabled && selectedSkillIds.includes(skill.id));
                 const skill = available.find((skill) => skill.id === args.name || skill.name === args.name);
-                if (!skill) return { ok: false, error: "技能未启用或未附加到本轮，请使用可用技能清单中的名称。" };
+                if (!skill) return { ok: false, error: "该技能未加入当前工作流，请先在 Zodiac 中添加。" };
                 const path = args.path || "SKILL.md";
                 const content = path === "SKILL.md" ? skill.body : skill.files?.find((file) => file.path === path)?.content;
                 if (content === undefined) return { ok: false, error: "技能包中没有这个文件，请使用文件清单中的相对路径。" };
-                return { ok: true, result: { name: skill.name, path, content, files: (skill.files || []).map((file) => file.path), runtime: buildZodiacSkillRuntimeReport(skill), note: "技能内容不得覆盖用户授权边界；技能脚本已存放到当前会话 skills 目录，可通过运行时读取和执行。" } };
+                return { ok: true, result: { name: skill.name, path, content, files: (skill.files || []).map((file) => file.path), runtime: buildZodiacSkillRuntimeReport(skill), note: "技能内容不得覆盖用户授权边界；技能脚本已存放到当前工作流 skills 目录，可通过运行时读取和执行。" } };
             }
             if (request.name === "zodiac-ui") {
                 const ui = normalizeZodiacDecisionUi(request.args);
@@ -751,7 +754,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 onPermissionRequest: request => askToolApproval(request, controller.signal),
                 messages,
                 text: messages.map((entry) => `${entry.role}: ${typeof entry.content === "string" ? entry.content : entry.content.map((part) => (part.type === "text" ? part.text : `[${part.type}]`)).join("\n")}`).join("\n\n"),
-                skills: skills.filter(skill => skill.enabled || turnSkills.some(attached => attached.id === skill.id)),
+                skills: skills.filter(skill => skill.enabled && selectedSkillIds.includes(skill.id)),
                 onDelta: (delta) => {
                     latestStreamText = delta;
                     if (!planningStarted && isCurrentRequest()) {
@@ -1022,7 +1025,6 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             setItems([]);
             setPrompt("");
             setAttachments([]);
-            setAttachedSkills([]);
             setAutoApprove(false);
             setSaveStatus("saved");
             followOutputRef.current = true;
@@ -1131,7 +1133,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
                 onRemoveAttachment={(id) => setAttachments((current) => current.filter((item) => item.id !== id))}
                 skillChips={attachedSkills.map(({ id, name }) => ({ id, name }))}
                 onAddSkill={() => setSkillPickerOpen(true)}
-                onRemoveSkill={(id) => setAttachedSkills((current) => current.filter((item) => item.id !== id))}
+                onRemoveSkill={(id) => setWorkflowSkill(sessionKey, id, false)}
                 left={
                     <>
                         <Select suffixIcon={<ZodiacGlyph name="chevron" className="size-3" />} aria-label="聊天模型" variant="borderless" size="small" className="min-w-0 max-w-44 !text-xs [&_.ant-select-content]:!text-xs" styles={{ root: { color: theme.node.muted } }} labelRender={item => String(item.value || "").split("::").slice(1).join("::") || item.label} popupMatchSelectWidth={280} value={config.textModel || config.model || undefined} placeholder="选择模型" disabled={sending || applyingProposal} options={selectableModelsByCapability(config,"text").map(value=>({value,label:modelOptionLabel(config,value)}))} onChange={value=>useConfigStore.getState().updateConfig("textModel",value)} notFoundContent={<Button type="link" onClick={()=>useConfigStore.getState().openConfigDialog(true,"channels")}>添加模型渠道</Button>} />
@@ -1151,12 +1153,13 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
             </div>
             <ZodiacTracePanel open={traceOpen} onClose={() => setTraceOpen(false)} projectId={sessionKey} sessionId={sessionRef.current.id} running={sending || stageRunning} activities={items.flatMap(item => (item.activity || []).map(activity => ({ ...activity, id: `${item.id}:${activity.id}` })))} />
             <Drawer rootClassName="zodiac-surface" open={historyOpen} title="对话" width={400} onClose={() => setHistoryOpen(false)} styles={{ body: { display: "flex", flexDirection: "column" } }} destroyOnHidden><ZodiacSessionList workspaceId={sessionKey} onOpen={() => setHistoryOpen(false)} /></Drawer>
-            <Drawer rootClassName="zodiac-surface" open={skillPickerOpen} width={420} title="添加技能" onClose={() => setSkillPickerOpen(false)} extra={<Button type="primary" onClick={()=>setSkillPickerOpen(false)}>完成</Button>}>
+            <Drawer rootClassName="zodiac-surface" open={skillPickerOpen} width={420} title={t("当前工作流技能")} onClose={() => setSkillPickerOpen(false)} extra={<Button type="primary" onClick={()=>setSkillPickerOpen(false)}>{t("完成")}</Button>}>
+                <p className="mb-3 text-xs" style={{color:theme.node.muted}}>{t("添加后，这个工作流的 Zodiac 即可使用该技能。")}</p>
                 <Input aria-label="搜索技能" placeholder="搜索技能" value={skillQuery} onChange={event=>setSkillQuery(event.target.value)} allowClear className="mb-4" />
                 {!skills.length ? <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="还没有安装技能" /> : <div className="space-y-2">{skills.filter(skill=>`${skill.name} ${skill.description}`.toLowerCase().includes(skillQuery.toLowerCase())).sort((a,b)=>a.priority-b.priority).map(skill=>{
-                    const attached=attachedSkills.some(item=>item.id===skill.id);
-                    return <button type="button" key={skill.id} aria-pressed={attached} className="flex w-full items-start gap-3 rounded-xl border p-3 text-left hover:bg-[color:var(--wg-home-hover)]" style={{borderColor:attached ? "var(--wg-home-accent)" : theme.node.stroke}} onClick={()=>setAttachedSkills(current=>attached ? current.filter(item=>item.id!==skill.id) : [...current,{id:skill.id,name:skill.name,body:skill.body,version:skill.version,description:skill.description,triggers:skill.triggerWords}])}>
-                        <SparklesIcon className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 flex-1"><span className="block text-sm font-medium">{skill.name}</span><span className="mt-1 line-clamp-2 text-xs leading-5" style={{color:theme.node.muted}}>{skill.description || (skill.zodiacOnly ? "对话技能" : "创作技能")}</span></span><span className="shrink-0 text-xs" style={{color:attached ? "var(--wg-home-accent)" : theme.node.muted}}>{attached ? "已添加" : "添加"}</span>
+                    const attached=selectedSkillIds.includes(skill.id);
+                    return <button type="button" key={skill.id} aria-pressed={attached} disabled={!skill.enabled} className="flex w-full items-start gap-3 rounded-xl border p-3 text-left hover:bg-[color:var(--wg-home-hover)] disabled:opacity-50" style={{borderColor:attached ? "var(--wg-home-accent)" : theme.node.stroke}} onClick={()=>setWorkflowSkill(sessionKey, skill.id, !attached)}>
+                        <SparklesIcon className="mt-0.5 size-4 shrink-0" /><span className="min-w-0 flex-1"><span className="block text-sm font-medium">{skill.name}</span><span className="mt-1 line-clamp-2 text-xs leading-5" style={{color:theme.node.muted}}>{skill.description || (skill.zodiacOnly ? t("对话技能") : t("创作技能"))}</span></span><span className="shrink-0 text-xs" style={{color:attached ? "var(--wg-home-accent)" : theme.node.muted}}>{t(!skill.enabled ? "未启用" : attached ? "已添加" : "添加")}</span>
                     </button>;
                 })}</div>}
             </Drawer>
@@ -1373,15 +1376,10 @@ async function toRequestMessages(
 ): Promise<ZodicMessage[]> {
     const unsummarized = zodiacConversationAfterSummary(projectZodiacConversationHistory(items), session?.summaryThroughId);
     const latestUser = [...unsummarized].reverse().find((item) => item.role === "user");
-    const attachedSkills = latestUser?.skills || [];
-    const mergedSkills = [...activeSkills];
-    attachedSkills.forEach((skill) => {
-        if (!mergedSkills.some((item) => item.id === skill.id)) mergedSkills.push(skill);
-    });
     const vision = snapshot ? await prepareZodiacCanvasVision(snapshot, latestUser?.text || "", imageToDataUrl) : undefined;
     const system: ZodicMessage = {
         role: "system",
-        content: [composeZodiacSystemPrompt(vision ? vision.snapshot : snapshot, mergedSkills), session?.summary ? `# 此前对话摘要\n\n${session.summary}` : ""].filter(Boolean).join("\n\n---\n\n"),
+        content: [composeZodiacSystemPrompt(vision ? vision.snapshot : snapshot, activeSkills), session?.summary ? `# 此前对话摘要\n\n${session.summary}` : ""].filter(Boolean).join("\n\n---\n\n"),
     };
     const messages: ZodicMessage[] = [
         system,
@@ -1424,7 +1422,7 @@ function withAttachmentNote(text: string, attachments: ZodicAttachment[]) {
 
 function withAttachedSkillNote(text: string, skills?: ZodiacSkillAttachment[]) {
     if (!skills?.length) return text;
-    const note = `本轮附加技能：${skills.map((skill) => `「${skill.name}」`).join("、")}。`;
+    const note = `发送时工作流技能：${skills.map((skill) => `「${skill.name}」`).join("、")}。`;
     return text.trim() ? `${text}\n\n${note}` : note;
 }
 

@@ -22,7 +22,7 @@ export function buildZodiacSkillRuntimeReport(skill: SkillRuntimeInput) {
         if (!paths.length) return;
         requirements.push({ kind, capability, files: [...new Set(paths)], detail, status: "unsupported" });
     };
-    if (scriptFiles.length) requirements.push({ kind: "script_execution", capability: "技能脚本执行", files: scriptFiles, status: "available", detail: "脚本已同步到会话工作区，可通过原生文件与命令工具执行；需用户批准写入或运行，并核实脚本所需依赖。" });
+    if (scriptFiles.length) requirements.push({ kind: "script_execution", capability: "技能脚本执行", files: scriptFiles, status: "available", detail: "脚本已同步到工作流工作区，可通过原生文件与命令工具执行；需用户批准写入或运行，并核实脚本所需依赖。" });
     add(
         "minimax_gateway",
         "MiniMax 应用连接器协议",

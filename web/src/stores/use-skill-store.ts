@@ -6,8 +6,10 @@ import { createPersonalSkill, pruneInstalledSkills, type InstalledSkill } from "
 
 type SkillStore = {
     skills: InstalledSkill[];
+    workflowSkillIds: Record<string, string[]>;
     save: (skill: InstalledSkill) => void;
     remove: (id: string) => void;
+    setWorkflowSkill: (workflowId: string, skillId: string, attached: boolean) => void;
     setEnabled: (id: string, enabled: boolean) => void;
     setZodiacOnly: (id: string, zodiacOnly: boolean) => void;
     move: (id: string, direction: -1 | 1) => void;
@@ -17,6 +19,7 @@ export const useSkillStore = create<SkillStore>()(
     persist(
         (set) => ({
             skills: [],
+            workflowSkillIds: {},
             save: (skill) =>
                 set((state) => {
                     const normalized = skill.source === "personal" ? createPersonalSkill(skill) : { ...skill, updatedAt: new Date().toISOString() };
@@ -26,7 +29,18 @@ export const useSkillStore = create<SkillStore>()(
                             : [...state.skills, { ...normalized, priority: nextPriority(state.skills) }],
                     };
                 }),
-            remove: (id) => set((state) => ({ skills: state.skills.filter((skill) => skill.id !== id) })),
+            remove: (id) => set((state) => ({
+                skills: state.skills.filter((skill) => skill.id !== id),
+                workflowSkillIds: Object.fromEntries(Object.entries(state.workflowSkillIds).map(([workflowId, ids]) => [workflowId, ids.filter((item) => item !== id)])),
+            })),
+            setWorkflowSkill: (workflowId, skillId, attached) => set((state) => {
+                if (attached && !state.skills.some((skill) => skill.id === skillId && skill.enabled)) return state;
+                const current = state.workflowSkillIds[workflowId] || [];
+                return { workflowSkillIds: {
+                    ...state.workflowSkillIds,
+                    [workflowId]: attached ? [...new Set([...current, skillId])] : current.filter((id) => id !== skillId),
+                } };
+            }),
             setEnabled: (id, enabled) => set((state) => ({ skills: state.skills.map((skill) => (skill.id === id ? { ...skill, enabled } : skill)) })),
             setZodiacOnly: (id, zodiacOnly) => set((state) => ({ skills: state.skills.map((skill) => (skill.id === id ? { ...skill, zodiacOnly } : skill)) })),
             move: (id, direction) =>
@@ -43,9 +57,13 @@ export const useSkillStore = create<SkillStore>()(
             name: "workflowgenerator:skills-v1",
             storage: createJSONStorage(() => serverStateStorage),
             version: 1,
-            partialize: (state) => ({ skills: state.skills }),
+            partialize: (state) => ({ skills: state.skills, workflowSkillIds: state.workflowSkillIds }),
             // 已删除的内置技能不能从老数据里复活；其余已装技能原样保留。
-            merge: (persisted, current) => ({ ...current, skills: pruneInstalledSkills((persisted as Partial<SkillStore> | undefined)?.skills) }),
+            merge: (persisted, current) => ({
+                ...current,
+                skills: pruneInstalledSkills((persisted as Partial<SkillStore> | undefined)?.skills),
+                workflowSkillIds: (persisted as Partial<SkillStore> | undefined)?.workflowSkillIds || {},
+            }),
         },
     ),
 );

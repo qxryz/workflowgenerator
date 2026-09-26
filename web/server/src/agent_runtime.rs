@@ -173,6 +173,13 @@ fn work_dir(state: &AppState, project: &str, session: &str) -> Result<PathBuf> {
     std::fs::create_dir_all(&work).map_err(|e| e.to_string())?;
     Ok(work)
 }
+
+pub(crate) fn workflow_skill_root(workspace: &FsPath, project: &str) -> Result<PathBuf> {
+    valid_id(project)?;
+    let workflow = safe_child(workspace, &format!("workflows/{project}"))?;
+    safe_child(&workflow, "skills")
+}
+
 fn key(state: &AppState, id: &Identity) -> Result<String> {
     Ok(work_dir(state, &id.project_id, &id.session_id)?
         .to_string_lossy()
@@ -420,7 +427,9 @@ async fn spawn(state: &AppState, input: &Start) -> Result<Arc<Runtime>> {
     for child in ["config", "data", "cache", "state", "home"] {
         std::fs::create_dir_all(control.join(child)).map_err(|e| e.to_string())?;
     }
-    let skill_root = materialize_skills(&work, &input.skills)?;
+    let skill_root =
+        workflow_skill_root(&storage::workspace_root(&state.storage)?, &input.project_id)?;
+    std::fs::create_dir_all(&skill_root).map_err(|e| e.to_string())?;
     let provider = provider(state).await?;
     let model = provider.model.clone();
     let npm = provider.npm.clone();
@@ -700,7 +709,7 @@ async fn start(State(state): State<AppState>, Json(input): Json<Start>) -> Respo
         let fingerprint = serde_json::to_string(&input.skills).map_err(|e| e.to_string())?;
         let mut previous_skills = runtime.skills_fingerprint.lock().await;
         if *previous_skills != fingerprint {
-            materialize_skills(&runtime.work, &input.skills)?;
+            storage::sync_skill_files(&state.storage)?;
             runtime.post("/instance/dispose", json!({})).await?;
             *previous_skills = fingerprint;
         }

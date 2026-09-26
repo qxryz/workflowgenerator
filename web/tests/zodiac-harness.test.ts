@@ -111,7 +111,7 @@ test("active skills are listed as loadable skill cards in stable priority order"
     assert.match(prompt, /<description>先把创意方向定下来<\/description>/);
     assert.match(prompt, /<triggers>创意, 方向<\/triggers>/);
     assert.doesNotMatch(prompt, /file:\/\/\/|\/pi-workspace|\/data\/pi/);
-    assert.match(prompt, /以下技能已在本会话启用/);
+    assert.match(prompt, /以下技能已加入当前工作流/);
 });
 
 test("skill cards carry no full body and follow the sidecar skills root", () => {
