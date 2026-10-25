@@ -12,7 +12,7 @@ import { createShot, deleteShot, reorderShots } from "@/services/drama-api";
 import type { EpisodeCtx } from "./context";
 import { ShotEditor } from "./shot-editor";
 
-export const COLUMNS = "grid grid-cols-[3rem_2.75rem_3.75rem_4.5rem_minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1fr)_3.75rem_8rem] items-center gap-x-3";
+const COLUMNS = "grid grid-cols-[3rem_2.75rem_3.75rem_4.5rem_minmax(0,1.6fr)_minmax(0,1.2fr)_minmax(0,1fr)_3.75rem_8rem] items-center gap-x-3";
 
 type Props = { ctx: EpisodeCtx; issues: LintIssue[]; expandedId: string | null; onExpand: (id: string | null) => void };
 
@@ -124,8 +124,8 @@ function Row({ ctx, shot, at, open, warned, onToggle, onAdd, onMove, onRemove, o
                     <ChevronRight className={cn("size-3 text-[color:var(--wg-home-muted)] transition-transform", open && "rotate-90")} strokeWidth={1.8} />
                 </span>
                 <span className="tabular-nums">{shot.seconds}s</span>
-                <span className="truncate">{shot.size || "—"}</span>
-                <span className="truncate">{shot.camera || "—"}</span>
+                <span className="truncate">{shot.size ? t(shot.size) : "—"}</span>
+                <span className="truncate">{shot.camera ? t(shot.camera) : "—"}</span>
                 <span className="line-clamp-2 leading-5">{shot.description || <em className="not-italic text-[color:var(--wg-home-muted)]">{t("还没有描述")}</em>}</span>
                 <span className="line-clamp-2 leading-5 text-[color:var(--wg-home-muted)]">{dialogue || "—"}</span>
                 <span className="flex flex-wrap gap-1">

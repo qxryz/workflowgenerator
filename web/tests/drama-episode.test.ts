@@ -4,6 +4,7 @@ import test from "node:test";
 import {
     adoptedByShot, canUseTail, defaultFirstFrame, defaultStep, exportErrorText, moveId, neighbourShot, planImageBatch, planVideoBatch, scriptBlocks, shotsMissingVideo, spokenText, stepProgress, subtitleLines,
 } from "../src/lib/drama/episode-steps.ts";
+import { sameDraft, toDraft } from "../src/lib/drama/shot-draft.ts";
 import type { DramaArtifact, DramaShot } from "../src/lib/drama/types.ts";
 
 const shot = (id: string, extra: Partial<DramaShot> = {}): DramaShot => ({
@@ -64,19 +65,33 @@ test("image batch: first shot alone until something is adopted, then every shot 
     assert.deepEqual(planImageBatch([], []), { mode: "first", shotIds: [] });
 });
 
-test("video batch: shots with a first frame, total seconds, and when the run must be one at a time", () => {
+test("video batch: continuous shots start from the previous tail, others from their picture", () => {
     const images = [artifact("a", "image"), artifact("b", "image"), artifact("d", "image")];
     const batch = planVideoBatch(shots, images);
-    assert.deepEqual(batch.shotIds, ["a", "b", "c", "d"], "c has no picture but follows b, which this batch fills");
+    assert.deepEqual(batch.shotIds, ["a", "b", "c", "d"], "b and c follow shots this batch makes and adopts");
     assert.equal(batch.seconds, 5 + 5 + 5 + 8);
-    assert.equal(batch.chained, true);
+    assert.deepEqual([batch.chained, batch.skipped, batch.waiting], [true, 0, 0]);
 
     const apart = planVideoBatch([shot("a"), shot("b")], [artifact("a", "image")]);
-    assert.deepEqual(apart, { shotIds: ["a"], seconds: 5, skipped: 1, chained: false });
+    assert.deepEqual(apart, { shotIds: ["a"], seconds: 5, skipped: 1, waiting: 0, chained: false });
 
     const done = planVideoBatch(shots, [...images, artifact("a", "video"), artifact("b", "video", { status: "pending", mediaUrl: "", adopted: false })]);
-    assert.deepEqual(done.shotIds, ["d"], "c would wait for b, which is still being made");
-    assert.equal(done.skipped, 1);
+    assert.deepEqual(done.shotIds, ["d"], "c would start from b, which is still being made");
+    assert.deepEqual([done.skipped, done.waiting], [0, 1]);
+
+    const resume = planVideoBatch(shots, [artifact("a", "video")]);
+    assert.deepEqual(resume.shotIds, ["b", "c"], "b starts from the adopted video of a with no picture of its own; c follows b");
+    assert.equal(resume.chained, true);
+    const next = planVideoBatch(shots, [...images, artifact("a", "video"), artifact("b", "video")]);
+    assert.deepEqual([next.shotIds, next.chained], [["c", "d"], false], "c starts from the adopted video of b, so nothing waits on this batch");
+});
+
+test("video batch with auto-adopt off never lets a continuous shot fall back to its picture", () => {
+    const images = [artifact("a", "image"), artifact("b", "image"), artifact("d", "image")];
+    const batch = planVideoBatch(shots, images, false);
+    assert.deepEqual(batch.shotIds, ["a", "d"]);
+    assert.deepEqual([batch.waiting, batch.chained], [2, false], "b and c wait until their previous shot has an adopted video");
+    assert.deepEqual(planVideoBatch(shots, [...images, artifact("a", "video")], false).shotIds, ["b", "d"], "b can start once a is adopted; c still waits for b");
 });
 
 test("shotsMissingVideo lists shots in order without an adopted video", () => {
@@ -114,4 +129,20 @@ test("exportErrorText keeps the human part of a failure and drops raw tool outpu
     assert.equal(exportErrorText("第 1 镜还没有采用视频；第 3 镜还没有采用视频"), "第 1 镜还没有采用视频；第 3 镜还没有采用视频");
     assert.equal(exportErrorText("第 4 镜的视频文件找不到：请重新生成"), "第 4 镜的视频文件找不到：请重新生成");
     assert.equal(exportErrorText("  "), "导出失败，请重试");
+});
+
+test("a saved shot draft equals the server copy however keys, bindings and blank lines are ordered", () => {
+    const base = shot("s", { entityIds: ["e2", "e1"], description: "站在门口", dialogue: [{ speaker: "e1", text: "你来了" }], props: [{ entityId: "p", quantity: 1, startVisible: true, endVisible: false, startHolder: "e1", endHolder: "", note: "" }] });
+    const edited = toDraft(base);
+    const fromServer = toDraft({
+        ...base,
+        entityIds: ["e1", "e2"],
+        description: "站在门口",
+        dialogue: [{ text: "你来了", speaker: "e1" }],
+        props: [{ note: "", endHolder: "", startHolder: "e1", endVisible: false, startVisible: true, quantity: 1, entityId: "p" }],
+    });
+    assert.equal(sameDraft(edited, fromServer), true);
+    assert.equal(sameDraft({ ...edited, dialogue: [...edited.dialogue, { speaker: "", text: "  " }], description: "站在门口 " }, fromServer), true, "blank lines are dropped and text is trimmed on save");
+    assert.equal(sameDraft({ ...edited, entityIds: ["e1"] }, fromServer), false);
+    assert.equal(sameDraft({ ...edited, seconds: 9 }, fromServer), false);
 });

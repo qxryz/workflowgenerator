@@ -37,19 +37,30 @@ export function ImportPanel({ snapshot, onCancel, onDone }: Props) {
     };
     const submit = async () => {
         const first = nextChapterOrd(snapshot.chapters);
-        setProgress({ done: 0, total: chapters.length });
+        // A retry after an error must not add what already went in: a chapter with the same title and length is taken to be it.
+        const present = new Map<string, number>();
+        for (const chapter of snapshot.chapters) present.set(`${chapter.title}\n${chapter.chars}`, (present.get(`${chapter.title}\n${chapter.chars}`) ?? 0) + 1);
+        const todo = chapters.filter((chapter) => {
+            const key = `${chapter.title.slice(0, 120)}\n${[...chapter.body].length}`;
+            const left = present.get(key) ?? 0;
+            if (left) present.set(key, left - 1);
+            return !left;
+        });
+        let done = 0;
+        setProgress({ done, total: todo.length });
         try {
-            for (const [index, chapter] of chapters.entries()) {
+            for (const chapter of todo) {
                 await createChapter(snapshot.project.id, { title: chapter.title.slice(0, 120), body: chapter.body });
-                setProgress({ done: index + 1, total: chapters.length });
+                setProgress({ done: (done += 1), total: todo.length });
             }
-            await client.invalidateQueries({ queryKey: dramaKey(snapshot.project.id) });
+            if (todo.length < chapters.length) message.info(t("已有的 {count} 章没有重复添加", { count: chapters.length - todo.length }));
             setText("");
             onDone(first);
         } catch (error) {
-            message.error(error instanceof Error ? error.message : t("添加失败，请重试"));
-            await client.invalidateQueries({ queryKey: dramaKey(snapshot.project.id) });
+            const reason = error instanceof Error ? error.message : t("添加失败，请重试");
+            message.error(done ? t("已添加 {done} 章，第 {next} 章没有成功：{reason}。再点一次会接着添加。", { done, next: done + 1, reason }) : reason);
         } finally {
+            await client.invalidateQueries({ queryKey: dramaKey(snapshot.project.id) });
             setProgress(null);
         }
     };

@@ -5,7 +5,8 @@ import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } fr
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { edgeShapes, fitView, layoutGraph, placeLabels, type GraphEdge, type Point, type View } from "@/lib/drama/graph-layout";
 import { ENTITY_GROUP_LABELS, RELATION_KIND_LABELS } from "@/lib/drama/labels";
-import { adoptedSheets, KIND_ORDER, type KindFilter } from "@/lib/drama/settings-view";
+import { adoptedSheets } from "@/lib/drama/media/references";
+import { KIND_ORDER, type KindFilter } from "@/lib/drama/settings-view";
 import type { DramaSnapshot, EntityKind } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 import { createRelation, deleteRelation, updateRelation } from "@/services/drama-api";

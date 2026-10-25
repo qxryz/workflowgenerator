@@ -46,7 +46,7 @@ export function SettingsSection({ snapshot }: { snapshot: DramaSnapshot }) {
             />
             <div className="flex min-h-0 flex-1">
                 <div className="flex min-w-0 flex-1 flex-col">
-                    <ProposalBlock snapshot={snapshot} current={current} history={history} />
+                    <ProposalBlock snapshot={snapshot} current={current} history={history} graph={view === "graph" && hasSettings} />
                     <div className="min-h-0 flex-1">
                         {firstRun ? (
                             <div className="flex h-full flex-col items-center justify-center gap-4 text-center">

@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { edgeShapes, fitView, layoutGraph, neighbours, placeLabels, type GraphEdge, type GraphNode, type Point } from "../src/lib/drama/graph-layout.ts";
-import { adoptedSheets, buildCatalogue, classifyProposal, matchExisting, relationText, sheetsOf } from "../src/lib/drama/settings-view.ts";
+import { adoptedSheets } from "../src/lib/drama/media/references.ts";
+import { buildCatalogue, proposalView, sheetsOf } from "../src/lib/drama/settings-view.ts";
 import { addColour, moveColour, nextColour, paletteProblem, removeColour, sameColours, storedPalette } from "../src/lib/drama/style/palette-edit.ts";
 import type { DramaArtifact, DramaEntity, DramaRelation, SettingsProposal } from "../src/lib/drama/types.ts";
 
@@ -35,24 +36,16 @@ const proposalEntity = (kind: DramaEntity["kind"], name: string, extra: Partial<
 
 const existing = [entity(1, "character", "林夏", { aliases: ["小夏"] }), entity(2, "scene", "渡口茶棚"), entity(3, "prop", "黄铜怀表", { parentId: "e1" })];
 
-test("a proposal item updates an existing setting by ref, or by same kind and name or alias", () => {
-    assert.equal(matchExisting(existing, { ref: "E2", kind: "scene", name: "完全不同的名字" })?.id, "e2");
-    assert.equal(matchExisting(existing, { kind: "character", name: " 林夏 " })?.id, "e1");
-    assert.equal(matchExisting(existing, { kind: "character", name: "小夏" })?.id, "e1");
-    assert.equal(matchExisting(existing, { kind: "scene", name: "林夏" }), undefined, "a different kind is a different setting");
-    assert.equal(matchExisting(existing, { ref: "E9", kind: "prop", name: "新道具" }), undefined);
-});
-
-test("classifyProposal marks new vs update, groups by kind and resolves parents and relation ends to names", () => {
+test("proposalView: ref present means update, otherwise new; short labels show as names", () => {
     const proposal: SettingsProposal = {
-        entities: [proposalEntity("prop", "麻绳手链", { parent: "小夏" }), proposalEntity("character", "林夏", { ref: "E1" }), proposalEntity("character", "周远"), proposalEntity("world", "七号码头的规矩")],
+        entities: [proposalEntity("prop", "麻绳手链", { parent: "E1" }), proposalEntity("character", "林夏", { ref: "E1" }), proposalEntity("character", "周远"), proposalEntity("world", "七号码头的规矩")],
         relations: [
             { from: "林夏", to: "周远", kind: "mentor", label: "", note: "" },
-            { from: "E1", to: "渡口茶棚", kind: "belong", label: "常客", note: "" },
+            { from: "E1", to: "E2", kind: "belong", label: "常客", note: "" },
             { from: "周远", to: "不存在的人", kind: "other", label: "", note: "" },
         ],
     };
-    const view = classifyProposal(proposal, existing, [relation("r1", "e1", "e2", "belong")]);
+    const view = proposalView(proposal, existing);
     assert.deepEqual(
         view.groups.map((group) => group.kind),
         ["character", "prop", "world"],
@@ -60,19 +53,11 @@ test("classifyProposal marks new vs update, groups by kind and resolves parents 
     const [林夏, 周远] = view.groups[0].rows;
     assert.deepEqual([林夏.item.name, 林夏.change], ["林夏", "update"]);
     assert.deepEqual([周远.item.name, 周远.change], ["周远", "new"]);
-    assert.equal(view.groups[1].rows[0].parent, "林夏", "an alias parent shows the real name");
+    assert.equal(view.groups[1].rows[0].parent, "林夏", "a label parent shows the real name");
     assert.deepEqual(view.counts, { added: 3, updated: 1, relations: 3 });
-    assert.deepEqual(
-        view.relations.map((row) => row.change),
-        ["new", "update", "new"],
-    );
-    assert.equal(view.relations[1].to, "渡口茶棚");
+    assert.deepEqual([view.relations[1].from, view.relations[1].to], ["林夏", "渡口茶棚"]);
     assert.equal(view.relations[2].to, "不存在的人", "unknown ends stay as written");
-});
-
-test("relationText falls back to the kind label", () => {
-    assert.equal(relationText({ kind: "mentor", label: "" }), "师徒");
-    assert.equal(relationText({ kind: "mentor", label: " 授业恩师 " }), "授业恩师");
+    assert.equal(proposalView({ entities: [proposalEntity("character", "小夏")], relations: [] }, existing).groups[0].rows[0].change, "new", "matching by name is the server's call; without a ref the row says new");
 });
 
 test("catalogue: props sit under their owner and in the prop filter; 全部 lists only props without an owner", () => {

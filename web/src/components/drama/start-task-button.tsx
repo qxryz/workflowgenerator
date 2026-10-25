@@ -8,25 +8,26 @@
  *   label: string                      Chinese source text, translated here
  *   icon?: LucideIcon                  default Sparkles
  *   variant?: "primary" | "default"    primary = filled with a soft ring (use for the one main entry of a section)
- *   disabled? / disabledReason?        reason shows as a tooltip
+ *   disabled? / disabledReason?        reason shows as a tooltip (with optional disabledValues for {placeholders})
  *   onStarted?(run: DramaRun)          called once the run exists; the model keeps working in the background
  * Click starts at once with the default text model. The attached chevron opens extra instructions + a model choice.
- * While a matching run is live it shows "运行中 · mm:ss" and 停止. Failures (409, no model) surface as message.error.
+ * While a run of the same stage and scope is live it shows "运行中 · mm:ss" and 停止 (runs of other scopes do not block it).
+ * Failures (409, no model) surface as message.error.
  */
 import { ChevronDown, Loader2, Sparkles, Square, type LucideIcon } from "lucide-react";
-import { App, Input, Popover, Tooltip } from "antd";
+import { Input, Popover, Tooltip } from "antd";
 import { useState } from "react";
 
 import { ModelPicker } from "@/components/model-picker";
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { useStartRun } from "@/hooks/use-drama";
 import { useDramaRunActions } from "@/hooks/use-drama-run-actions";
+import { useStartTask } from "@/hooks/use-start-task";
 import { useNow } from "@/hooks/use-now";
 import { formatElapsed } from "@/lib/drama/format";
 import { sameScope } from "@/lib/drama/stage-runs";
 import type { DramaRun, DramaSnapshot, RunScope, RunStage } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
-import { isAiConfigReady, useConfigStore } from "@/stores/use-config-store";
+import { useConfigStore } from "@/stores/use-config-store";
 
 type Props = {
     snapshot: DramaSnapshot;
@@ -37,19 +38,19 @@ type Props = {
     icon?: LucideIcon;
     variant?: "primary" | "default";
     disabled?: boolean;
+    /** Chinese source text; {placeholders} are filled from `disabledValues`. */
     disabledReason?: string;
+    disabledValues?: Record<string, string | number>;
     onStarted?: (run: DramaRun) => void;
 };
 
 const RING = "shadow-[0_0_0_3px_color-mix(in_srgb,var(--wg-home-text)_12%,transparent)]";
 
-export function StartTaskButton({ snapshot, stage, scope, episodeId, label, icon: Icon = Sparkles, variant = "default", disabled, disabledReason, onStarted }: Props) {
+export function StartTaskButton({ snapshot, stage, scope, episodeId, label, icon: Icon = Sparkles, variant = "default", disabled, disabledReason, disabledValues, onStarted }: Props) {
     const { t } = useAppTranslation();
-    const { message } = App.useApp();
     const config = useConfigStore((state) => state.config);
-    const startRun = useStartRun();
+    const { start: startTask, pending } = useStartTask();
     const { stop } = useDramaRunActions(snapshot.project.id);
-    const [pending, setPending] = useState(false);
     const [open, setOpen] = useState(false);
     const [instruction, setInstruction] = useState("");
     const [model, setModel] = useState("");
@@ -59,23 +60,11 @@ export function StartTaskButton({ snapshot, stage, scope, episodeId, label, icon
     const primary = variant === "primary";
 
     const start = async (extra?: { instruction: string; model: string }) => {
-        const chosen = extra?.model || config.textModel || config.model;
-        if (!isAiConfigReady(config, chosen)) {
-            message.error(t("还没有可用的文本模型，请先在「模型与渠道」里配置"));
-            useConfigStore.getState().openConfigDialog(true, "channels");
-            return;
-        }
-        setPending(true);
-        try {
-            const { run } = await startRun({ snapshot, stage, scope, episodeId, instruction: extra?.instruction, model: extra?.model || undefined });
-            setOpen(false);
-            setInstruction("");
-            onStarted?.(run);
-        } catch (error) {
-            message.error(error instanceof Error ? error.message : t("任务没能开始，请重试"));
-        } finally {
-            setPending(false);
-        }
+        const run = await startTask({ snapshot, stage, scope, episodeId, instruction: extra?.instruction, model: extra?.model || undefined });
+        if (!run) return;
+        setOpen(false);
+        setInstruction("");
+        onStarted?.(run);
     };
 
     const frame = cn("inline-flex h-9 items-center overflow-hidden rounded-lg text-[13px] font-medium", primary ? cn("bg-[color:var(--wg-home-text)] text-[color:var(--wg-panel)]", RING) : "border border-[color:var(--wg-home-line-strong)] bg-[color:var(--wg-panel)] text-[color:var(--wg-home-text)]");
@@ -126,5 +115,5 @@ export function StartTaskButton({ snapshot, stage, scope, episodeId, label, icon
             </Popover>
         </span>
     );
-    return disabled && disabledReason ? <Tooltip title={t(disabledReason)}>{button}</Tooltip> : button;
+    return disabled && disabledReason ? <Tooltip title={t(disabledReason, disabledValues)}>{button}</Tooltip> : button;
 }

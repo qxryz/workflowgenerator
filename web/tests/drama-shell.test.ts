@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { formatClock, formatElapsed, relativeTime } from "../src/lib/drama/format.ts";
-import { pickStageRuns, sameScope } from "../src/lib/drama/stage-runs.ts";
+import { isUnsettled, pickStageRuns, sameScope } from "../src/lib/drama/stage-runs.ts";
 import type { DramaRun } from "../src/lib/drama/types.ts";
 
 const run = (id: string, createdAt: number, patch: Partial<DramaRun> = {}): DramaRun => ({
@@ -30,6 +30,20 @@ test("sameScope: empty scope matches any run of that episode, a given scope must
     assert.equal(sameScope(chapterTwo, { ord: 3 }), false);
     assert.equal(sameScope(chapterTwo, undefined, "e1"), false);
     assert.equal(sameScope(run("b", 1, { episodeId: "e1" }), {}, "e1"), true);
+});
+
+test("sameScope: reviews of other chapters do not block each other, as the server locks on the exact scope", () => {
+    const review = run("r", 1, { scope: { target: "chapters", chapterOrds: [1, 2] } });
+    assert.equal(sameScope(review, { target: "chapters", chapterOrds: [1, 2] }), true);
+    assert.equal(sameScope(review, { target: "chapters", chapterOrds: [3] }), false);
+    assert.equal(sameScope(review, { target: "settings" }), false);
+});
+
+test("isUnsettled: everything but adopted and dropped results", () => {
+    assert.deepEqual(
+        (["running", "review", "failed", "stopped", "accepted", "rejected"] as const).map((status) => isUnsettled({ status })),
+        [true, true, true, true, false, false],
+    );
 });
 
 test("time formatting", () => {

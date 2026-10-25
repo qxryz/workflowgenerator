@@ -1,10 +1,10 @@
-import { App, Dropdown } from "antd";
-import { MoreHorizontal, Pencil, Trash2 } from "lucide-react";
+import { Alert, App, Dropdown } from "antd";
+import { Loader2, MoreHorizontal, Pencil, Trash2 } from "lucide-react";
 import type { ReactNode } from "react";
 
 import { StartTaskButton } from "@/components/drama/start-task-button";
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { dramaKey, useDramaMutation } from "@/hooks/use-drama";
+import { dramaKey, useChapter, useDramaMutation } from "@/hooks/use-drama";
 import type { DramaChapter, DramaSnapshot } from "@/lib/drama/types";
 import { deleteChapter } from "@/services/drama-api";
 import { ChapterFrame } from "./chapter-frame";
@@ -16,6 +16,7 @@ type Props = { snapshot: DramaSnapshot; chapter: DramaChapter; meta: ReactNode; 
 export function ChapterReader({ snapshot, chapter, meta, extra, bar, strip, onEdit, onRewrite, onDeleted }: Props) {
     const { t } = useAppTranslation();
     const { modal } = App.useApp();
+    const full = useChapter(chapter.id);
     const remove = useDramaMutation(() => deleteChapter(chapter.id), [dramaKey(snapshot.project.id)]);
     const confirmDelete = () =>
         modal.confirm({
@@ -48,7 +49,15 @@ export function ChapterReader({ snapshot, chapter, meta, extra, bar, strip, onEd
                 {strip}
                 <ProseTitle>{chapter.title}</ProseTitle>
                 <ChapterInfo summary={chapter.summary} endState={chapter.endState} />
-                {chapter.body.trim() ? <Prose body={chapter.body} /> : <p className="mb-0 text-sm text-[color:var(--wg-home-muted)]">{t("这一章还没有正文，点「编辑」开始写。")}</p>}
+                {full.isError ? (
+                    <Alert type="error" showIcon title={t("正文没能加载")} action={<button type="button" className="wg-text-button" onClick={() => void full.refetch()}>{t("重试")}</button>} />
+                ) : !full.data ? (
+                    <Loader2 className="mx-auto mt-10 size-5 animate-spin text-[color:var(--wg-home-muted)]" />
+                ) : full.data.body.trim() ? (
+                    <Prose body={full.data.body} />
+                ) : (
+                    <p className="mb-0 text-sm text-[color:var(--wg-home-muted)]">{t("这一章还没有正文，点「编辑」开始写。")}</p>
+                )}
             </article>
         </ChapterFrame>
     );

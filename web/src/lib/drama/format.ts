@@ -24,3 +24,9 @@ export function relativeTime(timestamp: number, now: number, t: Translate): stri
     if (days < 30) return t("{count} 天前", { count: days });
     return formatClock(timestamp).slice(0, 5);
 }
+
+/** Prefix of run.error when the model's answer failed every check; the reason after it is the server's Chinese wording. */
+export const CHECK_FAILED = "模型的输出没有通过检查：";
+
+/** A run's error for display: fixed messages are translated, the reason behind CHECK_FAILED is translated when it is one of ours and stays as the server wrote it otherwise. */
+export const runErrorText = (error: string, t: Translate): string => (error.startsWith(CHECK_FAILED) ? `${t(CHECK_FAILED)}${t(error.slice(CHECK_FAILED.length))}` : t(error));

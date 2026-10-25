@@ -14,11 +14,11 @@ import { CoverArt, randomCover } from "@/components/drama/cover-art";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { dramaListKey } from "@/hooks/use-drama";
 import { relativeTime } from "@/lib/drama/format";
+import { SOURCE_TYPE_LABELS } from "@/lib/drama/labels";
 import type { DramaCover, DramaSummary } from "@/lib/drama/types";
 import { deleteDrama, getDrama, updateDrama } from "@/services/drama-api";
 import { uploadImage } from "@/services/image-storage";
 
-const SOURCE_LABELS = { original: "原创", novel: "小说改编", script: "已有剧本" } as const;
 
 /** Stable pseudo-random cover for dramas created without one. */
 const fallbackCover = (id: string) => {
@@ -133,7 +133,7 @@ export function ProjectCard({ item }: { item: DramaSummary }) {
                     <h2 className="truncate text-[13px] font-semibold">{item.title}</h2>
                 )}
                 <p className="mt-1 truncate text-[11px] text-[color:var(--wg-home-muted)]">
-                    {t(SOURCE_LABELS[item.sourceType])} · {item.aspect} · {t("{chapters} 章 · {episodes} 集", { chapters: item.counts.chapters, episodes: item.counts.episodes })}
+                    {t(SOURCE_TYPE_LABELS[item.sourceType])} · {item.aspect} · {t("{chapters} 章 · {episodes} 集", { chapters: item.counts.chapters, episodes: item.counts.episodes })}
                 </p>
                 <p className="mt-0.5 text-[11px] text-[color:var(--wg-home-muted-strong)]">{t("更新于 {time}", { time: relativeTime(item.updatedAt, Date.now(), t) })}</p>
             </div>

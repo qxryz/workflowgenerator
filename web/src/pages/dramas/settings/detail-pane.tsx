@@ -3,7 +3,7 @@ import { LibraryBig, Trash2, X } from "lucide-react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ENTITY_KIND_LABELS } from "@/lib/drama/labels";
-import { adoptedSheets } from "@/lib/drama/settings-view";
+import { adoptedSheets } from "@/lib/drama/media/references";
 import type { DramaSnapshot } from "@/lib/drama/types";
 import { deleteEntity } from "@/services/drama-api";
 import { KIND_ICON, useGuard, useRefresh } from "./common";

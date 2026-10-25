@@ -2,7 +2,7 @@ import { paragraphs } from "@/lib/drama/story";
 import { cn } from "@/lib/utils";
 
 /** Serif for reading; falls back to the UI font where no CJK serif is installed. */
-export const PROSE_FONT = '"Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", ui-serif, serif';
+const PROSE_FONT = '"Noto Serif SC", "Source Han Serif SC", "Songti SC", "STSong", ui-serif, serif';
 /** The reading column shared by the chapter view, the editor and a chapter result. */
 export const READING_COLUMN = "mx-auto w-full max-w-[40em] px-8";
 

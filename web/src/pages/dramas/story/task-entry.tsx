@@ -2,6 +2,7 @@ import { FilePlus2, PenLine } from "lucide-react";
 
 import { StartTaskButton } from "@/components/drama/start-task-button";
 import { useAppTranslation } from "@/hooks/use-app-translation";
+import { pendingChapterRun } from "@/lib/drama/story";
 import type { DramaRun, DramaSnapshot } from "@/lib/drama/types";
 
 /** Stretches the task button's frame to the column width. */
@@ -14,11 +15,14 @@ export function TaskEntry({ snapshot, next, onStarted, onImport }: Props) {
     const { t } = useAppTranslation();
     const original = snapshot.project.sourceType === "original";
     const first = next === 1;
+    // A draft for the next chapter is waiting: a second one would only compete with it.
+    const waiting = pendingChapterRun(snapshot.runs, next)?.status === "review";
+    const hold = { disabled: waiting, disabledReason: "先处理第 {ord} 章的草稿", disabledValues: { ord: next } };
     if (original) {
         return (
             <div className={`${FULL} px-4 pb-3 pt-1`}>
-                <StartTaskButton snapshot={snapshot} stage="chapter" scope={{ ord: next }} label={first ? "写第一章" : "写下一章"} icon={PenLine} variant="primary" onStarted={onStarted} />
-                <p className="mb-0 mt-2 text-[11px] leading-4 text-[color:var(--wg-home-muted)]">{first ? t("从开篇写起") : t("将写第 {ord} 章，承接上一章的结尾", { ord: next })}</p>
+                <StartTaskButton snapshot={snapshot} stage="chapter" scope={{ ord: next }} label={first ? "写第一章" : "写下一章"} icon={PenLine} variant="primary" onStarted={onStarted} {...hold} />
+                <p className="mb-0 mt-2 text-[11px] leading-4 text-[color:var(--wg-home-muted)]">{waiting ? t(hold.disabledReason, hold.disabledValues) : first ? t("从开篇写起") : t("将写第 {ord} 章，承接上一章的结尾", { ord: next })}</p>
             </div>
         );
     }
@@ -28,7 +32,7 @@ export function TaskEntry({ snapshot, next, onStarted, onImport }: Props) {
                 <FilePlus2 className="size-4" strokeWidth={1.6} />
                 {t("追加章节")}
             </button>
-            <StartTaskButton snapshot={snapshot} stage="chapter" scope={{ ord: next }} label="续写下一章" icon={PenLine} onStarted={onStarted} />
+            <StartTaskButton snapshot={snapshot} stage="chapter" scope={{ ord: next }} label="续写下一章" icon={PenLine} onStarted={onStarted} {...hold} />
         </div>
     );
 }

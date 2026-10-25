@@ -5,6 +5,7 @@ import { GenerationWorkbench } from "@/components/drama/generation-workbench";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { neighbourShot, spokenText, subtitleLines, type ShotMediaKind } from "@/lib/drama/episode-steps";
 import { ARTIFACT_KIND_LABELS } from "@/lib/drama/labels";
+import { lookAvailable } from "@/lib/drama/media/prompts";
 import type { DramaShot } from "@/lib/drama/types";
 import { shotNumber, type EpisodeCtx } from "./context";
 import { FirstFrameOption, useFirstFrame } from "./first-frame";
@@ -26,7 +27,7 @@ export function ShotPanel(props: Props) {
             <header className="shrink-0 border-b border-[color:var(--wg-home-line)] px-4 pb-3 pt-3.5">
                 <div className="flex items-center gap-1.5">
                     <h2 className="text-[14px] font-semibold">{t("第 {count} 镜", { count: at })}</h2>
-                    <span className="text-[12px] tabular-nums text-[color:var(--wg-home-muted)]">{[t("{seconds} 秒", { seconds: shot.seconds }), shot.size, shot.camera].filter(Boolean).join(" · ")}</span>
+                    <span className="text-[12px] tabular-nums text-[color:var(--wg-home-muted)]">{[t("{seconds} 秒", { seconds: shot.seconds }), shot.size && t(shot.size), shot.camera && t(shot.camera)].filter(Boolean).join(" · ")}</span>
                     <span className="ml-auto flex items-center gap-0.5">
                         <button type="button" className="wg-icon-button !size-7" disabled={at <= 1} title={t("上一镜（←）")} aria-label={t("上一镜")} onClick={() => step(-1)}>
                             <ChevronLeft strokeWidth={1.6} />
@@ -77,8 +78,7 @@ function Bench({ ctx, kind, shot, env, firstFrame, extra, disabledReason }: Benc
             route={`${ctx.base}?step=${kind}&shot=${shot.id}`}
             artifacts={mine}
             prepare={(look) => prepareShot(kind, env, shot, look, firstFrame)}
-            hasStyle={Boolean(project.style && (project.style.prompt || project.style.promptEn))}
-            hasPalette={Boolean(project.palette?.colors.length)}
+            {...lookAvailable(project)}
             extraOptions={extra}
             disabledReason={disabledReason}
             onChange={ctx.refresh}

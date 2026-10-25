@@ -19,15 +19,9 @@ export type EpisodeCtx = {
     selectedId?: string;
     select: (shotId: string) => void;
     go: (step: EpisodeStep, shotId?: string) => void;
-    /** Refetch the episode (and the drama it belongs to). */
+    /** Refetch the episode and the drama it belongs to. */
     refresh: () => void;
 };
-
-export function adoptedSheets(artifacts: readonly DramaArtifact[]): SheetMap {
-    const map = new Map<string, DramaArtifact>();
-    for (const artifact of artifacts) if (artifact.kind === "sheet" && artifact.adopted && artifact.status === "ready" && artifact.entityId && !map.has(artifact.entityId)) map.set(artifact.entityId, artifact);
-    return map;
-}
 
 export const entityMap = (snapshot: DramaSnapshot): EntityMap => indexById(snapshot.entities);
 

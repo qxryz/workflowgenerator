@@ -2,7 +2,7 @@ import { ChevronDown, CircleCheck, Info, TriangleAlert } from "lucide-react";
 import { useState } from "react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import type { LintIssue } from "@/lib/drama/lint";
+import { lintText, type LintIssue } from "@/lib/drama/lint";
 import { cn } from "@/lib/utils";
 
 type Props = { issues: LintIssue[]; onPick: (shotId: string) => void };
@@ -15,7 +15,7 @@ export function LintPanel({ issues, onPick }: Props) {
     return (
         <section className="shrink-0 border-t border-[color:var(--wg-home-line)] bg-[color:var(--wg-home-bg)]">
             <button type="button" className="flex h-10 w-full items-center gap-2 px-6 text-left text-[13px]" aria-expanded={open} onClick={() => setOpen((value) => !value)}>
-                <span className="font-semibold">{t("静态检查（不消耗额度）")}</span>
+                <span className="font-semibold">{t("静态检查 · 不调用模型")}</span>
                 {issues.length ? (
                     <span className={cn("grid h-4 min-w-4 place-items-center rounded-full px-1 text-[10px] font-semibold tabular-nums", warnings ? "bg-[color:var(--wg-home-accent)] text-[color:var(--wg-home-accent-text)]" : "bg-[color:var(--wg-home-ghost)] text-[color:var(--wg-home-muted)]")}>{issues.length}</span>
                 ) : (
@@ -39,7 +39,7 @@ export function LintPanel({ issues, onPick }: Props) {
                                     onClick={() => issue.shotId && onPick(issue.shotId)}
                                 >
                                     <Icon className={cn("mt-0.5 size-3.5 shrink-0", issue.level === "warn" ? "text-[color:var(--wg-home-accent)]" : "text-[color:var(--wg-home-muted)]")} strokeWidth={1.6} />
-                                    <span>{issue.message}</span>
+                                    <span>{lintText(issue, t)}</span>
                                 </button>
                             </li>
                         );

@@ -1,6 +1,8 @@
 import { motion, useReducedMotion } from "motion/react";
 import { BookOpen, ClipboardCheck, Clapperboard, Palette, Users } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
+import { useQueryClient } from "@tanstack/react-query";
+import { App } from "antd";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 
 import { DramaPageHeader } from "@/components/drama/page-header";
@@ -8,6 +10,8 @@ import { DramaTabs, type DramaTabItem } from "@/components/drama/drama-tabs";
 import { RunPanelButton } from "@/components/drama/run-panel";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { dramaKey, dramaListKey, useDrama, useDramaMutation } from "@/hooks/use-drama";
+import { useOrphanedRuns } from "@/hooks/use-orphaned-runs";
+import { isConflict } from "@/lib/drama/story";
 import type { DramaSnapshot, RunStage } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 import { DramaApiError, updateDrama } from "@/services/drama-api";
@@ -31,6 +35,7 @@ export default function DramaPage() {
     const { id } = useParams();
     const [params, setParams] = useSearchParams();
     const { data: snapshot, isPending, error, refetch } = useDrama(id);
+    useOrphanedRuns(id, snapshot?.runs);
     const rawTab = params.get("tab");
     const tab: Tab = isTab(rawTab) ? rawTab : "story";
     const reviewing = params.get("view") === "review";
@@ -135,16 +140,28 @@ function TabBadge({ snapshot, stage }: { snapshot: DramaSnapshot; stage: RunStag
 
 function TitleEditor({ snapshot }: { snapshot: DramaSnapshot }) {
     const { t } = useAppTranslation();
+    const { message } = App.useApp();
+    const client = useQueryClient();
     const { project } = snapshot;
     const [editing, setEditing] = useState(false);
     const [draft, setDraft] = useState(project.title);
+    /** Enter, Escape and blur all end the edit; only the first one counts. */
+    const finished = useRef(false);
     useEffect(() => setDraft(project.title), [project.title]);
     const save = useDramaMutation((title: string) => updateDrama(project.id, { rev: project.rev, title }), [dramaKey(project.id), dramaListKey]);
-    const commit = () => {
+    const finish = (keep: boolean) => {
+        if (finished.current) return;
+        finished.current = true;
         setEditing(false);
         const next = draft.trim();
-        if (next && next !== project.title) save.mutate(next);
-        else setDraft(project.title);
+        if (!keep || !next || next === project.title) return setDraft(project.title);
+        save.mutate(next, {
+            onError: (error) => {
+                setDraft(project.title);
+                message.error(isConflict(error) ? t("剧名已在别处修改，已恢复为最新的") : error instanceof Error ? error.message : t("修改剧名失败，请重试"));
+                void client.invalidateQueries({ queryKey: dramaKey(project.id) });
+            },
+        });
     };
     return editing ? (
         <input
@@ -152,19 +169,24 @@ function TitleEditor({ snapshot }: { snapshot: DramaSnapshot }) {
             value={draft}
             maxLength={60}
             onChange={(event) => setDraft(event.target.value)}
-            onBlur={commit}
+            onBlur={() => finish(true)}
             onKeyDown={(event) => {
-                if (event.key === "Enter") commit();
-                if (event.key === "Escape") {
-                    setDraft(project.title);
-                    setEditing(false);
-                }
+                if (event.key === "Enter") finish(true);
+                if (event.key === "Escape") finish(false);
             }}
             className="h-8 min-w-0 max-w-sm flex-1 rounded-[7px] border border-[color:var(--wg-home-accent)] bg-[color:var(--wg-panel)] px-2 text-[16px] font-semibold outline-none"
             aria-label={t("剧名")}
         />
     ) : (
-        <button type="button" className="min-w-0 truncate rounded-md px-1.5 py-1 text-left text-[16px] font-semibold hover:bg-[color:var(--wg-home-hover)]" title={t("点击修改剧名")} onClick={() => setEditing(true)}>
+        <button
+            type="button"
+            className="min-w-0 truncate rounded-md px-1.5 py-1 text-left text-[16px] font-semibold hover:bg-[color:var(--wg-home-hover)]"
+            title={t("点击修改剧名")}
+            onClick={() => {
+                finished.current = false;
+                setEditing(true);
+            }}
+        >
             {project.title}
         </button>
     );

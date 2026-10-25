@@ -1,5 +1,5 @@
 import { pickStageRuns } from "./stage-runs.ts";
-import type { ChapterProposal, DramaChapter, DramaEpisode, DramaRun, EpisodesProposal, LedgerEntry, LedgerKind } from "./types.ts";
+import type { ChapterProposal, DramaChapter, DramaEntity, DramaEpisode, DramaRun, EpisodesProposal, LedgerEntry, LedgerKind } from "./types.ts";
 
 // Pure helpers for the story, review and episodes sections.
 
@@ -40,6 +40,9 @@ export function compressOrds(ords: readonly number[], separator = "、"): string
     }
     return parts.join(separator);
 }
+
+/** "第 3 章": how chapters are named on screen (the short label C3 is only for prompts). */
+export const chapterNo = (ord: number, t: Translate): string => t("第 {count} 章", { count: ord });
 
 /** "第1–3、5章"; empty string when there are none. */
 export const formatChapterRefs = (ords: readonly number[], t: Translate): string => (ords.length ? t("第{ords}章", { ords: compressOrds(ords, t("、")) }) : "");
@@ -109,6 +112,19 @@ export function guessChapterOrd(text: string, ords: readonly number[]): number |
     return undefined;
 }
 
+/** Model text may cite the short labels it was given (C3, E2, P1); on screen they read as 第 3 章, the setting's name, 第 1 集. */
+export function plainRefs(text: string, snapshot: { entities: readonly Pick<DramaEntity, "label" | "name">[]; episodes: readonly Pick<DramaEpisode, "label" | "ord">[] }, t: Translate): string {
+    return text.replace(/\b([CEP])(\d{1,4})(?:章|集)?(?![A-Za-z\d])/g, (match, kind: string, number: string) => {
+        if (kind === "C") return t("第 {count} 章", { count: Number(number) });
+        if (kind === "P") {
+            const episode = snapshot.episodes.find((item) => item.label === `P${number}`);
+            return episode ? t("第 {count} 集", { count: episode.ord }) : match;
+        }
+        const entity = snapshot.entities.find((item) => item.label === `E${number}`);
+        return entity ? `「${entity.name}」` : match;
+    });
+}
+
 export const episodeSourceOrds = (episode: Pick<DramaEpisode, "sourceChapterIds">, chapters: readonly Pick<DramaChapter, "id" | "ord">[]): number[] =>
     chapters
         .filter((chapter) => episode.sourceChapterIds.includes(chapter.id))
@@ -128,15 +144,12 @@ export function episodeProgress(progress: DramaEpisode["progress"]) {
     return { shots, images, videos, imageShare: shots ? images / shots : 0, videoShare: shots ? videos / shots : 0 };
 }
 
-export type ProposedEpisode = { item: EpisodesProposal["episodes"][number]; ord: number; target?: DramaEpisode };
+export type ProposedEpisode = { item: EpisodesProposal["episodes"][number]; update: boolean; /** Where it sits: the episode it updates, or the next free number. */ ord?: number };
 
-/** Which proposed episodes update an existing one (by its P label) and where the new ones will land. */
+/** The server marks every entry it will update with `ref` (an episode label); entries without one are appended. */
 export function proposedEpisodes(proposal: EpisodesProposal, episodes: readonly DramaEpisode[]): ProposedEpisode[] {
     let next = Math.max(0, ...episodes.map((episode) => episode.ord));
-    return proposal.episodes.map((item) => {
-        const target = item.ref ? episodes.find((episode) => episode.label === item.ref) : undefined;
-        return { item, target, ord: target ? target.ord : (next += 1) };
-    });
+    return proposal.episodes.map((item) => (item.ref ? { item, update: true, ord: episodes.find((episode) => episode.label === item.ref)?.ord } : { item, update: false, ord: (next += 1) }));
 }
 
 /** The server answers 409 when the row changed since it was read. */

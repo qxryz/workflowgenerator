@@ -3,14 +3,14 @@ import test from "node:test";
 
 import {
     chapterRows, compressOrds, countChars, defaultReviewOrds, defaultRow, episodeProgress, episodeSourceOrds, formatChapterRefs, formatSeconds, groupLedger, guessChapterOrd, isConflict, nextChapterOrd, paragraphs,
-    pendingChapterRun, proposedEpisodes, removeLedger, upsertLedger,
+    pendingChapterRun, plainRefs, proposedEpisodes, removeLedger, upsertLedger,
 } from "../src/lib/drama/story.ts";
 import type { DramaChapter, DramaEpisode, DramaRun, LedgerEntry } from "../src/lib/drama/types.ts";
 
 const t = (message: string, values: Record<string, string | number> = {}) => message.replace(/\{(\w+)\}/g, (_, key) => String(values[key]));
 
 const entry = (id: string, kind: LedgerEntry["kind"], name: string, extra: Partial<LedgerEntry> = {}): LedgerEntry => ({ id, kind, name, note: "", chapterOrds: [], status: "open", ...extra });
-const chapter = (ord: number): DramaChapter => ({ id: `c${ord}`, label: `C${ord}`, ord, title: `第${ord}章`, body: "", summary: "", endState: "", origin: "written", runId: null, updatedAt: 0, rev: 1 });
+const chapter = (ord: number): DramaChapter => ({ id: `c${ord}`, label: `C${ord}`, ord, title: `第${ord}章`, body: "", summary: "", endState: "", chars: 0, origin: "written", runId: null, updatedAt: 0, rev: 1 });
 const run = (id: string, status: DramaRun["status"], ord: number, createdAt = 1): DramaRun => ({ id, episodeId: null, stage: "chapter", scope: { ord }, instruction: "", model: "m", status, parentId: null, error: "", createdAt, finishedAt: null });
 const episode = (ord: number, extra: Partial<DramaEpisode> = {}): DramaEpisode => ({ id: `p${ord}`, label: `P${ord}`, ord, title: `第${ord}集`, outline: "", targetSeconds: 90, sourceChapterIds: [], script: "", updatedAt: 0, rev: 1, ...extra });
 
@@ -93,12 +93,17 @@ test("episodes: source chapters, progress, seconds", () => {
     assert.equal(formatSeconds(95, t), "1 分 35 秒");
 });
 
-test("proposedEpisodes marks updates by P label and numbers new episodes after the existing ones", () => {
+test("proposedEpisodes: a ref means the server updates that episode, entries without one are appended", () => {
     const rows = proposedEpisodes(
-        { episodes: [{ ref: "P2", title: "改", outline: "", targetSeconds: 60, sourceChapters: [2] }, { title: "新一", outline: "", targetSeconds: 60, sourceChapters: [3] }, { ref: "P9", title: "新二", outline: "", targetSeconds: 60, sourceChapters: [] }] },
+        { episodes: [{ ref: "P2", title: "改", outline: "", targetSeconds: 60, sourceChapters: [2] }, { title: "新一", outline: "", targetSeconds: 60, sourceChapters: [3] }, { title: "新二", outline: "", targetSeconds: 60, sourceChapters: [] }] },
         [episode(1), episode(2)],
     );
-    assert.deepEqual(rows.map((row) => [row.ord, row.target?.id]), [[2, "p2"], [3, undefined], [4, undefined]]);
+    assert.deepEqual(rows.map((row) => [row.update, row.ord]), [[true, 2], [false, 3], [false, 4]]);
+});
+
+test("plainRefs turns short labels in model text into chapter numbers and names", () => {
+    const snapshot = { entities: [{ label: "E2", name: "林夏" }], episodes: [{ label: "P1", ord: 1 }] };
+    assert.equal(plainRefs("C3 与 E2 的说法矛盾，见 P1；C12章 没问题，E9 不存在，ABC3 保持原样。", snapshot, t), "第 3 章 与 「林夏」 的说法矛盾，见 第 1 集；第 12 章 没问题，E9 不存在，ABC3 保持原样。");
 });
 
 test("isConflict reads the HTTP status", () => {

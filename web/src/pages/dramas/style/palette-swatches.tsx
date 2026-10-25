@@ -1,6 +1,4 @@
 import { ArrowLeft, ArrowRight, Copy, Plus, X } from "lucide-react";
-import { useState } from "react";
-
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { MAX_PALETTE_COLORS, MIN_PALETTE_COLORS, colourTextColor } from "@/lib/drama/style/colour-palettes";
 import { cn } from "@/lib/utils";
@@ -16,11 +14,9 @@ type Props = {
     onCopy: (color: string) => void;
 };
 
-/** The palette being edited. Click a swatch to change its colour, drag (or use the arrows) to reorder. */
+/** The palette being edited. Click a swatch to change its colour, use the arrows to reorder. */
 export function PaletteSwatches({ colors, selected, onSelect, onChange, onMove, onRemove, onAdd, onCopy }: Props) {
     const { t } = useAppTranslation();
-    const [dragging, setDragging] = useState<number | null>(null);
-    const [over, setOver] = useState<number | null>(null);
     const mini = "grid size-6 place-items-center rounded-md bg-black/10 transition hover:bg-black/20 disabled:opacity-30 disabled:hover:bg-black/10";
     return (
         <div className="flex h-56 gap-2" role="group" aria-label={t("当前色卡")}>
@@ -29,28 +25,7 @@ export function PaletteSwatches({ colors, selected, onSelect, onChange, onMove, 
                 return (
                     <div
                         key={index}
-                        draggable
-                        onDragStart={() => setDragging(index)}
-                        onDragEnd={() => {
-                            setDragging(null);
-                            setOver(null);
-                        }}
-                        onDragOver={(event) => {
-                            event.preventDefault();
-                            setOver(index);
-                        }}
-                        onDrop={(event) => {
-                            event.preventDefault();
-                            if (dragging !== null) onMove(dragging, index);
-                            setDragging(null);
-                            setOver(null);
-                        }}
-                        className={cn(
-                            "group relative flex min-w-0 flex-1 flex-col justify-between rounded-xl p-2.5 transition-shadow",
-                            selected === index && "shadow-[0_0_0_2px_var(--wg-panel),0_0_0_4px_var(--wg-home-text)]",
-                            over === index && dragging !== index && "translate-y-1 opacity-80",
-                            dragging === index && "opacity-40",
-                        )}
+                        className={cn("group relative flex min-w-0 flex-1 flex-col justify-between rounded-xl p-2.5 transition-shadow", selected === index && "shadow-[0_0_0_2px_var(--wg-panel),0_0_0_4px_var(--wg-home-text)]")}
                         style={{ backgroundColor: color, color: ink }}
                     >
                         <label className="absolute inset-0 cursor-pointer rounded-xl">

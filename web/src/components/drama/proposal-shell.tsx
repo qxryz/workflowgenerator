@@ -5,11 +5,12 @@
  *   run: DramaRun                    the run to show (a snapshot summary is enough; the full result is loaded here)
  *   title: string                    Chinese source text, e.g. "第 3 章草稿"
  *   children(proposal: RunProposal)  renders the result body; it scrolls inside the frame. Called only when a result exists.
- *   defaultExpanded?: boolean        accepted / rejected runs start open (e.g. when picked from the history)
+ *   defaultExpanded?: boolean        accepted / rejected runs start open (e.g. when picked from the history); review reports are always open
  *   confirmAdopt?: string            if set, 采用 first asks this question (e.g. "会替换已有的 12 个镜头，继续吗？")
  *   onAdopted?()                     after the run was adopted and the drama/episode queries were refreshed
  * States: running (live text + 停止) / review (body + 采用 · 放弃 · 修订) / failed or stopped (message + 重试) / accepted or rejected (read-only, collapsed).
- * Review-stage runs are reports: no 采用 and no 修订 footer. The frame is a flex column; give it a bounded height (h-full / max-h-*) in the parent.
+ * A review-stage run is a report: it is accepted on arrival and its body is shown straight away.
+ * The frame is a flex column; give it a bounded height (h-full / max-h-*) in the parent, and `key={run.id}` so state does not leak between runs.
  * Needs the :id route param (drama id) to start revisions and retries.
  */
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -24,7 +25,7 @@ import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useDrama, useStartRun } from "@/hooks/use-drama";
 import { useDramaRunActions } from "@/hooks/use-drama-run-actions";
 import { useNow } from "@/hooks/use-now";
-import { formatClock, formatElapsed } from "@/lib/drama/format";
+import { formatClock, formatElapsed, runErrorText } from "@/lib/drama/format";
 import type { DramaRun, RunProposal } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 import { adoptRun, getRun, rejectRun } from "@/services/drama-api";
@@ -44,10 +45,10 @@ export function ProposalShell({ run, title, onAdopted, children, confirmAdopt, d
     const [expanded, setExpanded] = useState(defaultExpanded);
 
     const settled = run.status === "accepted" || run.status === "rejected";
-    const wantsBody = run.status === "review" || (settled && expanded);
+    const report = run.stage === "review";
+    const wantsBody = run.status === "review" || (settled && (report || expanded));
     const full = useQuery({ queryKey: ["drama-run", run.id], queryFn: () => getRun(run.id), enabled: wantsBody });
     const now = useNow(run.status === "running");
-    const isReport = run.stage === "review";
 
     const guard = async (kind: NonNullable<typeof busy>, action: () => Promise<unknown>) => {
         setBusy(kind);
@@ -82,7 +83,7 @@ export function ProposalShell({ run, title, onAdopted, children, confirmAdopt, d
     const header = (
         <header className="flex min-h-12 items-center gap-3 border-b border-[color:var(--wg-home-line)] px-4 py-2.5">
             <h3 className="min-w-0 flex-1 truncate text-[14px] font-semibold">{title}</h3>
-            <StatusTag status={run.status} />
+            <StatusTag status={run.status} stage={run.stage} />
             <span className="shrink-0 text-[12px] tabular-nums text-[color:var(--wg-home-muted)]">{run.status === "running" ? t("已用时 {time}", { time: formatElapsed(now - run.createdAt) }) : formatClock(run.finishedAt ?? run.createdAt)}</span>
             {run.status === "running" ? (
                 <button type="button" className="wg-text-button" onClick={() => void stop(run)}>
@@ -90,7 +91,7 @@ export function ProposalShell({ run, title, onAdopted, children, confirmAdopt, d
                     {t("停止")}
                 </button>
             ) : null}
-            {settled ? (
+            {settled && !report ? (
                 <button type="button" className="wg-icon-button !size-7" aria-expanded={expanded} aria-label={t(expanded ? "收起内容" : "查看内容")} onClick={() => setExpanded((value) => !value)}>
                     <ChevronDown className={cn("!size-4 transition-transform", expanded && "rotate-180")} strokeWidth={1.6} />
                 </button>
@@ -103,12 +104,11 @@ export function ProposalShell({ run, title, onAdopted, children, confirmAdopt, d
     else if (run.status === "failed" || run.status === "stopped") body = <FailureNotice run={run} busy={busy === "retry"} onRetry={() => void rerun("retry")} />;
     else if (wantsBody) body = full.isError ? <Alert type="error" showIcon className="m-4" title={t("结果没能加载")} action={<button type="button" className="wg-text-button" onClick={() => void full.refetch()}>{t("重试")}</button>} /> : full.data?.proposal ? children(full.data.proposal) : <Loading />;
 
-    const showFooter = run.status === "review" && !isReport;
     return (
         <section className="flex min-h-0 flex-col overflow-hidden rounded-xl border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)]">
             {header}
             {body ? <div className="thin-scrollbar min-h-0 flex-1 overflow-auto">{body}</div> : null}
-            {showFooter ? (
+            {run.status === "review" ? (
                 <footer className="flex flex-wrap items-center gap-2 border-t border-[color:var(--wg-home-line)] px-4 py-3">
                     <button type="button" className="wg-primary-button !min-h-9" disabled={busy !== null || !full.data?.proposal} onClick={askAdopt}>
                         {busy === "adopt" ? <Loader2 className="size-4 animate-spin" /> : null}
@@ -143,7 +143,7 @@ function FailureNotice({ run, busy, onRetry }: { run: DramaRun; busy: boolean; o
             <Alert
                 type={run.status === "failed" ? "error" : "info"}
                 showIcon
-                title={run.status === "failed" ? run.error || t("任务没有完成，请重试") : t("任务已停止")}
+                title={run.status === "failed" ? runErrorText(run.error || "任务没有完成，请重试", t) : runErrorText(run.error || "任务已停止", t)}
                 action={
                     <button type="button" className="wg-text-button !border !border-[color:var(--wg-home-line)]" disabled={busy} onClick={onRetry}>
                         {busy ? <Loader2 className="size-3.5 animate-spin" /> : <RotateCcw className="size-3.5" strokeWidth={1.6} />}

@@ -17,14 +17,14 @@ type Props = {
     onPreview: (artifact: DramaArtifact) => void;
 };
 
-/** Candidates of one owner+kind, newest first. */
-export function CandidateGrid({ artifacts, kind, ratio, isStale, onAdopt, onDelete, onPreview }: Props) {
+/** Results of one owner+kind, newest first. */
+export function ResultGrid({ artifacts, kind, ratio, isStale, onAdopt, onDelete, onPreview }: Props) {
     const { t } = useAppTranslation();
-    if (!artifacts.length) return <p className="py-6 text-center text-xs text-[color:var(--wg-home-muted)]">{t("还没有候选")}</p>;
+    if (!artifacts.length) return <p className="py-6 text-center text-xs text-[color:var(--wg-home-muted)]">{t("还没有生成结果")}</p>;
     return (
         <div className={cn("grid gap-2", kind === "audio" ? "grid-cols-1" : "grid-cols-2")}>
             {artifacts.map((artifact) => (
-                <Candidate key={artifact.id} artifact={artifact} kind={kind} ratio={ratio} stale={isStale(artifact)} onAdopt={onAdopt} onDelete={onDelete} onPreview={onPreview} />
+                <ResultCard key={artifact.id} artifact={artifact} kind={kind} ratio={ratio} stale={isStale(artifact)} onAdopt={onAdopt} onDelete={onDelete} onPreview={onPreview} />
             ))}
         </div>
     );
@@ -32,7 +32,7 @@ export function CandidateGrid({ artifacts, kind, ratio, isStale, onAdopt, onDele
 
 type CardProps = Omit<Props, "artifacts" | "isStale"> & { artifact: DramaArtifact; stale: boolean };
 
-function Candidate({ artifact, kind, ratio, stale, onAdopt, onDelete, onPreview }: CardProps) {
+function ResultCard({ artifact, kind, ratio, stale, onAdopt, onDelete, onPreview }: CardProps) {
     const { t } = useAppTranslation();
     const ready = artifact.status === "ready";
     const origin = artifact.model === "upload" ? t("上传") : artifact.model === "library" ? t("资产库") : modelOptionName(artifact.model);

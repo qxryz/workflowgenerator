@@ -3,6 +3,7 @@ import { Copy, Download, Droplets } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
+import { useCopyText } from "@/hooks/use-copy-text";
 import { createPalettePng, normalizeHexColor } from "@/lib/drama/style/colour-palettes";
 import { addColour, moveColour, paletteProblem, removeColour, sameColours, storedPalette } from "@/lib/drama/style/palette-edit";
 import type { DramaPalette, DramaProject } from "@/lib/drama/types";
@@ -12,12 +13,11 @@ import { PaletteGenerators } from "./palette-generators";
 import { PaletteSwatches } from "./palette-swatches";
 import { useAdopt } from "./use-adopt";
 
-const copy = async (text: string) => navigator.clipboard.writeText(text);
-
 /** 色彩: a draft palette you edit freely, then adopt for the whole drama. */
 export function PalettePanel({ project }: { project: DramaProject }) {
     const { t } = useAppTranslation();
     const { message } = App.useApp();
+    const copyText = useCopyText();
     const { busy, adoptPalette } = useAdopt(project);
     const adopted = project.palette;
     const [draft, setDraft] = useState<DramaPalette | null>(adopted);
@@ -85,7 +85,7 @@ export function PalettePanel({ project }: { project: DramaProject }) {
                                 update({ colors: addColour(colors) });
                                 setSelected(colors.length);
                             }}
-                            onCopy={(color) => void done(() => copy(color), t("已复制 {color}", { color }))}
+                            onCopy={(color) => copyText(color, t("已复制 {color}", { color }))}
                         />
                         <div className="grid grid-cols-[minmax(0,1fr)_9rem] gap-3">
                             <label className="flex flex-col gap-1.5">
@@ -98,7 +98,7 @@ export function PalettePanel({ project }: { project: DramaProject }) {
                             </label>
                         </div>
                         <div className="flex flex-wrap gap-2">
-                            <button type="button" className={action} onClick={() => void done(() => copy(colors.join(", ")), t("已复制全部 HEX"))}>
+                            <button type="button" className={action} onClick={() => copyText(colors.join(", "), t("已复制全部 HEX"))}>
                                 <Copy className="size-4" strokeWidth={1.6} />
                                 {t("复制全部 HEX")}
                             </button>

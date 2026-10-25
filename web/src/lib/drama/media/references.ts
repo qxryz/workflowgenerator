@@ -1,5 +1,5 @@
 import type { AppLanguage } from "@/lib/i18n";
-import { buildImageReferencePromptText, imageReferenceLabel } from "@/lib/image-reference-prompt";
+import { imageReferenceLabel } from "@/lib/image-reference-prompt";
 import type { ReferenceImage } from "@/types/image";
 import type { DramaArtifact, DramaEntity, DramaShot, EntityKind } from "../types";
 
@@ -10,6 +10,13 @@ export type EntityMap = ReadonlyMap<string, DramaEntity>;
 /** Adopted sheet per entity id. */
 export type SheetMap = ReadonlyMap<string, DramaArtifact>;
 export type FirstFrameSource = "storyboard" | "tail";
+
+/** The adopted, ready sheet of each entity. */
+export function adoptedSheets(artifacts: readonly DramaArtifact[]): SheetMap {
+    const sheets = new Map<string, DramaArtifact>();
+    for (const artifact of artifacts) if (artifact.kind === "sheet" && artifact.adopted && artifact.status === "ready" && artifact.entityId) sheets.set(artifact.entityId, artifact);
+    return sheets;
+}
 
 export const indexById = <T extends { id: string }>(list: readonly T[]): Map<string, T> => new Map(list.map((item) => [item.id, item]));
 
@@ -79,8 +86,3 @@ export function sheetReferences(images: RefImage[], language: AppLanguage): Refe
 
 /** dataUrl stays empty until the runner loads the bytes. */
 export const toReferenceImages = (images: RefImage[]): ReferenceImage[] => images.map((image) => ({ id: image.artifactId, name: image.name, type: "image/*", dataUrl: "", url: image.url, storageKey: image.storageKey }));
-
-/** The exact text sent to the model, so preview and request cannot drift apart. */
-export function withReferenceNotes(prompt: string, plan: ReferencePlan): string {
-    return buildImageReferencePromptText([prompt, ...plan.notes].join("\n\n"), toReferenceImages(plan.images));
-}

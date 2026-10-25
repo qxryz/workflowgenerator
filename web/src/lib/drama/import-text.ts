@@ -16,6 +16,8 @@ const SCENE_HEADING = [
 ];
 const MAX_HEADING_LENGTH = 60;
 const CHUNK_SIZE = 3000;
+/** The server stores at most 200,000 characters per chapter; longer ones are cut well below that. */
+export const MAX_CHAPTER_CHARS = 150_000;
 
 const headingTitle = (line: string) => line.replace(/^#+\s*/, "").trim();
 
@@ -43,6 +45,25 @@ function splitBySize(lines: string[]): ImportedChapter[] {
     return chunks.map((chunk, i) => ({ title: `第 ${i + 1} 段`, body: chunk.join("\n") }));
 }
 
+/** A chapter over the limit becomes "标题（1）", "标题（2）"…, cut at line breaks (a single endless line is cut where it must be). */
+function capLength(chapter: ImportedChapter): ImportedChapter[] {
+    if (chapter.body.length <= MAX_CHAPTER_CHARS) return [chapter];
+    const parts: string[][] = [[]];
+    let size = 0;
+    for (const line of chapter.body.split("\n")) {
+        for (let at = 0; at < Math.max(1, line.length); at += MAX_CHAPTER_CHARS) {
+            const piece = line.slice(at, at + MAX_CHAPTER_CHARS);
+            if (size + piece.length + 1 > MAX_CHAPTER_CHARS && parts.at(-1)!.length) {
+                parts.push([]);
+                size = 0;
+            }
+            parts.at(-1)!.push(piece);
+            size += piece.length + 1;
+        }
+    }
+    return parts.map((lines, index) => ({ title: `${chapter.title}（${index + 1}）`, body: lines.join("\n").trim() })).filter((part) => part.body);
+}
+
 /** Local split of pasted or imported text; a fallback of ~3000-character chunks keeps heading-less text usable. */
 export function splitChapters(text: string, source: DramaSourceType = "novel"): ImportedChapter[] {
     const lines = text
@@ -50,5 +71,8 @@ export function splitChapters(text: string, source: DramaSourceType = "novel"): 
         .split("\n")
         .map((line) => line.trim());
     const chapters = splitByHeadings(lines, CHAPTER_HEADING) ?? (source === "script" ? splitByHeadings(lines, SCENE_HEADING) : null) ?? splitBySize(lines);
-    return chapters.map(({ title, body }) => ({ title, body: body.replace(/\n{3,}/g, "\n\n").trim() })).filter((chapter) => chapter.body);
+    return chapters
+        .map(({ title, body }) => ({ title, body: body.replace(/\n{3,}/g, "\n\n").trim() }))
+        .filter((chapter) => chapter.body)
+        .flatMap(capLength);
 }

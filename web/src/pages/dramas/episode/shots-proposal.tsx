@@ -33,8 +33,8 @@ export function ShotsProposalTable({ proposal, entities, targetSeconds }: { prop
                         <tr key={index} className="border-b border-[color:var(--wg-home-line)] align-top last:border-0">
                             <td className="py-2 pl-4 pr-2 font-semibold tabular-nums">{index + 1}</td>
                             <td className="py-2 pr-2 tabular-nums">{shot.seconds}s</td>
-                            <td className="py-2 pr-2">{shot.size}</td>
-                            <td className="py-2 pr-2">{shot.camera}</td>
+                            <td className="py-2 pr-2">{t(shot.size)}</td>
+                            <td className="py-2 pr-2">{t(shot.camera)}</td>
                             <td className="py-2 pr-3 leading-5">{shot.description}</td>
                             <td className="py-2 pr-3 leading-5 text-[color:var(--wg-home-muted)]">
                                 {shot.dialogue.map((line, at) => (

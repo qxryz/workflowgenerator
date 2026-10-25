@@ -28,7 +28,7 @@ export function normalizeHexColor(value: unknown): string | null {
 }
 
 /** Normalize and de-duplicate without silently dropping malformed colours. */
-export function normalizePaletteColors(colors: readonly string[]): string[] {
+function normalizePaletteColors(colors: readonly string[]): string[] {
     const normalized = colors.map((color) => {
         const hex = normalizeHexColor(color);
         if (!hex) throw new Error("请输入有效的 HEX 颜色代码");
@@ -120,7 +120,7 @@ export function colourTextColor(hex: string): "#000000" | "#FFFFFF" {
     return (luminance + 0.05) / 0.05 >= 1.05 / (luminance + 0.05) ? "#000000" : "#FFFFFF";
 }
 
-export function paletteExportData(palette: DramaPalette) {
+function paletteExportData(palette: DramaPalette) {
     const normalized = validateColourPalette(palette)!;
     const width = 1600,
         height = 1000,

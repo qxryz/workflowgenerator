@@ -4,7 +4,7 @@ import { useState } from "react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { dramaKey, useDramaMutation } from "@/hooks/use-drama";
-import { isConflict } from "@/lib/drama/story";
+import { chapterNo, isConflict } from "@/lib/drama/story";
 import type { DramaEpisode, DramaSnapshot } from "@/lib/drama/types";
 import { createEpisode, updateEpisode } from "@/services/drama-api";
 
@@ -45,7 +45,7 @@ export function EpisodeForm({ snapshot, episode, onClose }: Props) {
                 maxTagCount="responsive"
                 placeholder={t("来源章节")}
                 aria-label={t("来源章节")}
-                options={snapshot.chapters.map((chapter) => ({ value: chapter.id, label: `${chapter.label} ${chapter.title}`, short: chapter.label }))}
+                options={snapshot.chapters.map((chapter) => ({ value: chapter.id, label: `${chapterNo(chapter.ord, t)} ${chapter.title}`, short: chapterNo(chapter.ord, t) }))}
             />
             <div className="flex justify-end gap-2 pt-1">
                 <button type="button" className="wg-text-button !h-8 !border !border-[color:var(--wg-home-line)]" disabled={save.isPending} onClick={onClose}>{t("取消")}</button>

@@ -8,14 +8,14 @@ import { RunHistory, useStageRuns } from "@/components/drama/run-history";
 import { StartTaskButton } from "@/components/drama/start-task-button";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { dramaKey, episodeKey } from "@/hooks/use-drama";
+import { chapterNo } from "@/lib/drama/story";
+import { isUnsettled } from "@/lib/drama/stage-runs";
 import type { DramaRun, ScriptProposal } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 import { DramaApiError, updateEpisode } from "@/services/drama-api";
 import { ConflictNotice } from "./conflict-notice";
 import type { EpisodeCtx } from "./context";
 import { SCREENPLAY, ScriptView } from "./script-view";
-
-const settled = (run: DramaRun) => run.status === "accepted" || run.status === "rejected";
 
 export function ScriptStep({ ctx }: { ctx: EpisodeCtx }) {
     const { t } = useAppTranslation();
@@ -25,7 +25,7 @@ export function ScriptStep({ ctx }: { ctx: EpisodeCtx }) {
     const [picked, setPicked] = useState<string>();
     const run = history.find((item) => item.id === picked) ?? current;
     // A finished run is only worth a row of its own when the user went looking for it.
-    const showRun = run && (picked !== undefined || !settled(run));
+    const showRun = run && (picked !== undefined || isUnsettled(run));
     const hasScript = Boolean(episode.script.trim());
 
     return (
@@ -39,7 +39,7 @@ export function ScriptStep({ ctx }: { ctx: EpisodeCtx }) {
                 <Outline ctx={ctx} />
                 {showRun ? (
                     <div className="flex max-h-[min(60vh,560px)] flex-col">
-                        <ProposalShell run={run} title={t("剧本草稿")} confirmAdopt={hasScript ? "采用后将替换现有剧本" : undefined} onAdopted={() => setPicked(undefined)}>
+                        <ProposalShell key={run.id} run={run} title={t("剧本草稿")} confirmAdopt={hasScript ? "采用后将替换现有剧本" : undefined} onAdopted={() => setPicked(undefined)}>
                             {(proposal) => <ScriptView script={(proposal as ScriptProposal).script} />}
                         </ProposalShell>
                     </div>
@@ -60,7 +60,7 @@ function Outline({ ctx }: { ctx: EpisodeCtx }) {
             <div className="flex items-center gap-2 text-[12px] text-[color:var(--wg-home-muted)]">
                 <span className="font-semibold text-[color:var(--wg-home-text)]">{t("本集梗概")}</span>
                 <span className="tabular-nums">{t("目标 {seconds} 秒", { seconds: episode.targetSeconds })}</span>
-                {chapters.length ? <span className="min-w-0 truncate">· {chapters.map((chapter) => chapter.title || chapter.label).join("、")}</span> : null}
+                {chapters.length ? <span className="min-w-0 truncate">· {chapters.map((chapter) => chapter.title || chapterNo(chapter.ord, t)).join("、")}</span> : null}
             </div>
             {episode.outline.trim() ? (
                 <>

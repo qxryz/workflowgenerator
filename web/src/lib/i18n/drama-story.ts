@@ -123,6 +123,10 @@ export default {
     "镜头 {shots} · 画面 {images}/{shots} · 视频 {videos}/{shots}": "Shots {shots} · Images {images}/{shots} · Videos {videos}/{shots}",
     "画面 {images}/{shots}，视频 {videos}/{shots}": "Images {images}/{shots}, videos {videos}/{shots}",
     "删除第 {ord} 集「{title}」？": "Delete episode {ord}, \"{title}\"?",
-    "这一集的剧本、镜头，以及已生成的画面和视频也会一起删除，无法恢复。": "This episode's script, shots, and the images and videos generated for it are deleted too. This can't be undone.",
     "内容已在别处修改，请刷新后再改": "This was changed somewhere else. Refresh and try again.",
+    "正文没能加载": "The text couldn't be loaded",
+    "已有的 {count} 章没有重复添加": "{count} chapters were already there and weren't added again",
+    "已添加 {done} 章，第 {next} 章没有成功：{reason}。再点一次会接着添加。": "{done} chapters added; chapter {next} failed: {reason}. Click again to continue.",
+    "先处理第 {ord} 章的草稿": "Deal with the draft of chapter {ord} first",
+    "这一集的剧本、镜头，以及已生成的画面、视频和配音也会一起删除，无法恢复。": "This episode's script, shots, and the pictures, videos and voice generated for it are deleted too. This can't be undone.",
 } as Record<string, string>;

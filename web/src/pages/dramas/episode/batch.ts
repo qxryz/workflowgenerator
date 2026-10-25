@@ -1,7 +1,9 @@
-import { adoptedByShot, defaultFirstFrame, type ShotMediaKind } from "@/lib/drama/episode-steps";
+import { adoptedByShot, needsTail, type ShotMediaKind } from "@/lib/drama/episode-steps";
 import { normalizeQuality, qualityChoices, supportsGenerateAudio } from "@/lib/drama/media/model-options";
+import { lookAvailable } from "@/lib/drama/media/prompts";
 import { pickFirstFrame, type RefImage } from "@/lib/drama/media/references";
 import { captureTailFrame, generate, runQueue } from "@/lib/drama/media/runner";
+import { humanError } from "@/lib/drama/media/state";
 import type { DramaShot } from "@/lib/drama/types";
 import type { AppLanguage } from "@/lib/i18n";
 import { adoptArtifact, getEpisode } from "@/services/drama-api";
@@ -26,7 +28,11 @@ export type BatchRequest = {
     title: (n: number) => string;
 };
 
-export type BatchOutcome = { made: number; failed: number; stopped: boolean };
+/** `skipped` shots were left alone on purpose; `note` says why the first shot that produced nothing did (when no result card can). */
+export type BatchOutcome = { made: number; failed: number; skipped: number; stopped: boolean; note?: string };
+
+/** A shot the batch leaves alone, with the reason to show. Not a failure: nothing was paid for. */
+class Skipped extends Error {}
 
 export const batchKey = (episodeId: string, kind: BatchRequest["kind"]) => `${episodeId}:${kind}`;
 
@@ -35,7 +41,7 @@ function paramsFor(kind: BatchRequest["kind"], config: AiConfig, model: string, 
     return { aspect, seconds: shot.seconds, resolution: "720p", ...(supportsGenerateAudio(config, model) ? { generateAudio: true } : {}) };
 }
 
-/** Generates the listed shots with the default look. Each result is a normal candidate; nothing here pays twice for a shot that is already in flight. */
+/** Generates the listed shots with the default look. Each result is a normal result card; nothing here pays twice for a shot that is already in flight. */
 export async function runEpisodeBatch(request: BatchRequest): Promise<BatchOutcome> {
     const { ctx, kind, shotIds, model, config, language, autoAdopt, concurrency } = request;
     const { project } = ctx.snapshot;
@@ -45,12 +51,16 @@ export async function runEpisodeBatch(request: BatchRequest): Promise<BatchOutco
     const controller = new AbortController();
     store.start(key, { total: shotIds.length, done: 0, failed: 0, stopping: false, abort: () => { useEpisodeBatches.getState().stopping(key); controller.abort(); } });
 
-    const hasStyle = Boolean(project.style && (project.style.prompt || project.style.promptEn));
-    const look = { useStyle: hasStyle, usePalette: Boolean(project.palette?.colors.length), language, model };
+    const { hasStyle, hasPalette } = lookAvailable(project);
+    const look = { useStyle: hasStyle, usePalette: hasPalette, language, model };
     const route = `${ctx.base}?step=${kind}`;
 
+    let made = 0;
+    let failed = 0;
+    let skipped = 0;
+    let note: string | undefined;
     const makeJob = (shotId: string) => async () => {
-        let failed = true;
+        let result: "made" | "failed" | "skipped" = "failed";
         try {
             // Videos may depend on what earlier jobs just finished, so read the episode as it is now.
             const current = await getEpisode(episodeId);
@@ -59,12 +69,18 @@ export async function runEpisodeBatch(request: BatchRequest): Promise<BatchOutco
             const env = prepareEnv(project, ctx.entities, ctx.sheets, current.shots, current.artifacts);
             let frame: RefImage | undefined;
             if (kind === "video") {
-                const index = current.shots.findIndex((item) => item.id === shotId);
-                const prev = current.shots[index - 1];
-                const videos = adoptedByShot(current.artifacts, "video");
-                if (defaultFirstFrame(shot, prev, videos) === "tail") frame = await captureTailFrame(videos.get(prev.id)!).catch(() => undefined);
-                frame ??= pickFirstFrame("storyboard", env.storyboards.get(shot.id));
-                if (!frame) throw new Error("先采用本镜画面");
+                const prev = current.shots[current.shots.findIndex((item) => item.id === shotId) - 1];
+                if (needsTail(shot, prev)) {
+                    // A continuous shot starts where the previous one ended; it never quietly starts from its own picture instead.
+                    const before = adoptedByShot(current.artifacts, "video").get(prev.id);
+                    if (!before) throw new Skipped("有镜头接着上一镜，但上一镜还没有采用的视频，已跳过");
+                    frame = await captureTailFrame(before).catch(() => {
+                        throw new Error("读不到上一镜的结尾画面，请稍后重试");
+                    });
+                } else {
+                    frame = pickFirstFrame("storyboard", env.storyboards.get(shot.id));
+                    if (!frame) throw new Error("先采用本镜画面");
+                }
             }
             const prepared = prepareShot(kind, env, shot, look, frame);
             const artifact = await generate({
@@ -81,22 +97,25 @@ export async function runEpisodeBatch(request: BatchRequest): Promise<BatchOutco
                 inputHash: prepared.inputHash,
                 onCreated: ctx.refresh,
             });
-            failed = artifact.status !== "ready";
-            if (!failed && autoAdopt) {
+            result = artifact.status === "ready" ? "made" : "failed";
+            if (result === "made" && autoAdopt) {
                 const latest = await getEpisode(episodeId);
                 if (!adoptedByShot(latest.artifacts, kind).has(shotId)) await adoptArtifact(artifact.id);
             }
-        } catch {
-            failed = true;
+        } catch (error) {
+            result = error instanceof Skipped ? "skipped" : "failed";
+            note ??= error instanceof Skipped ? error.message : humanError(error);
         } finally {
-            useEpisodeBatches.getState().advance(key, failed);
+            if (result === "made") made += 1;
+            else if (result === "skipped") skipped += 1;
+            else failed += 1;
+            useEpisodeBatches.getState().advance(key, result === "failed");
             ctx.refresh();
         }
     };
 
-    const results = await runQueue(shotIds.map(makeJob), concurrency, controller.signal);
-    const outcome = useEpisodeBatches.getState().batches[key];
+    await runQueue(shotIds.map(makeJob), concurrency, controller.signal);
     useEpisodeBatches.getState().finish(key);
     ctx.refresh();
-    return { made: (outcome?.done ?? results.length) - (outcome?.failed ?? 0), failed: outcome?.failed ?? 0, stopped: controller.signal.aborted };
+    return { made, failed, skipped, stopped: controller.signal.aborted, note };
 }

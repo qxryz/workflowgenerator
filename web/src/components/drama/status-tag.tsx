@@ -1,12 +1,13 @@
 /**
  * StatusTag — the one status pill for runs and media.
  *
- * Props: `StatusTag({ status })` where status is a RunStatus ("running" | "review" | "accepted" | "rejected" | "failed" | "stopped")
+ * Props: `StatusTag({ status, stage? })` where status is a RunStatus ("running" | "review" | "accepted" | "rejected" | "failed" | "stopped")
  * or a media state ("generating" | "ready" | "adopted" | "stale" | "failed" | "none"). Labels come from lib/drama/labels.ts.
+ * Pass the run's `stage` so a finished review report reads 已完成 instead of 已采用.
  */
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { MEDIA_STATE_LABELS, RUN_STATUS_LABELS } from "@/lib/drama/labels";
-import type { RunStatus } from "@/lib/drama/types";
+import { MEDIA_STATE_LABELS, RUN_STATUS_LABELS, runStatusLabel } from "@/lib/drama/labels";
+import type { RunStage, RunStatus } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 
 export type StatusTagValue = RunStatus | "generating" | "ready" | "adopted" | "stale" | "none";
@@ -34,9 +35,10 @@ const TONE_CLASS: Record<Tone, string> = {
     danger: "border-destructive/40 bg-destructive/10 text-destructive",
 };
 
-export function StatusTag({ status, className }: { status: StatusTagValue; className?: string }) {
+export function StatusTag({ status, stage, className }: { status: StatusTagValue; stage?: RunStage; className?: string }) {
     const { t } = useAppTranslation();
-    const [tone, label] = TONES[status];
+    const [tone, fixed] = TONES[status];
+    const label = status in RUN_STATUS_LABELS ? runStatusLabel(status as RunStatus, stage) : fixed;
     return (
         <span className={cn("inline-flex h-5 shrink-0 items-center gap-1.5 whitespace-nowrap rounded-full border px-2 text-[11px] font-medium leading-none", TONE_CLASS[tone], status === "stale" && "border-dashed", className)}>
             {tone === "live" ? <span className="size-1.5 animate-pulse rounded-full bg-current" /> : null}

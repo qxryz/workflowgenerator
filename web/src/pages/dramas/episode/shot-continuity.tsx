@@ -4,7 +4,8 @@ import { Plus, X } from "lucide-react";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { TRANSITION_LABELS } from "@/lib/drama/labels";
 import type { DramaEntity, PropState, ShotTransition } from "@/lib/drama/types";
-import { Field, entityOptions, type ShotDraft } from "./shot-field";
+import type { ShotDraft } from "@/lib/drama/shot-draft";
+import { Field, entityOptions } from "./shot-field";
 
 type Props = {
     draft: ShotDraft;

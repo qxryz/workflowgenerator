@@ -3,23 +3,24 @@ import { Loader2 } from "lucide-react";
 import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { CAMERA_MOVES, SHOT_SIZES } from "@/lib/drama/labels";
+import { CAMERA_MOVES, ENTITY_KIND_LABELS, SHOT_SIZES } from "@/lib/drama/labels";
+import { sameDraft, toDraft, type ShotDraft } from "@/lib/drama/shot-draft";
 import type { DramaShot } from "@/lib/drama/types";
 import { DramaApiError, updateShot } from "@/services/drama-api";
 import { ConflictNotice } from "./conflict-notice";
 import type { EpisodeCtx } from "./context";
 import { ContinuityEditor } from "./shot-continuity";
 import { DialogueEditor } from "./shot-dialogue";
-import { Field, entityOptions, sameDraft, toDraft, type ShotDraft } from "./shot-field";
+import { Field, entityOptions } from "./shot-field";
 
 type Props = { ctx: EpisodeCtx; shot: DramaShot; index: number; onDirty: (dirty: boolean) => void };
 
-const terms = (list: readonly { name: string }[]) => list.map((item) => ({ value: item.name }));
 
 /** The whole shot, edited in place under its row. One save writes every field. */
 export function ShotEditor({ ctx, shot, index, onDirty }: Props) {
     const { t } = useAppTranslation();
     const { message } = App.useApp();
+    const terms = (list: readonly { name: string }[]) => list.map((item) => ({ value: item.name, label: t(item.name) }));
     const entities = ctx.snapshot.entities;
     const [draft, setDraft] = useState<ShotDraft>(() => toDraft(shot));
     const [saving, setSaving] = useState(false);
@@ -103,7 +104,7 @@ export function ShotEditor({ ctx, shot, index, onDirty }: Props) {
                             showSearch={{ optionFilterProp: "label" }}
                             value={draft.entityIds}
                             onChange={(ids) => patch(cleared(ids))}
-                            options={(["character", "scene", "prop"] as const).map((kind) => ({ label: t(kind === "character" ? "人物" : kind === "scene" ? "场景" : "道具"), options: entityOptions(entities, [kind]) })).filter((group) => group.options.length)}
+                            options={(["character", "scene", "prop"] as const).map((kind) => ({ label: t(ENTITY_KIND_LABELS[kind]), options: entityOptions(entities, [kind]) })).filter((group) => group.options.length)}
                             placeholder={t("选择出场的人物、场景和道具")}
                         />
                     </Field>

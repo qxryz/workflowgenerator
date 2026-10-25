@@ -5,12 +5,11 @@ import { ProposalShell } from "@/components/drama/proposal-shell";
 import { RunHistory, useStageRuns } from "@/components/drama/run-history";
 import { StartTaskButton } from "@/components/drama/start-task-button";
 import { useAppTranslation } from "@/hooks/use-app-translation";
+import { isUnsettled } from "@/lib/drama/stage-runs";
 import type { DramaSnapshot, EpisodesProposal } from "@/lib/drama/types";
 import { EpisodeCard } from "./episode-card";
 import { EpisodeForm } from "./episode-form";
 import { EpisodesResult } from "./proposal-list";
-
-const UNSETTLED = ["running", "review", "failed"];
 
 /** 分集: episode cards on the left, the plan being reviewed on the right. */
 export function EpisodesSection({ snapshot }: { snapshot: DramaSnapshot }) {
@@ -19,7 +18,7 @@ export function EpisodesSection({ snapshot }: { snapshot: DramaSnapshot }) {
     const { current, history } = useStageRuns(snapshot.runs, "episodes");
     const [picked, setPicked] = useState<string>();
     const [editing, setEditing] = useState<string | "new" | null>(null);
-    const shown = history.find((run) => run.id === picked) ?? (current && UNSETTLED.includes(current.status) ? current : undefined);
+    const shown = history.find((run) => run.id === picked) ?? (current && isUnsettled(current) ? current : undefined);
     const empty = !episodes.length && !shown && editing !== "new";
     const noChapters = snapshot.chapters.length === 0;
     const plan = (
@@ -68,7 +67,7 @@ export function EpisodesSection({ snapshot }: { snapshot: DramaSnapshot }) {
                 </div>
                 {shown ? (
                     <aside className="flex w-[380px] shrink-0 flex-col border-l border-[color:var(--wg-home-line)] p-4 min-[1280px]:w-[420px]">
-                        <ProposalShell run={shown} title={t("分集规划草稿")}>{(proposal) => <EpisodesResult proposal={proposal as EpisodesProposal} snapshot={snapshot} />}</ProposalShell>
+                        <ProposalShell key={shown.id} run={shown} title={t("分集规划草稿")}>{(proposal) => <EpisodesResult proposal={proposal as EpisodesProposal} snapshot={snapshot} />}</ProposalShell>
                     </aside>
                 ) : null}
             </div>

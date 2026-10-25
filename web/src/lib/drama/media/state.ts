@@ -1,11 +1,11 @@
-import { imageReferenceLabel } from "@/lib/image-reference-prompt";
+import { buildImageReferencePromptText, imageReferenceLabel } from "@/lib/image-reference-prompt";
 import type { MediaState } from "@/lib/drama/labels";
-import type { DramaArtifact } from "@/lib/drama/types";
-import type { RefImage, ReferencePlan } from "./references";
+import type { ArtifactKind, DramaArtifact } from "@/lib/drama/types";
+import { toReferenceImages, type RefImage, type ReferencePlan } from "./references.ts";
 
 /** Artifacts the user brought in rather than generated; they never go stale. */
-export const IMPORT_MODELS = ["upload", "library"] as const;
-export const isImported = (artifact: DramaArtifact) => (IMPORT_MODELS as readonly string[]).includes(artifact.model);
+const IMPORT_MODELS = ["upload", "library"] as const;
+const isImported = (artifact: DramaArtifact) => (IMPORT_MODELS as readonly string[]).includes(artifact.model);
 
 /** `currentHash` is what the same inputs hash to today; a generated artifact with another hash was made from older inputs. */
 export function isStale(artifact: DramaArtifact, currentHash: string | undefined): boolean {
@@ -45,6 +45,15 @@ export function requestPlan(plan: ReferencePlan, firstFrame: RefImage | undefine
 
 /** The text sent as the prompt: the prompt plus one line per reference. Image requests prepend their own numbering header. */
 export const requestPrompt = (prompt: string, plan: ReferencePlan) => [prompt.trim(), ...plan.notes].filter(Boolean).join("\n\n");
+
+/**
+ * The text the model receives, as shown in the prompt preview. Pictures go through the edit endpoint, which numbers the
+ * reference images in front; video and voice requests carry the prompt and notes as they are.
+ */
+export function sentPrompt(kind: ArtifactKind, prompt: string, plan: ReferencePlan): string {
+    const body = requestPrompt(prompt, plan);
+    return (kind === "sheet" || kind === "image") && plan.images.length ? buildImageReferencePromptText(body, toReferenceImages(plan.images)) : body;
+}
 
 /** One short, plain sentence for the card: no keys, URLs or stack traces. */
 export function humanError(error: unknown): string {

@@ -2,7 +2,8 @@ import { useMemo } from "react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ENTITY_GROUP_LABELS } from "@/lib/drama/labels";
-import { adoptedSheets, buildCatalogue, type KindFilter } from "@/lib/drama/settings-view";
+import { adoptedSheets } from "@/lib/drama/media/references";
+import { buildCatalogue, type KindFilter } from "@/lib/drama/settings-view";
 import type { DramaSnapshot } from "@/lib/drama/types";
 import { EntityCard } from "./entity-card";
 

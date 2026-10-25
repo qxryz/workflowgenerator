@@ -1,4 +1,5 @@
-import type { DramaChapter, DramaEntity, DramaEpisode, DramaProject, DramaRelation, DramaSnapshot, EntityKind, LedgerEntry, LedgerKind, RunScope } from "../types.ts";
+import { ENTITY_GROUP_LABELS, LEDGER_KIND_LABELS, SOURCE_TYPE_LABELS } from "../labels.ts";
+import type { DramaChapter, DramaEntity, DramaEpisode, DramaProject, DramaRelation, DramaSnapshot, LedgerEntry, RunScope } from "../types.ts";
 
 export type StageInput = {
     snapshot: DramaSnapshot;
@@ -10,9 +11,9 @@ export type StageInput = {
 };
 export type Prompt = { system: string; user: string };
 
-export const ENTITY_LABEL: Record<EntityKind, string> = { character: "人物", scene: "场景", prop: "道具陈设", world: "世界观" };
-const LEDGER_LABEL: Record<LedgerKind, string> = { character: "人物", place: "地点", item: "物件", world: "世界观", thread: "伏笔" };
-const SOURCE_LABEL = { original: "原创", novel: "小说改编", script: "已有剧本改编" };
+
+/** Prompts say 伏笔 where the app says 伏笔线索. */
+const LEDGER_LABEL = { ...LEDGER_KIND_LABELS, thread: "伏笔" };
 
 /** Cut to at most `max` characters, marker included. */
 export function clip(text: string, max: number, keep: "head" | "tail" = "head") {
@@ -36,7 +37,7 @@ export function taskSection(input: StageInput, task: string) {
 
 export function projectText(project: DramaProject) {
     const style = project.style?.prompt ? `画风：${clip(project.style.prompt, 200)}` : "";
-    return [`名称：${project.title}`, `类型：${SOURCE_LABEL[project.sourceType]}`, `画幅：${project.aspect}`, project.brief && `简介：${clip(project.brief, 600)}`, style].filter(Boolean).join("\n");
+    return [`名称：${project.title}`, `类型：${SOURCE_TYPE_LABELS[project.sourceType]}`, `画幅：${project.aspect}`, project.brief && `简介：${clip(project.brief, 600)}`, style].filter(Boolean).join("\n");
 }
 
 export function ledgerText(ledger: LedgerEntry[]) {
@@ -78,7 +79,7 @@ export function entityText(entities: DramaEntity[], detail: "full" | "brief" = "
             const aliases = e.aliases.length ? `（又名${e.aliases.join("、")}）` : "";
             const parent = e.parentId && labels.get(e.parentId) ? ` 所属${labels.get(e.parentId)}` : "";
             const body = detail === "full" ? [e.description && clip(e.description, 200), e.appearance && `外观：${clip(e.appearance, 200)}`] : [e.description && clip(e.description, 60)];
-            return `${e.label} ${ENTITY_LABEL[e.kind]} ${e.name}${aliases}${parent}${body.filter(Boolean).length ? "：" + body.filter(Boolean).join("；") : ""}`;
+            return `${e.label} ${ENTITY_GROUP_LABELS[e.kind]} ${e.name}${aliases}${parent}${body.filter(Boolean).length ? "：" + body.filter(Boolean).join("；") : ""}`;
         })
         .join("\n");
 }

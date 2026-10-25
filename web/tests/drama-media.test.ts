@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { splitChapters } from "../src/lib/drama/import-text.ts";
-import { lintEpisode } from "../src/lib/drama/lint.ts";
+import { MAX_CHAPTER_CHARS, splitChapters } from "../src/lib/drama/import-text.ts";
+import { lintEpisode, lintText, type LintIssue } from "../src/lib/drama/lint.ts";
+import { translate } from "../src/lib/i18n.ts";
 import { inputHash, sheetPrompt, shotImagePrompt, shotVideoPrompt, type ShotContext } from "../src/lib/drama/media/prompts.ts";
-import { indexById, pickFirstFrame, shotImageReferences, shotVideoReferences, withReferenceNotes } from "../src/lib/drama/media/references.ts";
+import { indexById, pickFirstFrame, shotImageReferences, shotVideoReferences } from "../src/lib/drama/media/references.ts";
+import { sentPrompt } from "../src/lib/drama/media/state.ts";
 import { COLOUR_PALETTE_PRESETS, createColourHarmony, generateRandomPalette, normalizeHexColor, validateColourPalette } from "../src/lib/drama/style/colour-palettes.ts";
 import { STYLE_PRESETS } from "../src/lib/drama/style/style-presets.ts";
 import { getStylePresetPreview } from "../src/lib/drama/style/style-preset-previews.ts";
@@ -123,9 +125,11 @@ test("image references keep only entities visible at the opening instant", () =>
     assert.deepEqual(plan.notes[0], "图片1：人物「林夏」三视图，仅用于外观一致");
     assert.match(plan.notes[2], /^图片3：场景「旧书店」/);
     assert.match(plan.notes[3], /^图片4：道具「信件」/);
-    const text = withReferenceNotes("提示词", plan);
+    const text = sentPrompt("image", "提示词", plan);
     assert.match(text, /^参考图片编号：图片1、图片2、图片3、图片4。/);
     assert.match(text, /图片4：道具「信件」/);
+    assert.doesNotMatch(sentPrompt("video", "提示词", plan), /参考图片编号/, "video requests are not numbered by the image endpoint");
+    assert.equal(sentPrompt("video", "提示词", plan), ["提示词", ...plan.notes].join("\n\n"));
 });
 
 test("video references add props that appear later and carry the first frame separately", () => {
@@ -144,6 +148,8 @@ test("entities without a ready adopted sheet add no reference", () => {
     assert.match(plan.notes[0], /^图片1：/);
 });
 
+const lintZh = (issue: LintIssue) => lintText(issue, (message, values) => translate("zh-CN", message, values));
+
 test("lint flags the table problems and stays quiet on a clean table", () => {
     const clean = [shot("a", { camera: "推镜", size: "远景" }), shot("b", { camera: "拉镜", size: "中景" }), shot("c", { camera: "左摇", size: "近景" })];
     assert.deepEqual(lintEpisode(clean, entities, 15), []);
@@ -157,20 +163,20 @@ test("lint flags the table problems and stays quiet on a clean table", () => {
         entities,
         60,
     );
-    const messages = issues.map((issue) => issue.message);
+    const messages = issues.map(lintZh);
     assert.ok(messages.some((m) => m.includes("第 2 镜与上一镜运镜相同")));
     assert.ok(messages.some((m) => m.includes("第 1–3 镜景别都是「中景」")));
     assert.ok(messages.some((m) => m.includes("第 1 镜没有绑定出场设定")));
     assert.ok(messages.some((m) => m.includes("第 1 镜缺少画面提示词")));
     assert.ok(messages.some((m) => m.includes("第 2 镜的说话人「陈默」没有绑定")));
     const total = issues.find((issue) => !issue.shotId);
-    assert.match(total!.message, /合计 15 秒，与目标 60 秒/);
+    assert.match(lintZh(total!), /合计 15 秒，与目标 60 秒/);
     assert.equal(lintEpisode(clean, entities, 16).length, 0, "within 20% of target");
 });
 
 test("lint compares prop state with the previous shot only for continuous shots", () => {
     const before = shot("a", { props: [prop("sword", { endVisible: true, endHolder: "hero" }), prop("letter", { quantity: 2 }), prop("realm", { endVisible: true })], camera: "推镜", size: "远景" });
-    const make = (props: PropState[], transition: DramaShot["transition"] = "continuous") => lintEpisode([before, shot("b", { transition, props, camera: "拉镜", size: "中景" })], entities, 10).map((issue) => issue.message);
+    const make = (props: PropState[], transition: DramaShot["transition"] = "continuous") => lintEpisode([before, shot("b", { transition, props, camera: "拉镜", size: "中景" })], entities, 10).map(lintZh);
 
     assert.deepEqual(make([prop("sword", { startHolder: "hero" }), prop("letter", { quantity: 2 }), prop("realm")]), []);
     assert.ok(make([prop("sword", { startHolder: "rival" }), prop("letter", { quantity: 2 }), prop("realm")]).some((m) => m.includes("持有人（陈默）与上一镜结束时（林夏）")));
@@ -178,6 +184,16 @@ test("lint compares prop state with the previous shot only for continuous shots"
     assert.ok(make([prop("sword", { startHolder: "hero" }), prop("letter", { quantity: 1 }), prop("realm")]).some((m) => m.includes("「信件」数量（1）与上一镜结束时（2）")));
     assert.ok(make([prop("letter", { quantity: 2 }), prop("realm")]).some((m) => m.includes("「长剑」没有出现")));
     assert.deepEqual(make([], "cut"), []);
+});
+
+test("splitChapters cuts a chapter over the limit into numbered parts at line breaks", () => {
+    const line = "雨".repeat(40_000);
+    const chapters = splitChapters(`第一章 长夜\n${[line, line, line, line, line].join("\n")}\n第二章 天亮\n短。`);
+    assert.deepEqual(chapters.map((chapter) => chapter.title), ["第一章 长夜（1）", "第一章 长夜（2）", "第二章 天亮"]);
+    assert.ok(chapters.every((chapter) => chapter.body.length <= MAX_CHAPTER_CHARS));
+    assert.deepEqual(chapters.map((chapter) => chapter.body.length), [120_002, 80_001, 2], "whole lines stay together");
+    const endless = splitChapters(`第一章 无尽\n${"雨".repeat(320_000)}\n第二章 完\n好。`);
+    assert.deepEqual(endless.map((chapter) => chapter.body.length), [150_000, 150_000, 20_000, 2], "one endless line is cut where it must be");
 });
 
 test("splitChapters splits Chinese chapter headings", () => {

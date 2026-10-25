@@ -2,7 +2,7 @@ import { ArrowRight } from "lucide-react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ENTITY_GROUP_LABELS, RELATION_KIND_LABELS } from "@/lib/drama/labels";
-import { classifyProposal, type ChangeKind } from "@/lib/drama/settings-view";
+import { proposalView, type ChangeKind } from "@/lib/drama/settings-view";
 import type { DramaSnapshot, SettingsProposal } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 import { KIND_COLOR, KIND_ICON } from "./common";
@@ -11,7 +11,7 @@ import { KIND_COLOR, KIND_ICON } from "./common";
 /** `settled`: the result was already adopted or dropped, so what is "new" can no longer be told; the badges are left out. */
 export function SettingsProposalView({ proposal, snapshot, settled }: { proposal: SettingsProposal; snapshot: DramaSnapshot; settled: boolean }) {
     const { t } = useAppTranslation();
-    const view = classifyProposal(proposal, snapshot.entities, snapshot.relations);
+    const view = proposalView(proposal, snapshot.entities);
     return (
         <div className="flex flex-col gap-5 p-4">
             <p className="!mb-0 text-[12px] text-[color:var(--wg-home-muted)]">
@@ -53,8 +53,7 @@ export function SettingsProposalView({ proposal, snapshot, settled }: { proposal
                     </h4>
                     <ul className="divide-y divide-[color:var(--wg-home-line)] rounded-lg border border-[color:var(--wg-home-line)]">
                         {view.relations.map((relation, index) => (
-                            <li key={index} className={cn("grid items-center gap-x-3 px-3 py-2", settled ? "grid-cols-1" : "grid-cols-[3rem_minmax(0,1fr)]")} title={relation.note || undefined}>
-                                {settled ? null : <ChangeBadge change={relation.change} />}
+                            <li key={index} className="px-3 py-2" title={relation.note || undefined}>
                                 <div className="flex min-w-0 items-center gap-2 text-[13px]">
                                     <span className="max-w-[30%] truncate font-medium">{relation.from}</span>
                                     <span className="flex shrink-0 items-center gap-1 text-[color:var(--wg-home-muted)]">

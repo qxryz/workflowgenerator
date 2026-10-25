@@ -5,7 +5,7 @@ import { GenerationWorkbench, type Look, type Prepared } from "@/components/dram
 import { MediaPreview } from "@/components/drama/media-preview";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ARTIFACT_KIND_LABELS } from "@/lib/drama/labels";
-import { inputHash, sheetPrompt } from "@/lib/drama/media/prompts";
+import { inputHash, lookAvailable, sheetPrompt } from "@/lib/drama/media/prompts";
 import { refImage, sheetReferences, type ReferencePlan } from "@/lib/drama/media/references";
 import { adoptedArtifact } from "@/lib/drama/media/state";
 import { sheetsOf } from "@/lib/drama/settings-view";
@@ -60,16 +60,18 @@ export function SheetPanel({ entity, project, artifacts }: Props) {
     const sheets = useMemo(() => sheetsOf(artifacts, entity.id), [artifacts, entity.id]);
     const adopted = adoptedArtifact(sheets);
     const style = project.style;
-    const hasStyle = Boolean(style && (style.prompt.trim() || style.promptEn?.trim()));
-    const hasPalette = Boolean(project.palette?.colors.length);
+    const { hasStyle, hasPalette } = lookAvailable(project);
 
     // The adopted sheet as an identity reference never enters the hash, so adopting a new sheet does not age the old ones.
     const prepare = (look: Look): Prepared => {
-        const { prompt, aspect } = sheetPrompt({ entity, style, palette: project.palette, useStyle: look.useStyle, usePalette: look.usePalette, language: look.language, aspect: project.aspect, sideView: side });
+        const input = { entity, style, palette: project.palette, useStyle: look.useStyle, usePalette: look.usePalette, language: look.language, aspect: project.aspect };
+        const { prompt, aspect } = sheetPrompt({ ...input, sideView: side });
         const plan = adopted && useAdopted ? sheetReferences([refImage(adopted, entity.name)], look.language) : { images: [], notes: [] };
         const identity = look.language === "en-US" ? "the current approved design sheet of this subject; keep the same identity, outfit and proportions" : "这个设定当前采用的设定图，保持同一主体的外观、服装与比例";
         const references: ReferencePlan = { images: plan.images, notes: plan.notes.map((note) => `${note.split("：")[0]}：${identity}`) };
-        return { prompt, references, inputHash: inputHash({ prompt, aspect, model: look.model }), aspect };
+        // Which way the profile faces is a choice per generation: it never ages the sheets already made.
+        const stable = side === "left" ? prompt : sheetPrompt({ ...input, sideView: "left" }).prompt;
+        return { prompt, references, inputHash: inputHash({ prompt: stable, aspect, model: look.model }), aspect };
     };
 
     return (
@@ -88,6 +90,7 @@ export function SheetPanel({ entity, project, artifacts }: Props) {
                 hasStyle={hasStyle}
                 hasPalette={hasPalette}
                 onChange={() => void refresh()}
+                onPoll={() => void refresh()}
                 extraOptions={
                     adopted || entity.kind === "character" ? (
                         <div className="flex flex-wrap items-center gap-x-4 gap-y-2 text-xs text-[color:var(--wg-home-muted)]">

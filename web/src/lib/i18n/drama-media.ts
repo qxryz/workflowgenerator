@@ -20,9 +20,7 @@ export default {
     "调整": "Edit",
     "恢复": "Reset",
     "只对这一次生成有效": "Applies to this generation only",
-    "还没有候选": "No drafts yet",
     "删除已采用的{kind}？": "Delete the adopted {kind}?",
-    "删除后需要重新采用其他候选。": "You will need to adopt another draft afterwards.",
     "镜头": "Shots",
     "已取消": "Cancelled",
     "生成失败，请重试": "Generation failed. Try again",
@@ -32,4 +30,7 @@ export default {
     "请选择音频文件": "Choose an audio file",
     "页面关闭，生成中断，请重新生成": "The page was closed and generation stopped. Generate again",
     "上一镜尾帧": "Previous shot's last frame",
+    "还没有生成结果": "No results yet",
+    "删除后需要重新采用其他结果。": "You will need to adopt another result afterwards.",
+    "本镜分镜图": "This shot's storyboard picture",
 } as Record<string, string>;

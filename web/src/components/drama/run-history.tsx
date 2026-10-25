@@ -47,7 +47,7 @@ export function RunHistory({ runs, selectedId, onSelect, dramaId }: Props) {
                     label: (
                         <span className="flex items-center justify-between gap-3">
                             <span className="tabular-nums">{formatClock(run.createdAt)}</span>
-                            <StatusTag status={run.status} />
+                            <StatusTag status={run.status} stage={run.stage} />
                         </span>
                     ),
                 }))}

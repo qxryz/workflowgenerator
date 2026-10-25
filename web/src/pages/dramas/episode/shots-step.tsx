@@ -8,14 +8,13 @@ import { StartTaskButton } from "@/components/drama/start-task-button";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { adoptedByShot } from "@/lib/drama/episode-steps";
 import { lintEpisode } from "@/lib/drama/lint";
+import { isUnsettled } from "@/lib/drama/stage-runs";
 import type { DramaRun, ShotsProposal } from "@/lib/drama/types";
 import { createShot } from "@/services/drama-api";
 import type { EpisodeCtx } from "./context";
 import { LintPanel } from "./lint-panel";
 import { ShotTable } from "./shot-table";
 import { ShotsProposalTable } from "./shots-proposal";
-
-const settled = (run: DramaRun) => run.status === "accepted" || run.status === "rejected";
 
 export function ShotsStep({ ctx }: { ctx: EpisodeCtx }) {
     const { t } = useAppTranslation();
@@ -26,11 +25,11 @@ export function ShotsStep({ ctx }: { ctx: EpisodeCtx }) {
     const [picked, setPicked] = useState<string>();
     const [expandedId, setExpandedId] = useState<string | null>(null);
     const run = history.find((item) => item.id === picked) ?? current;
-    const showRun = run && (picked !== undefined || !settled(run));
+    const showRun = run && (picked !== undefined || isUnsettled(run));
 
     const issues = useMemo(() => lintEpisode(shots, ctx.entities, episode.targetSeconds), [shots, ctx.entities, episode.targetSeconds]);
     const total = shots.reduce((sum, shot) => sum + shot.seconds, 0);
-    const hasMedia = adoptedByShot(artifacts, "image").size + adoptedByShot(artifacts, "video").size > 0;
+    const hasMedia = (["image", "video", "audio"] as const).some((kind) => adoptedByShot(artifacts, kind).size > 0);
     const hasScript = Boolean(episode.script.trim());
 
     const append = async () => {
@@ -74,9 +73,10 @@ export function ShotsStep({ ctx }: { ctx: EpisodeCtx }) {
                     {showRun ? (
                         <div className="flex max-h-[min(55vh,520px)] flex-col">
                             <ProposalShell
+                                key={run.id}
                                 run={run}
                                 title={t("分镜草稿")}
-                                confirmAdopt={hasMedia ? "采用后将替换本集全部镜头，已生成的画面和视频会一起删除" : undefined}
+                                confirmAdopt={hasMedia ? "采用后将替换本集全部镜头，已生成的画面、视频和配音会一起删除" : undefined}
                                 onAdopted={() => {
                                     setPicked(undefined);
                                     setExpandedId(null);

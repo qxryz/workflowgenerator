@@ -2,7 +2,7 @@
 import type { DramaArtifact, DramaExport, DramaShot, ArtifactKind } from "./types.ts";
 
 export type EpisodeStep = "script" | "shots" | "image" | "video" | "audio" | "export";
-export const EPISODE_STEPS: readonly EpisodeStep[] = ["script", "shots", "image", "video", "audio", "export"];
+const EPISODE_STEPS: readonly EpisodeStep[] = ["script", "shots", "image", "video", "audio", "export"];
 export const isEpisodeStep = (value: string | null | undefined): value is EpisodeStep => EPISODE_STEPS.includes(value as EpisodeStep);
 
 export type StepProgress = { done: number; total: number; complete: boolean };
@@ -50,9 +50,12 @@ export function defaultStep(progress: Record<EpisodeStep, StepProgress>): Episod
 
 export type FirstFrameSource = "storyboard" | "tail";
 
+/** A continuous shot picks up where the previous shot ended, so by default it starts from that shot's last frame. */
+export const needsTail = (shot: Pick<DramaShot, "transition">, prev: Pick<DramaShot, "id"> | undefined): boolean => shot.transition === "continuous" && Boolean(prev);
+
 /** The tail frame of the previous shot only continues a continuous shot, and only once that shot has an adopted video. */
 export function canUseTail(shot: Pick<DramaShot, "transition">, prev: Pick<DramaShot, "id"> | undefined, videos: ReadonlyMap<string, DramaArtifact>): boolean {
-    return shot.transition === "continuous" && Boolean(prev) && videos.has(prev!.id);
+    return needsTail(shot, prev) && videos.has(prev!.id);
 }
 
 export const defaultFirstFrame = (shot: Pick<DramaShot, "transition">, prev: Pick<DramaShot, "id"> | undefined, videos: ReadonlyMap<string, DramaArtifact>): FirstFrameSource =>
@@ -68,31 +71,35 @@ export function planImageBatch(shots: readonly DramaShot[], artifacts: readonly 
     return { mode: "missing", shotIds: shots.filter((shot) => !adopted.has(shot.id) && !busy.has(shot.id)).map((shot) => shot.id) };
 }
 
-export type VideoBatch = { shotIds: string[]; seconds: number; skipped: number; chained: boolean };
+export type VideoBatch = { shotIds: string[]; seconds: number; /** No adopted storyboard picture to start from. */ skipped: number; /** Continuous shots whose previous shot has no adopted video and will not get one in this batch. */ waiting: number; chained: boolean };
 
 /**
- * Shots without an adopted video that can start from some first frame: an adopted storyboard picture,
- * or the tail of a previous shot that has (or, in this batch, will get) a video. `chained` = some shot
- * may need the previous shot's result, so the batch must run one at a time.
+ * Shots without an adopted video that have a first frame to start from: a continuous shot starts from the tail of the
+ * previous shot's video (adopted already, or made earlier in this batch and adopted on arrival), any other shot from its
+ * adopted storyboard picture. A continuous shot never falls back to its picture silently: it waits for the previous video.
+ * `chained` = some shot needs the previous shot's result, so the batch must run one at a time.
  */
-export function planVideoBatch(shots: readonly DramaShot[], artifacts: readonly DramaArtifact[]): VideoBatch {
+export function planVideoBatch(shots: readonly DramaShot[], artifacts: readonly DramaArtifact[], autoAdopt = true): VideoBatch {
     const images = adoptedByShot(artifacts, "image");
     const videos = adoptedByShot(artifacts, "video");
     const busy = pendingShots(artifacts, "video");
     const queued = new Set<string>();
     const picked: DramaShot[] = [];
     let skipped = 0;
+    let waiting = 0;
+    let chained = false;
     shots.forEach((shot, index) => {
         if (videos.has(shot.id) || busy.has(shot.id)) return;
         const prev = shots[index - 1];
-        const tail = shot.transition === "continuous" && prev && (videos.has(prev.id) || queued.has(prev.id));
-        if (images.has(shot.id) || tail) {
-            queued.add(shot.id);
-            picked.push(shot);
-        } else skipped++;
+        if (needsTail(shot, prev)) {
+            const comesLater = autoAdopt && queued.has(prev.id);
+            if (!videos.has(prev.id) && !comesLater) return void waiting++;
+            chained ||= comesLater;
+        } else if (!images.has(shot.id)) return void skipped++;
+        queued.add(shot.id);
+        picked.push(shot);
     });
-    const chained = picked.some((shot) => shot.transition === "continuous" && shots.findIndex((item) => item.id === shot.id) > 0);
-    return { shotIds: picked.map((shot) => shot.id), seconds: picked.reduce((sum, shot) => sum + shot.seconds, 0), skipped, chained };
+    return { shotIds: picked.map((shot) => shot.id), seconds: picked.reduce((sum, shot) => sum + shot.seconds, 0), skipped, waiting, chained };
 }
 
 /** Shots the cut cannot include yet. */

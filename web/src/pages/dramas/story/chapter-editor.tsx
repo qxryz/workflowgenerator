@@ -1,11 +1,11 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { App, Alert } from "antd";
+import { Alert, App } from "antd";
 import { Loader2 } from "lucide-react";
 import { useEffect, useState, type ReactNode } from "react";
 
 import { AutoTextarea } from "@/components/drama/auto-textarea";
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { dramaKey, useDramaMutation } from "@/hooks/use-drama";
+import { chapterKey, dramaKey, useChapter, useDramaMutation } from "@/hooks/use-drama";
 import { countChars, isConflict } from "@/lib/drama/story";
 import type { DramaChapter } from "@/lib/drama/types";
 import { updateChapter } from "@/services/drama-api";
@@ -15,19 +15,40 @@ import { PROSE_BODY, PROSE_FIELD_STYLE, PROSE_TITLE_STYLE, READING_COLUMN } from
 
 type Props = { dramaId: string; chapter: DramaChapter; meta: ReactNode; onDone: () => void };
 
-export function ChapterEditor({ dramaId, chapter, meta, onDone }: Props) {
+/** Loads the chapter with its body, then edits it. The snapshot only lists chapters without bodies. */
+export function ChapterEditor(props: Props) {
+    const { t } = useAppTranslation();
+    const full = useChapter(props.chapter.id);
+    if (full.data) return <ChapterForm {...props} chapter={full.data} />;
+    return (
+        <ChapterFrame meta={props.meta}>
+            <div className={`${READING_COLUMN} pt-8`}>
+                {full.isError ? (
+                    <Alert type="error" showIcon title={t("正文没能加载")} action={<button type="button" className="wg-text-button" onClick={() => void full.refetch()}>{t("重试")}</button>} />
+                ) : (
+                    <Loader2 className="mx-auto mt-10 size-5 animate-spin text-[color:var(--wg-home-muted)]" />
+                )}
+            </div>
+        </ChapterFrame>
+    );
+}
+
+function ChapterForm({ dramaId, chapter, meta, onDone }: Props) {
     const { t } = useAppTranslation();
     const { message, modal } = App.useApp();
     const client = useQueryClient();
     const [draft, setDraft] = useState({ title: chapter.title, body: chapter.body, summary: chapter.summary, endState: chapter.endState });
     const [conflict, setConflict] = useState(false);
     const dirty = draft.title !== chapter.title || draft.body !== chapter.body || draft.summary !== chapter.summary || draft.endState !== chapter.endState;
-    const save = useDramaMutation(() => updateChapter(chapter.id, { rev: chapter.rev, ...draft, title: draft.title.trim() }), [dramaKey(dramaId)]);
+    const save = useDramaMutation(() => updateChapter(chapter.id, { rev: chapter.rev, ...draft, title: draft.title.trim() }), [dramaKey(dramaId), chapterKey(chapter.id)]);
 
     const submit = () => {
         if (!draft.title.trim()) return void message.warning(t("章节需要一个标题"));
         save.mutate(undefined, {
-            onSuccess: onDone,
+            onSuccess: (saved) => {
+                client.setQueryData(chapterKey(chapter.id), saved);
+                onDone();
+            },
             onError: (error) => (isConflict(error) ? setConflict(true) : void message.error(error instanceof Error ? error.message : t("保存失败，请重试"))),
         });
     };
@@ -66,7 +87,7 @@ export function ChapterEditor({ dramaId, chapter, meta, onDone }: Props) {
                             title={t("内容已在别处修改")}
                             description={t("为避免覆盖，这次修改没有保存。重新载入后可以接着编辑。")}
                             action={
-                                <button type="button" className="wg-text-button !border !border-[color:var(--wg-home-line)]" onClick={() => void client.invalidateQueries({ queryKey: dramaKey(dramaId) }).then(onDone)}>
+                                <button type="button" className="wg-text-button !border !border-[color:var(--wg-home-line)]" onClick={() => void Promise.all([client.invalidateQueries({ queryKey: dramaKey(dramaId) }), client.invalidateQueries({ queryKey: chapterKey(chapter.id) })]).then(onDone)}>
                                     {t("重新载入")}
                                 </button>
                             }

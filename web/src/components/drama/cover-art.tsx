@@ -1,6 +1,6 @@
 import { useId } from "react";
 
-export const COVER_VARIANT_COUNT = 5;
+const COVER_VARIANT_COUNT = 5;
 const GLOWS = ["#c6ad7f", "#9fb7c9", "#b9a3c4", "#a9bf9c", "#d1a28f"];
 
 /** Small deterministic PRNG so a {variant, seed} cover always draws the same picture. */

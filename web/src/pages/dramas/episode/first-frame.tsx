@@ -56,7 +56,7 @@ export function FirstFrameOption({ source, tailAllowed, onChange }: Props) {
                     ]}
                 />
             </div>
-            {!tailAllowed ? <p className="text-[11px] leading-4 text-[color:var(--wg-home-muted)]">{t("上一镜尾帧只用于连续镜头，且上一镜要先采用视频")}</p> : null}
+            <p className="text-[11px] leading-4 text-[color:var(--wg-home-muted)]">{tailAllowed ? t("连续镜头默认接着上一镜的结尾，也可以改用本镜画面") : t("上一镜尾帧只用于连续镜头，且上一镜要先采用视频")}</p>
         </div>
     );
 }

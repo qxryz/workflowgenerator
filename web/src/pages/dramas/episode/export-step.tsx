@@ -1,12 +1,13 @@
 import { Alert, App } from "antd";
 import { Clapperboard, Loader2 } from "lucide-react";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { adoptedByShot, exportErrorText, shotsMissingVideo } from "@/lib/drama/episode-steps";
 import type { DramaExport, ExportOptions } from "@/lib/drama/types";
 import { publishUploadedMedia, uploadMediaFile } from "@/services/file-storage";
 import { cancelExport, createExport, getExport } from "@/services/drama-api";
+import { registerRuntimeMediaReferenceProvider } from "@/services/media-reference-snapshot";
 import type { EpisodeCtx } from "./context";
 import { ExportChecklist } from "./export-checklist";
 import { ExportOptionsForm, type Music } from "./export-options";
@@ -46,6 +47,10 @@ export function ExportStep({ ctx }: { ctx: EpisodeCtx }) {
     const voices = adoptedByShot(artifacts, "audio").size;
     const [options, setOptions] = useState<ExportOptions>({ resolution: "1080p", keepOriginalAudio: true, includeVoice: voices > 0, musicVolume: 0.3 });
     const [music, setMusic] = useState<Music>();
+    // The music file is uploaded before the export exists; keep it from media cleanup while this step holds it.
+    const heldMusic = useRef(music);
+    heldMusic.current = music;
+    useEffect(() => registerRuntimeMediaReferenceProvider(() => (heldMusic.current ? [heldMusic.current.key, heldMusic.current.url] : null)), []);
     const [uploading, setUploading] = useState(false);
     const [starting, setStarting] = useState(false);
     const [problem, setProblem] = useState("");

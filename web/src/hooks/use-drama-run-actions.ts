@@ -2,7 +2,7 @@ import { useQueryClient } from "@tanstack/react-query";
 import { App } from "antd";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { dramaKey, episodeKey } from "@/hooks/use-drama";
+import { chaptersKey, dramaKey, episodeKey } from "@/hooks/use-drama";
 import type { DramaRun } from "@/lib/drama/types";
 import { deleteRun, updateRun } from "@/services/drama-api";
 import { useDramaRuns } from "@/stores/use-drama-runs";
@@ -17,6 +17,8 @@ export function useDramaRunActions(dramaId: string | undefined) {
         if (dramaId) void client.invalidateQueries({ queryKey: dramaKey(dramaId) });
         if (run?.episodeId) void client.invalidateQueries({ queryKey: episodeKey(run.episodeId) });
         if (run) void client.invalidateQueries({ queryKey: ["drama-run", run.id] });
+        // Adopting a chapter result replaces a chapter's text.
+        void client.invalidateQueries({ queryKey: chaptersKey });
     };
 
     /** Aborts the stream when this tab owns it; otherwise (orphaned run) marks it stopped directly. */

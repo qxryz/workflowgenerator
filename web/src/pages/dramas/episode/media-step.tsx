@@ -4,22 +4,26 @@ import { useEffect, useMemo } from "react";
 import { StoryboardStrip } from "@/components/drama/storyboard-strip";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { neighbourShot, type ShotMediaKind } from "@/lib/drama/episode-steps";
+import { lookAvailable } from "@/lib/drama/media/prompts";
 import { isStale } from "@/lib/drama/media/state";
 import { BatchBar } from "./batch-bar";
 import type { EpisodeCtx } from "./context";
 import { prepareEnv, prepareShot } from "./prepare";
 import { ShotPanel } from "./shot-panel";
 
-const TYPING = "input, textarea, select, video, audio, [contenteditable='true'], [role='slider'], [role='combobox']";
+/** Anything the arrow keys already mean something to: fields, buttons and links, segmented and radio groups, tabs, sliders, players. */
+const INTERACTIVE =
+    "input, textarea, select, button, a[href], summary, video, audio, [contenteditable='true'], [tabindex]:not([tabindex='-1']), .ant-segmented, .ant-select, .ant-slider, " +
+    ["slider", "combobox", "tablist", "tab", "radiogroup", "radio", "listbox", "menu", "menuitem", "switch", "spinbutton"].map((role) => `[role='${role}']`).join(", ");
 
-/** ←/→ move the selected shot unless the user is typing, scrubbing a player, or something floats above the page. */
+/** ←/→ move the selected shot unless focus is in an interactive control (the shot cards themselves excepted) or something floats above the page. */
 function useShotKeys(ctx: EpisodeCtx) {
     const { shots, selectedId, select } = ctx;
     useEffect(() => {
         const onKey = (event: KeyboardEvent) => {
             if ((event.key !== "ArrowLeft" && event.key !== "ArrowRight") || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
             const target = event.target as Element | null;
-            if (target instanceof Element && (target.closest(TYPING) || !(target === document.body || target.closest("main")))) return;
+            if (target instanceof Element && (!(target === document.body || target.closest("main")) || (target.closest(INTERACTIVE) && !target.closest("[data-shot]")))) return;
             const next = neighbourShot(shots, selectedId, event.key === "ArrowRight" ? 1 : -1);
             if (!next) return;
             event.preventDefault();
@@ -53,8 +57,7 @@ export function MediaStep({ ctx, kind }: { ctx: EpisodeCtx; kind: ShotMediaKind 
     }
 
     const selected = shots.find((shot) => shot.id === selectedId) ?? shots[0];
-    const hasStyle = Boolean(project.style && (project.style.prompt || project.style.promptEn));
-    const hasPalette = Boolean(project.palette?.colors.length);
+    const { hasStyle, hasPalette } = lookAvailable(project);
     // Out of date = made from other inputs than today's, judged with every available look on, as the workbench does.
     const stale = (shot: (typeof shots)[number], adopted?: (typeof artifacts)[number]) =>
         Boolean(adopted) && isStale(adopted!, prepareShot(kind, env, shot, { useStyle: hasStyle, usePalette: hasPalette, language, model: adopted!.model }).inputHash);

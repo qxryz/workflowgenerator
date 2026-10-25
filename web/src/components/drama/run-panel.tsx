@@ -16,7 +16,7 @@ import { StatusTag } from "@/components/drama/status-tag";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { useDramaRunActions } from "@/hooks/use-drama-run-actions";
 import { useNow } from "@/hooks/use-now";
-import { formatClock, formatElapsed } from "@/lib/drama/format";
+import { formatClock, formatElapsed, runErrorText } from "@/lib/drama/format";
 import { RUN_STAGE_LABELS } from "@/lib/drama/labels";
 import type { DramaRun, DramaSnapshot, RunStage } from "@/lib/drama/types";
 import { useDramaRuns } from "@/stores/use-drama-runs";
@@ -107,7 +107,7 @@ function RunRow({ run, snapshot, now, onNavigate, showStage }: { run: DramaRun; 
                     {showStage || !scope ? t(RUN_STAGE_LABELS[run.stage]) : null}
                     {scope ? <span className={showStage || !scope ? "ml-1.5 font-normal text-[color:var(--wg-home-muted)]" : undefined}>{scope}</span> : null}
                 </span>
-                <StatusTag status={run.status} />
+                <StatusTag status={run.status} stage={run.stage} />
             </div>
             <div className="mt-1.5 flex items-center gap-2 text-[12px] tabular-nums text-[color:var(--wg-home-muted)]">
                 <span>{run.status === "running" ? t("已用时 {time}", { time: formatElapsed(now - run.createdAt) }) : formatClock(run.finishedAt ?? run.createdAt)}</span>
@@ -138,7 +138,7 @@ function RunRow({ run, snapshot, now, onNavigate, showStage }: { run: DramaRun; 
                 </span>
             </div>
             {run.status === "running" ? <LiveText runId={run.id} collapsible defaultOpen={false} className="mt-2" /> : null}
-            {run.status === "failed" && run.error ? <p className="mt-2 text-[12px] leading-5 text-destructive">{run.error}</p> : null}
+            {(run.status === "failed" || run.status === "stopped") && run.error ? <p className={`mt-2 text-[12px] leading-5 ${run.status === "failed" ? "text-destructive" : "text-[color:var(--wg-home-muted)]"}`}>{runErrorText(run.error, t)}</p> : null}
         </li>
     );
 }

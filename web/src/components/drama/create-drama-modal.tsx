@@ -10,15 +10,12 @@ import { useMemo, useRef, useState, type ReactNode } from "react";
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { splitChapters } from "@/lib/drama/import-text";
+import { SOURCE_TYPE_LABELS } from "@/lib/drama/labels";
 import type { DramaAspect, DramaProject, DramaSourceType } from "@/lib/drama/types";
 import { createDrama } from "@/services/drama-api";
 
 const MAX_IMPORT_BYTES = 8 * 1024 * 1024;
-const SOURCES: Array<{ value: DramaSourceType; label: string }> = [
-    { value: "original", label: "原创" },
-    { value: "novel", label: "小说改编" },
-    { value: "script", label: "已有剧本" },
-];
+const SOURCES = Object.keys(SOURCE_TYPE_LABELS) as DramaSourceType[];
 const ASPECTS: DramaAspect[] = ["16:9", "9:16", "1:1"];
 
 type Props = { open: boolean; onClose: () => void; onCreated: (project: DramaProject) => void };
@@ -76,7 +73,7 @@ export function CreateDramaModal({ open, onClose, onCreated }: Props) {
                     <Input value={title} onChange={(event) => setTitle(event.target.value)} maxLength={60} placeholder={t("给剧目起个名字")} autoFocus />
                 </Field>
                 <Field label="来源">
-                    <Segmented value={sourceType} onChange={setSourceType} options={SOURCES.map((item) => ({ value: item.value, label: t(item.label) }))} />
+                    <Segmented value={sourceType} onChange={setSourceType} options={SOURCES.map((value) => ({ value, label: t(SOURCE_TYPE_LABELS[value]) }))} />
                 </Field>
                 <Field label={imported ? "简介" : "简介或创意"}>
                     <Input.TextArea value={brief} onChange={(event) => setBrief(event.target.value)} autoSize={{ minRows: 3, maxRows: 6 }} placeholder={t(imported ? "一两句话说明这部剧讲什么（可留空）" : "写下你的故事构想：题材、主角、想要的氛围")} />

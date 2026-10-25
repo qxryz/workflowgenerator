@@ -1,7 +1,7 @@
 /**
  * GenerationWorkbench — the one panel for making and choosing media: 设定图 (sheet), 分镜图 (image),
  * 视频 (video), 配音 (audio). Source switch 生成 / 上传 / 资产库, options, exact prompt preview,
- * then the owner's candidates (adopt / delete / enlarge).
+ * then the owner's results (adopt / delete / enlarge).
  *
  * Contract (wave-2 pages depend on it exactly):
  *
@@ -14,6 +14,7 @@
  *     extraOptions?: ReactNode;                 // kind-specific controls (e.g. 首帧来源)
  *     disabledReason?: string;                  // disables 生成 and is shown as the hint
  *     onChange: () => void;                     // refetch the owner's data after any change
+ *     onPoll?: () => void;                      // refetch while a result is generating (every 3s); omit when the page already polls
  *   };
  *
  * - `prepare` is called with the toggles the user sees; the prompt/references it returns are what is sent.
@@ -21,13 +22,14 @@
  *   and `quality` (images) / `resolution` + `generateAudio` (video) / `voice` (audio) from its own controls.
  * - Staleness ignores the toggles: an artifact is 过期 when its inputHash differs from `prepare` called with
  *   every available look on and the artifact's own model, so unticking 画风 never marks work stale.
- * - Candidates are server state; this panel only calls `onChange` every 2s while one is generating.
+ * - Results are server state; this panel only calls `onPoll` every 3s while one is generating, and stops as soon as none is.
+ * - The prompt shown is `sentPrompt(...)`, the same text the runner sends.
  */
 import { App, Checkbox, Input, Segmented, Select, Switch } from "antd";
 import { ChevronRight, Loader2, Sparkles } from "lucide-react";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 
-import { CandidateGrid } from "@/components/drama/generation-candidates";
+import { ResultGrid } from "@/components/drama/generation-results";
 import { LibraryPicker, UploadZone, type LibraryPick } from "@/components/drama/generation-sources";
 import { MediaPreview, type PreviewTarget } from "@/components/drama/media-preview";
 import { ModelPicker } from "@/components/model-picker";
@@ -36,8 +38,8 @@ import { adoptArtifact, deleteArtifact } from "@/services/drama-api";
 import { ARTIFACT_KIND_LABELS } from "@/lib/drama/labels";
 import { capabilityOf, normalizeQuality, qualityChoices, supportsGenerateAudio, VIDEO_RESOLUTIONS } from "@/lib/drama/media/model-options";
 import { generate, importMedia, resumePending, type Owner } from "@/lib/drama/media/runner";
-import { humanError, isStale, requestPlan } from "@/lib/drama/media/state";
-import { withReferenceNotes, type RefImage, type ReferencePlan } from "@/lib/drama/media/references";
+import { humanError, isStale, requestPlan, sentPrompt } from "@/lib/drama/media/state";
+import type { RefImage, ReferencePlan } from "@/lib/drama/media/references";
 import type { ArtifactKind, DramaArtifact, DramaAspect } from "@/lib/drama/types";
 import type { AppLanguage } from "@/lib/i18n";
 import { cn } from "@/lib/utils";
@@ -58,14 +60,16 @@ export type GenerationWorkbenchProps = {
     extraOptions?: ReactNode;
     disabledReason?: string;
     onChange: () => void;
+    onPoll?: () => void;
 };
 
 type Source = "generate" | "upload" | "library";
+const POLL_MS = 3000;
 /** Last model picked per kind, for the rest of the session. */
 const lastModel: Partial<Record<ArtifactKind, string>> = {};
 
 export function GenerationWorkbench(props: GenerationWorkbenchProps) {
-    const { dramaId, owner, kind, title, route, artifacts, prepare, hasStyle, hasPalette, extraOptions, disabledReason, onChange } = props;
+    const { dramaId, owner, kind, title, route, artifacts, prepare, hasStyle, hasPalette, extraOptions, disabledReason, onChange, onPoll } = props;
     const { t, language } = useAppTranslation();
     const { message, modal } = App.useApp();
     const config = useEffectiveConfig();
@@ -100,15 +104,16 @@ export function GenerationWorkbench(props: GenerationWorkbenchProps) {
         return hashes.get(artifactModel)!;
     };
 
-    const changed = useRef(onChange);
-    changed.current = onChange;
+    const polled = useRef(onPoll);
+    polled.current = onPoll;
     useEffect(() => resumePending(artifacts, route), [artifacts, route]);
     const generating = artifacts.some((artifact) => artifact.status === "pending");
+    const polling = generating && Boolean(onPoll);
     useEffect(() => {
-        if (!generating) return;
-        const timer = window.setInterval(() => changed.current(), 2000);
+        if (!polling) return;
+        const timer = window.setInterval(() => polled.current?.(), POLL_MS);
         return () => window.clearInterval(timer);
-    }, [generating]);
+    }, [polling]);
 
     const readyHint = !model
         ? "先在「模型与渠道」里添加模型"
@@ -153,7 +158,7 @@ export function GenerationWorkbench(props: GenerationWorkbenchProps) {
     const remove = (artifact: DramaArtifact) => {
         const drop = () => act(deleteArtifact(artifact.id));
         if (!artifact.adopted) return void drop();
-        modal.confirm({ title: t("删除已采用的{kind}？", { kind: t(ARTIFACT_KIND_LABELS[kind]) }), content: t("删除后需要重新采用其他候选。"), okText: t("删除"), cancelText: t("取消"), okButtonProps: { danger: true }, onOk: drop });
+        modal.confirm({ title: t("删除已采用的{kind}？", { kind: t(ARTIFACT_KIND_LABELS[kind]) }), content: t("删除后需要重新采用其他结果。"), okText: t("删除"), cancelText: t("取消"), okButtonProps: { danger: true }, onOk: drop });
     };
 
     return (
@@ -249,7 +254,7 @@ export function GenerationWorkbench(props: GenerationWorkbenchProps) {
                                         <p className="mt-1 text-[11px] text-[color:var(--wg-home-muted)]">{t("只对这一次生成有效")}</p>
                                     </>
                                 ) : (
-                                    <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-5 text-[color:var(--wg-home-text)]">{withReferenceNotes(edited, plan)}</pre>
+                                    <pre className="max-h-56 overflow-y-auto whitespace-pre-wrap font-sans text-xs leading-5 text-[color:var(--wg-home-text)]">{sentPrompt(kind, edited, plan)}</pre>
                                 )}
                             </div>
                         ) : null}
@@ -263,7 +268,7 @@ export function GenerationWorkbench(props: GenerationWorkbenchProps) {
                 </div>
             ) : null}
 
-            <CandidateGrid
+            <ResultGrid
                 artifacts={artifacts}
                 kind={kind}
                 ratio={ratio}

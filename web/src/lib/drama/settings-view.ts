@@ -1,60 +1,33 @@
-import { RELATION_KIND_LABELS } from "./labels.ts";
-import type { DramaArtifact, DramaEntity, DramaRelation, EntityKind, RelationKind, SettingsProposal } from "./types.ts";
+import type { DramaArtifact, DramaEntity, EntityKind, RelationKind, SettingsProposal } from "./types.ts";
 
 /** Catalogue order; props are special-cased (shown under their owner and in their own group). */
 export const KIND_ORDER: readonly EntityKind[] = ["character", "scene", "prop", "world"];
 export type KindFilter = "all" | EntityKind;
 
-const key = (text: string) => text.replace(/\s+/g, "").toLowerCase();
-const namesOf = (entity: Pick<DramaEntity, "name" | "aliases">) => [entity.name, ...entity.aliases].map(key);
-
-/** Who a name, alias or short label ("E3") points at; the first hit wins. */
-export function findEntity<T extends Pick<DramaEntity, "label" | "name" | "aliases" | "kind">>(entities: readonly T[], reference: string, kind?: EntityKind): T | undefined {
-    const wanted = key(reference);
-    if (!wanted) return undefined;
-    return entities.find((entity) => key(entity.label) === wanted) ?? entities.find((entity) => (!kind || entity.kind === kind) && namesOf(entity).includes(wanted));
-}
+/** Short labels ("E3") only reach the screen as the names they stand for. */
+const nameOf = (entities: readonly Pick<DramaEntity, "label" | "name">[], reference: string) => entities.find((entity) => entity.label.toLowerCase() === reference.trim().toLowerCase())?.name ?? reference;
 
 export type ChangeKind = "new" | "update";
 type ProposalEntity = SettingsProposal["entities"][number];
 export type ProposalRow = { item: ProposalEntity; change: ChangeKind; parent: string };
-export type ProposalRelationRow = { from: string; to: string; kind: RelationKind; label: string; note: string; change: ChangeKind };
+export type ProposalRelationRow = { from: string; to: string; kind: RelationKind; label: string; note: string };
 export type ProposalView = {
     groups: Array<{ kind: EntityKind; rows: ProposalRow[] }>;
     relations: ProposalRelationRow[];
     counts: { added: number; updated: number; relations: number };
 };
 
-/** An item updates an existing setting when it names one by `ref`, or has the same kind and name (or alias). Nothing is ever deleted. */
-export function matchExisting(entities: readonly DramaEntity[], item: Pick<ProposalEntity, "ref" | "kind" | "name">): DramaEntity | undefined {
-    if (item.ref) {
-        const byRef = entities.find((entity) => key(entity.label) === key(item.ref!));
-        if (byRef) return byRef;
-    }
-    return entities.find((entity) => entity.kind === item.kind && namesOf(entity).includes(key(item.name)));
+/**
+ * What a settings result shows. The server decides what updates what and marks every item it will update
+ * with `ref`, so "ref present" is the whole rule here; nothing is ever deleted.
+ */
+export function proposalView(proposal: SettingsProposal, entities: readonly DramaEntity[]): ProposalView {
+    const rows = proposal.entities.map<ProposalRow>((item) => ({ item, change: item.ref ? "update" : "new", parent: item.parent ? nameOf(entities, item.parent) : "" }));
+    const groups = KIND_ORDER.map((kind) => ({ kind, rows: rows.filter((row) => row.item.kind === kind) })).filter((group) => group.rows.length);
+    const relations = proposal.relations.map<ProposalRelationRow>((relation) => ({ ...relation, from: nameOf(entities, relation.from), to: nameOf(entities, relation.to) }));
+    const updated = rows.filter((row) => row.change === "update").length;
+    return { groups, relations, counts: { added: rows.length - updated, updated, relations: relations.length } };
 }
-
-/** Turns a settings proposal into the change list the review shows. */
-export function classifyProposal(proposal: SettingsProposal, entities: readonly DramaEntity[], relations: readonly DramaRelation[]): ProposalView {
-    const matched = proposal.entities.map((item) => matchExisting(entities, item));
-    const resolve = (reference: string): { id?: string; name: string } => {
-        const index = proposal.entities.findIndex((item) => namesOf(item).includes(key(reference)));
-        if (index >= 0) return { id: matched[index]?.id, name: proposal.entities[index].name };
-        const existing = findEntity(entities, reference);
-        return { id: existing?.id, name: existing?.name ?? reference };
-    };
-    const rows = proposal.entities.map<ProposalRow & { kind: EntityKind }>((item, index) => ({ kind: item.kind, item, change: matched[index] ? "update" : "new", parent: item.parent ? resolve(item.parent).name : "" }));
-    const groups = KIND_ORDER.map((kind) => ({ kind, rows: rows.filter((row) => row.kind === kind) })).filter((group) => group.rows.length);
-    const links = proposal.relations.map<ProposalRelationRow>((relation) => {
-        const from = resolve(relation.from);
-        const to = resolve(relation.to);
-        const known = from.id && to.id && relations.some((existing) => existing.fromId === from.id && existing.toId === to.id && existing.kind === relation.kind);
-        return { from: from.name, to: to.name, kind: relation.kind, label: relation.label, note: relation.note, change: known ? "update" : "new" };
-    });
-    return { groups, relations: links, counts: { added: rows.filter((row) => row.change === "new").length, updated: rows.filter((row) => row.change === "update").length, relations: links.length } };
-}
-
-export const relationText = (relation: Pick<DramaRelation, "kind" | "label">) => relation.label.trim() || RELATION_KIND_LABELS[relation.kind];
 
 export type Catalogue = {
     sections: Array<{ kind: EntityKind; entities: DramaEntity[]; unowned?: boolean }>;
@@ -83,13 +56,6 @@ export function buildCatalogue(entities: readonly DramaEntity[], filter: KindFil
     const counts: Record<KindFilter, number> = { all: entities.length, character: 0, scene: 0, prop: 0, world: 0 };
     for (const entity of entities) counts[entity.kind] += 1;
     return { sections, owned, counts };
-}
-
-/** The adopted, ready sheet of each entity. */
-export function adoptedSheets(artifacts: readonly DramaArtifact[]): Map<string, DramaArtifact> {
-    const sheets = new Map<string, DramaArtifact>();
-    for (const artifact of artifacts) if (artifact.kind === "sheet" && artifact.adopted && artifact.status === "ready" && artifact.entityId) sheets.set(artifact.entityId, artifact);
-    return sheets;
 }
 
 /** Newest first, as the workbench expects. */

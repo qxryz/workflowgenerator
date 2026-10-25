@@ -10,11 +10,13 @@ import { DramaTabs, type DramaTabItem } from "@/components/drama/drama-tabs";
 import { RunPanelButton } from "@/components/drama/run-panel";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { dramaKey, episodeKey, useDrama, useEpisode } from "@/hooks/use-drama";
+import { useOrphanedRuns } from "@/hooks/use-orphaned-runs";
 import { defaultStep, isEpisodeStep, pendingShots, stepProgress, type EpisodeStep, type ShotMediaKind, type StepProgress } from "@/lib/drama/episode-steps";
+import { adoptedSheets } from "@/lib/drama/media/references";
 import { resumePending } from "@/lib/drama/media/runner";
 import type { DramaRun, EpisodeSnapshot } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
-import { adoptedSheets, entityMap, type EpisodeCtx } from "./episode/context";
+import { entityMap, type EpisodeCtx } from "./episode/context";
 import { ExportStep } from "./episode/export-step";
 import { MediaStep } from "./episode/media-step";
 import { ScriptStep } from "./episode/script-step";
@@ -39,19 +41,24 @@ export default function EpisodePage() {
     const episodeQuery = useEpisode(eid);
     const { data: snapshot } = drama;
     const data = episodeQuery.data;
+    useOrphanedRuns(id, snapshot?.runs, eid);
 
     const base = `/dramas/${id}/episodes/${eid}`;
-    const refresh = useCallback(() => void client.invalidateQueries({ queryKey: episodeKey(eid ?? "") }), [client, eid]);
+    const refresh = useCallback(() => {
+        void client.invalidateQueries({ queryKey: episodeKey(eid ?? "") });
+        void client.invalidateQueries({ queryKey: dramaKey(id ?? "") });
+    }, [client, eid, id]);
     const refetchEpisode = episodeQuery.refetch;
 
     // Keep generating work moving: pick up videos that were left running, and watch pending ones until they settle.
     useEffect(() => {
         if (data) resumePending(data.artifacts, base);
     }, [data, base]);
+    // Only the episode is polled; the drama snapshot is refreshed when a generation finishes or changes.
     const generating = Boolean(data?.artifacts.some((artifact) => artifact.status === "pending"));
     useEffect(() => {
         if (!generating) return;
-        const timer = window.setInterval(() => void refetchEpisode(), 2000);
+        const timer = window.setInterval(() => void refetchEpisode(), 3000);
         return () => window.clearInterval(timer);
     }, [generating, refetchEpisode]);
 

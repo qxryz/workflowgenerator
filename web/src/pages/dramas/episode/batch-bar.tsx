@@ -26,7 +26,7 @@ export function BatchBar({ ctx, kind }: Props) {
     const model = preferred && models.includes(preferred) ? preferred : (models[0] ?? "");
 
     const images = useMemo(() => planImageBatch(ctx.shots, ctx.artifacts), [ctx.shots, ctx.artifacts]);
-    const videos = useMemo(() => planVideoBatch(ctx.shots, ctx.artifacts), [ctx.shots, ctx.artifacts]);
+    const videos = useMemo(() => planVideoBatch(ctx.shots, ctx.artifacts, autoAdopt), [ctx.shots, ctx.artifacts, autoAdopt]);
     const first = kind === "image" && images.mode === "first";
     const shotIds = kind === "image" ? images.shotIds : videos.shotIds;
 
@@ -35,7 +35,7 @@ export function BatchBar({ ctx, kind }: Props) {
     const start = (adopt: boolean, concurrency: number) => {
         void runEpisodeBatch({ ctx, kind, shotIds, model, config, language, autoAdopt: adopt, concurrency, title: (n) => t("第 {count} 镜 · {kind}", { count: n, kind: t(kind === "image" ? "分镜图" : "视频") }) }).then((outcome) => {
             if (outcome.stopped) message.info(t("已停止，已经开始的镜头会继续完成"));
-            else if (outcome.failed) message.warning(t("有 {count} 个镜头没有生成成功，选中镜头可以看到原因", { count: outcome.failed }));
+            else if (outcome.failed || outcome.skipped) message.warning(outcome.note ? t(outcome.note) : t("有 {count} 个镜头没有生成成功，选中镜头可以看到原因", { count: outcome.failed }));
             else message.success(t("已生成 {count} 个", { count: outcome.made }));
         });
     };
@@ -52,8 +52,10 @@ export function BatchBar({ ctx, kind }: Props) {
             content: (
                 <div className="space-y-1 text-[13px] text-[color:var(--wg-home-muted)]">
                     <p>{t("使用 {model}，视频生成会产生费用。", { model: modelOptionName(model) })}</p>
+                    <p>{t("连续镜头默认用上一镜的结尾画面作首帧，其余镜头用本镜画面。")}</p>
                     {videos.skipped ? <p>{t("另有 {count} 镜还没有采用画面，会先跳过。", { count: videos.skipped })}</p> : null}
-                    {videos.chained ? <p>{t("连续镜头会接着上一镜的结尾，所以按顺序一镜一镜生成。")}</p> : null}
+                    {videos.waiting ? <p>{t("另有 {count} 镜要接着上一镜的结尾，上一镜采用视频后才能生成；打开「完成后自动采用」可以一镜接一镜生成。", { count: videos.waiting })}</p> : null}
+                    {videos.chained ? <p>{t("这些连续镜头会按顺序一镜一镜生成。")}</p> : null}
                 </div>
             ),
             okText: t("开始生成"),
@@ -69,7 +71,7 @@ export function BatchBar({ ctx, kind }: Props) {
             {finished ? (
                 <span className="flex items-center gap-1.5 text-[13px] text-[color:var(--wg-home-muted)]">
                     <Check className="size-4" strokeWidth={1.6} />
-                    {videos.skipped && kind === "video" ? t("还有 {count} 镜需要先采用画面", { count: videos.skipped }) : t(kind === "image" ? "所有镜头都已采用画面" : "所有镜头都已采用视频")}
+                    {kind === "video" && videos.skipped ? t("还有 {count} 镜需要先采用画面", { count: videos.skipped }) : kind === "video" && videos.waiting ? t("还有 {count} 镜要等上一镜采用视频", { count: videos.waiting }) : t(kind === "image" ? "所有镜头都已采用画面" : "所有镜头都已采用视频")}
                 </span>
             ) : (
                 <>
@@ -80,13 +82,13 @@ export function BatchBar({ ctx, kind }: Props) {
                     <span className="text-[12px] text-[color:var(--wg-home-muted)]">
                         {first ? t("先定下画风，再批量生成其余镜头") : t("还差 {count} 镜", { count: shotIds.length })}
                     </span>
-                    {!first && model ? (
-                        <Checkbox className="ml-auto" checked={autoAdopt} onChange={(event) => setAutoAdopt(event.target.checked)}>
-                            <span className="text-[12px]">{t("完成后自动采用")}</span>
-                        </Checkbox>
-                    ) : null}
                 </>
             )}
+            {!first && model && (!finished || (kind === "video" && videos.waiting > 0)) ? (
+                <Checkbox className="ml-auto" checked={autoAdopt} onChange={(event) => setAutoAdopt(event.target.checked)}>
+                    <span className="text-[12px]">{t("完成后自动采用")}</span>
+                </Checkbox>
+            ) : null}
         </div>
     );
 }

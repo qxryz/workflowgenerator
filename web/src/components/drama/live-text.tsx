@@ -2,7 +2,7 @@
  * LiveText — streamed model output of a run started in this tab.
  *
  * Props: `LiveText({ runId, collapsible?, defaultOpen?, className? })`. Renders nothing about the run itself,
- * only the phase line and the text; shows a short notice when the run is live elsewhere (no stream in this tab).
+ * only the phase line and the text. A run no tab streams (a reload cut it off) shows a short notice until it is marked stopped.
  */
 import { ChevronDown } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
@@ -24,7 +24,7 @@ export function LiveText({ runId, collapsible = false, defaultOpen = true, class
         if (box.current) box.current.scrollTop = box.current.scrollHeight;
     }, [live?.text, open]);
 
-    const phase = live ? t(PHASES[live.phase]) : t("任务在后台运行，这里看不到实时文字");
+    const phase = live ? t(PHASES[live.phase]) : t("正在确认任务状态…");
     return (
         <div className={className}>
             {collapsible ? (

@@ -4,14 +4,13 @@ import { useCallback, useState } from "react";
 import { ProposalShell } from "@/components/drama/proposal-shell";
 import { RunHistory, useStageRuns } from "@/components/drama/run-history";
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { countChars, ORIGIN_LABELS, type ChapterRow } from "@/lib/drama/story";
+import { isUnsettled } from "@/lib/drama/stage-runs";
+import { ORIGIN_LABELS, type ChapterRow } from "@/lib/drama/story";
 import type { ChapterProposal, DramaRun, DramaSnapshot } from "@/lib/drama/types";
 import { ChapterEditor } from "./chapter-editor";
 import { ChapterFrame } from "./chapter-frame";
 import { ChapterReader } from "./chapter-reader";
 import { ChapterResult } from "./chapter-result";
-
-const UNSETTLED = ["running", "review", "failed", "stopped"];
 
 type Props = { snapshot: DramaSnapshot; row: ChapterRow; onDeleted: () => void };
 
@@ -26,11 +25,11 @@ export function ChapterCenter({ snapshot, row, onDeleted }: Props) {
     const [onChapter, setOnChapter] = useState(Boolean(chapter) && row.run?.status === "failed");
 
     const shown = history.find((run) => run.id === picked) ?? row.run;
-    const unsettled = shown !== undefined && UNSETTLED.includes(shown.status);
+    const unsettled = shown !== undefined && isUnsettled(shown);
     const meta = (
         <>
-            <span className="shrink-0 rounded-md border border-[color:var(--wg-home-line)] px-1.5 py-0.5 text-[11px] tabular-nums">{chapter?.label ?? `C${ord}`}</span>
-            <span className="truncate">{chapter ? `${t(ORIGIN_LABELS[chapter.origin])} · ${t("{count} 字", { count: countChars(chapter.body).toLocaleString() })}` : t("新章节")}</span>
+            <span className="shrink-0 rounded-md border border-[color:var(--wg-home-line)] px-1.5 py-0.5 text-[11px] tabular-nums">{t("第 {count} 章", { count: ord })}</span>
+            <span className="truncate">{chapter ? `${t(ORIGIN_LABELS[chapter.origin])} · ${t("{count} 字", { count: chapter.chars.toLocaleString() })}` : t("新章节")}</span>
         </>
     );
     const toggle = unsettled && chapter ? (
@@ -38,7 +37,7 @@ export function ChapterCenter({ snapshot, row, onDeleted }: Props) {
     ) : null;
     const historySelect = history.length > 1 || unsettled ? <RunHistory runs={history} selectedId={shown?.id} onSelect={(id) => { setPicked(id); setOnChapter(false); }} /> : null;
     const shell = shown ? (
-        <ProposalShell run={shown} title={t("第 {ord} 章草稿", { ord })} onAdopted={() => { setPicked(undefined); setOnChapter(true); }}>
+        <ProposalShell key={shown.id} run={shown} title={t("第 {ord} 章草稿", { ord })} onAdopted={() => { setPicked(undefined); setOnChapter(true); }}>
             {(proposal) => <ChapterResult proposal={proposal as ChapterProposal} />}
         </ProposalShell>
     ) : null;

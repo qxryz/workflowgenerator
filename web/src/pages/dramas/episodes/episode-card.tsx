@@ -21,7 +21,7 @@ export function EpisodeCard({ snapshot, episode, onEdit }: Props) {
     const confirmDelete = () =>
         modal.confirm({
             title: t("删除第 {ord} 集「{title}」？", { ord: episode.ord, title: episode.title }),
-            content: t("这一集的剧本、镜头，以及已生成的画面和视频也会一起删除，无法恢复。"),
+            content: t("这一集的剧本、镜头，以及已生成的画面、视频和配音也会一起删除，无法恢复。"),
             okText: t("删除"),
             cancelText: t("取消"),
             okButtonProps: { danger: true },

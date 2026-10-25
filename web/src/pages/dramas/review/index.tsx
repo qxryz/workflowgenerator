@@ -6,7 +6,7 @@ import { ProposalShell } from "@/components/drama/proposal-shell";
 import { RunHistory, useStageRuns } from "@/components/drama/run-history";
 import { StartTaskButton } from "@/components/drama/start-task-button";
 import { useAppTranslation } from "@/hooks/use-app-translation";
-import { defaultReviewOrds, formatChapterRefs } from "@/lib/drama/story";
+import { chapterNo, defaultReviewOrds, formatChapterRefs } from "@/lib/drama/story";
 import type { DramaRun, DramaSnapshot, ReviewProposal } from "@/lib/drama/types";
 import { ReviewReport } from "./report";
 
@@ -46,7 +46,7 @@ export function ReviewSection({ snapshot }: { snapshot: DramaSnapshot }) {
                             onChange={(value: number[]) => setChosen([...value].sort((a, b) => a - b))}
                             maxTagCount="responsive"
                             placeholder={t("选择章节")}
-                            options={snapshot.chapters.map((chapter) => ({ value: chapter.ord, label: `${chapter.label} ${chapter.title}` }))}
+                            options={snapshot.chapters.map((chapter) => ({ value: chapter.ord, label: `${chapterNo(chapter.ord, t)} ${chapter.title}` }))}
                             aria-label={t("复核哪些章节")}
                         />
                         <button type="button" className="wg-text-button !h-7" disabled={ords.length === all.length} onClick={() => setChosen(all)}>{t("全选")}</button>
@@ -68,7 +68,7 @@ export function ReviewSection({ snapshot }: { snapshot: DramaSnapshot }) {
             </div>
             <div className="mx-auto flex min-h-0 w-full max-w-3xl flex-1 flex-col px-6 py-5">
                 {shown ? (
-                    <ProposalShell run={shown} title={title!}>
+                    <ProposalShell key={shown.id} run={shown} title={title!}>
                         {(proposal) => <ReviewReport proposal={proposal as ReviewProposal} run={shown} snapshot={snapshot} />}
                     </ProposalShell>
                 ) : (

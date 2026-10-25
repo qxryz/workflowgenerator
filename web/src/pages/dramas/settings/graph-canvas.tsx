@@ -51,21 +51,41 @@ export function GraphCanvas(props: Props) {
     const latest = useRef({ view, onView });
     latest.current = { view, onView };
 
-    // Wheel zoom needs a non-passive listener to keep the page from scrolling.
+    // Wheel zoom needs a non-passive listener to keep the page from scrolling. Safari and WKWebView report a trackpad
+    // pinch as gesture events rather than ctrl+wheel, so those are handled the same way.
     useEffect(() => {
         const svg = root.current;
         if (!svg) return;
-        const wheel = (event: WheelEvent) => {
-            event.preventDefault();
+        const zoomTo = (target: number, clientX: number, clientY: number) => {
             const { view: current, onView: set } = latest.current;
             const rect = svg.getBoundingClientRect();
-            const k = Math.min(2.5, Math.max(0.25, current.k * Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0015))));
-            const x = event.clientX - rect.left,
-                y = event.clientY - rect.top;
+            const k = Math.min(2.5, Math.max(0.25, target));
+            const x = clientX - rect.left,
+                y = clientY - rect.top;
             set({ k, x: x - ((x - current.x) / current.k) * k, y: y - ((y - current.y) / current.k) * k });
         };
+        const wheel = (event: WheelEvent) => {
+            event.preventDefault();
+            zoomTo(latest.current.view.k * Math.exp(-event.deltaY * (event.ctrlKey ? 0.01 : 0.0015)), event.clientX, event.clientY);
+        };
+        let pinchFrom = 1;
+        const pinchStart = (event: Event) => {
+            event.preventDefault();
+            pinchFrom = latest.current.view.k;
+        };
+        const pinch = (event: Event) => {
+            event.preventDefault();
+            const { scale, clientX, clientY } = event as Event & { scale: number; clientX: number; clientY: number };
+            zoomTo(pinchFrom * scale, clientX, clientY);
+        };
         svg.addEventListener("wheel", wheel, { passive: false });
-        return () => svg.removeEventListener("wheel", wheel);
+        svg.addEventListener("gesturestart", pinchStart);
+        svg.addEventListener("gesturechange", pinch);
+        return () => {
+            svg.removeEventListener("wheel", wheel);
+            svg.removeEventListener("gesturestart", pinchStart);
+            svg.removeEventListener("gesturechange", pinch);
+        };
     }, []);
 
     const world = (event: { clientX: number; clientY: number }): Point => {

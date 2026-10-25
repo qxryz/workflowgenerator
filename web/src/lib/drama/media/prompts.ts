@@ -1,11 +1,17 @@
 import type { AppLanguage } from "@/lib/i18n";
 import { CAMERA_MOVES, SHOT_SIZES, promptTerm } from "@/lib/drama/labels";
-import type { DramaAspect, DramaEntity, DramaPalette, DramaShot, DramaStyle, PropState } from "../types";
+import type { DramaAspect, DramaEntity, DramaPalette, DramaProject, DramaShot, DramaStyle, PropState } from "../types";
 import { shotCast, type EntityMap } from "@/lib/drama/media/references";
 
 export type Look = { style?: DramaStyle | null; palette?: DramaPalette | null; useStyle: boolean; usePalette: boolean; language: AppLanguage };
 export type SheetInput = Look & { entity: DramaEntity; aspect: DramaAspect; sideView?: "left" | "right" };
 export type ShotContext = Look & { shot: DramaShot; prev?: DramaShot; entities: EntityMap; aspect: DramaAspect };
+
+/** Whether the drama has a style / a palette to switch on; the one place that decides it. */
+export const lookAvailable = (project: Pick<DramaProject, "style" | "palette">) => ({
+    hasStyle: Boolean(project.style && (project.style.prompt.trim() || project.style.promptEn?.trim())),
+    hasPalette: Boolean(project.palette?.colors.length),
+});
 
 const isEn = (look: Look) => look.language === "en-US";
 
@@ -69,7 +75,7 @@ export function sheetPrompt(input: SheetInput): { prompt: string; aspect: DramaA
     return { prompt, aspect };
 }
 
-const firstSentence = (text: string) => text.trim().split(/(?<=[。！？!?；;\n])/)[0].trim();
+const firstSentence = (text: string) => text.trim().match(/^[^。！？!?；;\n]*[。！？!?；;\n]?/)![0].trim();
 const clip = (text: string, max = 200) => (text.length > max ? `${text.slice(0, max)}…` : text);
 
 function castLine(ctx: ShotContext, phase: "start" | "any"): string[] {

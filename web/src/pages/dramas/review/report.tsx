@@ -2,6 +2,7 @@ import { CircleAlert, CircleCheck, CircleHelp, type LucideIcon } from "lucide-re
 
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { REVIEW_CRITERION_LABELS, REVIEW_VERDICT_LABELS } from "@/lib/drama/labels";
+import { plainRefs } from "@/lib/drama/story";
 import type { DramaRun, DramaSnapshot, ReviewCriterion, ReviewProposal } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 import { RewriteAction } from "./rewrite-action";
@@ -40,11 +41,11 @@ export function ReviewReport({ proposal, run, snapshot }: Props) {
                                     <h4 className="text-[13px] font-semibold">{t(REVIEW_CRITERION_LABELS[item.criterion] ?? item.criterion)}</h4>
                                     <span className={cn("text-[12px]", tone)}>{t(REVIEW_VERDICT_LABELS[item.verdict] ?? REVIEW_VERDICT_LABELS.unknown)}</span>
                                 </div>
-                                <p className="mb-0 mt-1.5 whitespace-pre-wrap text-[13px] leading-6">{item.note}</p>
+                                <p className="mb-0 mt-1.5 whitespace-pre-wrap text-[13px] leading-6">{plainRefs(item.note, snapshot, t)}</p>
                                 {item.suggestion ? (
                                     <p className="mb-0 mt-2.5 rounded-lg bg-[color:var(--wg-home-ghost)] px-3 py-2 text-[13px] leading-6">
                                         <span className="mr-2 text-[12px] text-[color:var(--wg-home-muted)]">{t("建议")}</span>
-                                        {item.suggestion}
+                                        {plainRefs(item.suggestion, snapshot, t)}
                                     </p>
                                 ) : null}
                                 {item.verdict === "issue" && item.suggestion.trim() ? (
