@@ -6,6 +6,10 @@
 
   开源画布设计 Agent 工作台。用无限画布组织提示词、参考素材和生成结果；在同一工作流中与 Zodiac 对话、审核计划并运行创作任务。桌面版还提供“剧目”，从一个故事做到一集短剧。
 
+<p align="center">
+  <img src="./.github/assets/wg-promo.gif" width="880" alt="WorkflowGenerator 演示：无限画布、节点操作、Zodiac 与设计工作台" />
+</p>
+
 [![在线体验](https://img.shields.io/badge/在线体验-打开网站-2563eb?style=for-the-badge)](https://workflow.zhouzhou.dev)
 
 注意： 网页版很烂，只能看看，可以生视频做工作台但是agent聊天体验感没有桌面端好
