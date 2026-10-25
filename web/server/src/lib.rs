@@ -1,6 +1,8 @@
 pub mod data_layout;
 mod agent_runtime;
 mod canvas_cas;
+mod drama;
+mod media_runtime;
 mod proxy;
 mod publisher;
 mod routes;

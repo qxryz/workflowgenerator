@@ -42,7 +42,7 @@ type RequestOptions = { signal?: AbortSignal };
 
 /** Serializes the app's shared text/image message shape to MiniMax's
  * Anthropic Messages contract. System prompts live at the request root. */
-export function buildMiniMaxAnthropicRequest(model: string, messages: MiniMaxTextMessage[], systemPrompt = ""): MiniMaxAnthropicRequest {
+export function buildMiniMaxAnthropicRequest(model: string, messages: MiniMaxTextMessage[], systemPrompt = "", maxTokens = 8192): MiniMaxAnthropicRequest {
     const system = [systemPrompt, ...messages.filter((message) => message.role === "system").map((message) => textOnly(message.content))]
         .map((value) => value.trim())
         .filter(Boolean)
@@ -63,7 +63,7 @@ export function buildMiniMaxAnthropicRequest(model: string, messages: MiniMaxTex
     if (!normalized.length) throw new Error("请输入消息内容");
     return {
         model: model.trim(),
-        max_tokens: 8192,
+        max_tokens: maxTokens,
         stream: false,
         ...(system ? { system } : {}),
         messages: normalized,

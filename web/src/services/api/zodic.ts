@@ -15,7 +15,7 @@ export type ZodicMessage = { role: "system" | "user" | "assistant"; content: str
 
 type ToolOutcome = { ok: true; result?: unknown } | { ok: false; error: string };
 type ToolRequest = { callId: string; name: string; args: unknown };
-export type RequestOptions = { signal?: AbortSignal; onToolRequest?: (request: ToolRequest) => Promise<ToolOutcome> | ToolOutcome; maxToolRounds?: number; tools?: ZodiacToolCatalog; includeDefaultRole?: boolean; onReasoning?: (text: string) => void; onStatus?: (status: "running" | "done" | "error") => void; responseTimeoutMs?: number };
+export type RequestOptions = { signal?: AbortSignal; onToolRequest?: (request: ToolRequest) => Promise<ToolOutcome> | ToolOutcome; maxToolRounds?: number; tools?: ZodiacToolCatalog; includeDefaultRole?: boolean; onReasoning?: (text: string) => void; onStatus?: (status: "running" | "done" | "error") => void; responseTimeoutMs?: number; maxOutputTokens?: number };
 
 function requestTools(options?: RequestOptions): readonly ZodiacToolDefinition[] {
     return typeof options?.tools === "function" ? options.tools() : (options?.tools ?? nativeTools());
@@ -188,6 +188,7 @@ async function requestOpenAiStep(config: AiConfig, messages: ZodicMessage[], onD
         model: modelOptionName(config.model),
         messages: wireMessages,
         stream: true,
+        ...(options?.maxOutputTokens ? { max_tokens: options.maxOutputTokens } : {}),
         ...(options?.onToolRequest && requestTools(options).length
             ? { tools: requestTools(options).map((tool) => ({ type: "function", function: { name: tool.name, description: tool.description, parameters: tool.parameters } })), tool_choice: "auto" }
             : {}),
@@ -235,6 +236,7 @@ async function requestGeminiStep(config: AiConfig, messages: ZodicMessage[], onD
     const body = {
         contents,
         ...(system ? { systemInstruction: { parts: [{ text: system }] } } : {}),
+        ...(options?.maxOutputTokens ? { generationConfig: { maxOutputTokens: options.maxOutputTokens } } : {}),
         ...(options?.onToolRequest && requestTools(options).length ? { tools: [{ functionDeclarations: requestTools(options).map((tool) => ({ name: tool.name, description: tool.description, parameters: tool.parameters })) }] } : {}),
     };
     let text = "";
@@ -309,7 +311,7 @@ async function requestMiniMaxStep(config: ReturnType<typeof resolveModelRequestC
     const billingMode = config.minimaxBillingMode || "payg";
     assertMiniMaxCredentialMatches(billingMode, config.apiKey);
     const endpoint = buildMiniMaxEndpoint(config.baseUrl, "text");
-    const base = buildMiniMaxAnthropicRequest(config.model, messages, config.systemPrompt);
+    const base = buildMiniMaxAnthropicRequest(config.model, messages, config.systemPrompt, options?.maxOutputTokens);
     const wireMessages = [
         ...base.messages,
         ...history.flatMap((step) => [

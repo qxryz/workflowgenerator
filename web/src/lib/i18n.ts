@@ -1,3 +1,7 @@
+import dramaEpisode from "./i18n/drama-episode.ts";
+import dramaMedia from "./i18n/drama-media.ts";
+import dramaShell from "./i18n/drama-shell.ts";
+import dramaStory from "./i18n/drama-story.ts";
 
 export const APP_LANGUAGES = ["zh-CN", "en-US"] as const;
 
@@ -1246,6 +1250,10 @@ const englishMessages: Record<string, string> = {
     "视频生成": "Video generation",
     "音频处理": "Audio processing",
     "Seedance 2.5 视频生成": "Seedance 2.5 video generation",
+    ...dramaShell,
+    ...dramaMedia,
+    ...dramaStory,
+    ...dramaEpisode,
 };
 
 function interpolate(message: string, values?: TranslationValues) {

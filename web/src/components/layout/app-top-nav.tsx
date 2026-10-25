@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from "react";
 import { Dropdown, type MenuProps } from "antd";
-import { Clapperboard, Compass, Folder, MessageSquare, NotebookPen, PanelsTopLeft, Shapes, UserRound, Workflow } from "lucide-react";
+import { Clapperboard, Compass, Film, Folder, MessageSquare, NotebookPen, PanelsTopLeft, Shapes, UserRound, Workflow } from "lucide-react";
 import { LayoutGroup, motion, useReducedMotion } from "motion/react";
 import { NavLink, useLocation, useNavigate } from "react-router-dom";
 
@@ -18,6 +18,7 @@ const AppConfigModal = lazy(() => import("@/components/layout/app-config-modal")
 const EXPLORE_URL = "https://web.zhouzhou.dev";
 const destinations = [
     { label: "工作流", path: "/canvas", icon: Workflow },
+    { label: "剧目", path: "/dramas", icon: Film },
     { label: "工作台", path: "/workbench", icon: PanelsTopLeft },
     { label: "导演台", path: "/director", icon: Clapperboard },
     { label: "Skills", path: "/skills", icon: Shapes },

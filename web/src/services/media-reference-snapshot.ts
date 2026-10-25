@@ -2,6 +2,7 @@ import { listZodiacSessions } from "./zodiac-session-storage";
 import { getMediaReferenceEpoch, getProvisionalStorageKeys, markMediaReferencesChanged, type VerifiedReferenceSnapshot } from "@/services/media-retention-policy";
 import { createServerJsonStore, getStoredValue, listZodiacPlans } from "@/services/server-storage";
 import { readAllDirectorStoredProjects } from "@/services/director-project-storage";
+import { listDramaMediaKeys } from "@/services/drama-api";
 
 type RuntimeReferenceProvider = () => unknown | Promise<unknown>;
 type HydratableStore = {
@@ -47,7 +48,7 @@ async function buildVerifiedMediaReferenceSnapshot(): Promise<VerifiedReferenceS
 
     for (let attempt = 0; attempt < 3; attempt += 1) {
         const epoch = getMediaReferenceEpoch();
-        const [runtimeReferences, imageGenerationLogs, videoGenerationLogs, audioGenerationLogs, structuredImageWorkbenchDrafts, directorProjects, stagePlans, zodiacSessions, savedProjects, savedAssets] = await Promise.all([
+        const [runtimeReferences, imageGenerationLogs, videoGenerationLogs, audioGenerationLogs, structuredImageWorkbenchDrafts, directorProjects, stagePlans, zodiacSessions, savedProjects, savedAssets, dramaMedia] = await Promise.all([
             Promise.all(Array.from(runtimeProviders.values()).map((provider) => provider())),
             readStoreValues(imageGenerationLogStore),
             readStoreValues(videoGenerationLogStore),
@@ -58,12 +59,14 @@ async function buildVerifiedMediaReferenceSnapshot(): Promise<VerifiedReferenceS
             listZodiacSessions(),
             readStoreValues(canvasProjectStore),
             getStoredValue("zustand-v1", "infinite-canvas:asset_store").then(value => value ? JSON.parse(value) : null),
+            listDramaMediaKeys(),
         ]);
         const data = {
             assets: useAssetStore.getState().assets,
             projects: useCanvasStore.getState().projects,
             savedProjects,
             savedAssets,
+            dramaMedia,
             runtimeReferences,
             directorProjects,
             stagePlans,

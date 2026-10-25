@@ -43,6 +43,7 @@ pub fn router() -> Router<AppState> {
         .merge(crate::agent_runtime::router())
         .merge(crate::zodiac_plans::router())
         .merge(crate::canvas_cas::router())
+        .merge(crate::drama::router())
         .route("/api/store/get", post(store_get))
         .route("/api/store/set", post(store_set))
         .route("/api/store/remove", post(store_remove))

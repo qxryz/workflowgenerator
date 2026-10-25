@@ -14,6 +14,9 @@ const ConfigPage = lazyRoute(() => import("@/pages/config"));
 const HomePage = lazyRoute(() => import("@/pages/home"));
 const WorkbenchPage = lazyRoute(() => import("@/pages/workbench"));
 const DirectorPage = lazyRoute(() => import("@/pages/director"));
+const DramasPage = lazyRoute(() => import("@/pages/dramas"));
+const DramaPage = lazyRoute(() => import("@/pages/dramas/drama"));
+const DramaEpisodePage = lazyRoute(() => import("@/pages/dramas/episode"));
 const PromptsPage = lazyRoute(() => import("@/pages/prompts"));
 const ZodiacSessionsPage = lazyRoute(() => import("@/pages/sessions"));
 const SkillsPage = lazyRoute(() => import("@/pages/skills"));
@@ -77,6 +80,9 @@ export const router = createBrowserRouter([
             { path: "/workbench/audio", element: <WorkbenchPage /> },
             { path: "/workbench/sd25", element: <WorkbenchPage /> },
             { path: "/director", element: <DirectorPage /> },
+            { path: "/dramas", element: <DramasPage /> },
+            { path: "/dramas/:id", element: <DramaPage /> },
+            { path: "/dramas/:id/episodes/:eid", element: <DramaEpisodePage /> },
             { path: "/image", element: <Navigate to="/workbench/image" replace /> },
             { path: "/sessions", element: <ZodiacSessionsPage /> },
             { path: "/skills", element: <SkillsPage /> },

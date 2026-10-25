@@ -4,8 +4,8 @@
   "version": "0.1.10",
   "identifier": "com.qxryz.workflowgenerator",
   "build": {
-    "beforeBuildCommand": "node scripts/prepare-agent-runtime.mjs && npm run build",
-    "beforeDevCommand": "npm run build",
+    "beforeBuildCommand": "node scripts/prepare-agent-runtime.mjs && node scripts/prepare-media-runtime.mjs && npm run build",
+    "beforeDevCommand": "node scripts/prepare-media-runtime.mjs && npm run build",
     "frontendDist": "../dist"
   },
   "app": {

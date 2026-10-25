@@ -166,6 +166,7 @@ pub fn initialize(app_data_dir: &Path) -> Result<NativeStorage, String> {
         .map_err(|error| format!("无法初始化应用数据库：{error}"))?;
 
     clear_stale_media_uploads(&connection, &upload_root)?;
+    crate::drama::init(&connection).map_err(|error| format!("无法初始化剧目数据：{error}"))?;
 
     set_private_file(&database_path)?;
     set_sqlite_companion_permissions(&database_path);
@@ -2088,6 +2089,16 @@ mod workspace_root_tests {
         assert!(workspace.join("workflows/second/skills/film-cut/SKILL.md").is_file());
         assert!(!data.join("skills/image-only").exists());
     }
+}
+
+/// Path of a stored media file, found by key in any bucket.
+pub(crate) fn media_file_path(storage: &NativeStorage, key: &str) -> Result<Option<PathBuf>, String> {
+    let found = storage
+        .lock()?
+        .query_row("SELECT bucket, filename FROM media WHERE key = ?1", params![key], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))
+        .optional()
+        .map_err(|error| format!("读取媒体索引失败：{error}"))?;
+    Ok(found.map(|(bucket, filename)| storage.media_root.join(bucket).join(filename)))
 }
 
 /// Copy a managed asset into an agent workspace without exposing the database or
