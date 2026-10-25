@@ -111,6 +111,8 @@ function packageRelease() {
         if (!existsSync(path)) fail(`构建产物缺失：${path}`);
     }
 
+    // A broken seal makes macOS call a downloaded app damaged; the updater archive carries the same bundle.
+    run("codesign", ["--verify", "--deep", "--strict", app]);
     const name = `WorkflowGenerator-${version}-macos-arm64`;
     const updater = join(out, `${name}.updater.tar.gz`);
     cpSync(`${app}.tar.gz`, updater);
