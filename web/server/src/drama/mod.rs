@@ -14,6 +14,7 @@ use std::{
 };
 
 mod export;
+mod legacy;
 mod model;
 mod proposal;
 mod routes;

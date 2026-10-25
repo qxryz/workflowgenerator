@@ -178,6 +178,7 @@ CREATE INDEX IF NOT EXISTS drama_exports_episode ON drama_exports(episode_id);
 pub(crate) fn init(conn: &Connection) -> rusqlite::Result<()> {
     conn.pragma_update(None, "foreign_keys", "ON")?;
     conn.execute_batch(SCHEMA)?;
+    super::legacy::migrate(conn);
     let now = super::now();
     conn.execute(
         "UPDATE drama_runs SET status='failed', error='应用关闭，任务已中断', finished_at=?1 WHERE status='running'",

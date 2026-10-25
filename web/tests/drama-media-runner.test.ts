@@ -95,6 +95,14 @@ test("uploaded and library artifacts never go stale", () => {
     }
 });
 
+test("an artifact with unknown inputs (empty inputHash) is never out of date", () => {
+    assert.equal(isStale(artifact("a", { inputHash: "" }), "h2"), false);
+    assert.equal(artifactState(artifact("a", { inputHash: "" }), "h2"), "ready");
+    assert.equal(artifactState(artifact("a", { inputHash: "", adopted: true }), "h2"), "adopted");
+    assert.equal(ownerState([artifact("a", { inputHash: "", adopted: true })], "h2"), "adopted");
+    assert.equal(isStale(artifact("a", { inputHash: "h1" }), "h2"), true, "a recorded hash that differs still goes stale");
+});
+
 test("ownerState: adopted wins, then pending, then drafts, then failed", () => {
     assert.equal(ownerState([]), "none");
     assert.equal(ownerState([artifact("a", { status: "failed" })]), "failed");

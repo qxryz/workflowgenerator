@@ -7,9 +7,12 @@ import { toReferenceImages, type RefImage, type ReferencePlan } from "./referenc
 const IMPORT_MODELS = ["upload", "library"] as const;
 const isImported = (artifact: DramaArtifact) => (IMPORT_MODELS as readonly string[]).includes(artifact.model);
 
-/** `currentHash` is what the same inputs hash to today; a generated artifact with another hash was made from older inputs. */
+/**
+ * `currentHash` is what the same inputs hash to today; a generated artifact with another hash was made from older inputs.
+ * An empty `inputHash` means the inputs are unknown (migrated or imported work), which is not the same as out of date.
+ */
 export function isStale(artifact: DramaArtifact, currentHash: string | undefined): boolean {
-    return artifact.status === "ready" && !isImported(artifact) && Boolean(currentHash) && artifact.inputHash !== currentHash;
+    return artifact.status === "ready" && !isImported(artifact) && Boolean(artifact.inputHash) && Boolean(currentHash) && artifact.inputHash !== currentHash;
 }
 
 export function artifactState(artifact: DramaArtifact, currentHash?: string): MediaState {

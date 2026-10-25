@@ -122,6 +122,13 @@ const RELATION_KINDS: Synonyms = &[
     ("rival", &["竞争", "对手", "竞争者", "宿敌", "competitor"]),
     ("other", &["其他", "其它"]),
 ];
+/// Entity and relation kinds by label, for importers that meet the same Chinese vocabulary.
+pub(super) fn entity_kind(label: &str) -> Option<&'static str> {
+    canonical(label, ENTITY_KINDS)
+}
+pub(super) fn relation_kind(label: &str) -> Option<&'static str> {
+    canonical(label, RELATION_KINDS)
+}
 const LEDGER_KINDS: Synonyms = &[
     ("character", &["人物", "角色"]),
     ("place", &["地点", "场景", "地方", "scene", "location"]),
