@@ -105,6 +105,25 @@ const sizeAndCamera = (ctx: ShotContext, withCamera: boolean) => {
     return [size && `${en ? "Shot size" : "景别"}：${size}`, camera && `${en ? "Camera movement" : "运镜"}：${camera}`].filter(Boolean) as string[];
 };
 
+/**
+ * What a result is made from, for the 过期 check: the user's content, the cast's looks, the adopted
+ * style and palette. Template wording is left out on purpose, so improving prompts in an update does
+ * not age every finished picture.
+ */
+const lookInputs = (look: Look) => ({ style: look.useStyle ? (look.style?.prompt ?? "") : "", palette: look.usePalette ? (look.palette?.colors ?? []) : [], language: look.language });
+const entityInputs = (entity: DramaEntity) => [entity.id, entity.name, entity.appearance.trim() || entity.description.trim()];
+
+export const sheetInputs = (input: SheetInput) => ({ kind: input.entity.kind, entity: entityInputs(input.entity), ...lookInputs(input) });
+
+export function shotInputs(ctx: ShotContext, kind: "image" | "video") {
+    const { shot } = ctx;
+    const content =
+        kind === "image"
+            ? { size: shot.size, description: shot.description, startState: shot.startState, prompt: shot.imagePrompt, props: shot.props }
+            : { size: shot.size, camera: shot.camera, description: shot.description, startState: shot.startState, endState: shot.endState, prompt: shot.videoPrompt, props: shot.props, dialogue: shot.dialogue, seconds: ctx.videoSeconds ?? shot.seconds };
+    return { kind, content, cast: shotCast(shot, ctx.entities, kind === "image" ? "start" : "any").map(entityInputs), ...lookInputs(ctx) };
+}
+
 /** Only the opening instant: startState plus the image prompt, never the description's later actions or endState. */
 export function shotImagePrompt(ctx: ShotContext): string {
     const { shot } = ctx;

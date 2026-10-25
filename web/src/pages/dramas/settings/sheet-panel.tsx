@@ -5,7 +5,7 @@ import { GenerationWorkbench, type Look, type Prepared } from "@/components/dram
 import { MediaPreview } from "@/components/drama/media-preview";
 import { useAppTranslation } from "@/hooks/use-app-translation";
 import { ARTIFACT_KIND_LABELS } from "@/lib/drama/labels";
-import { inputHash, lookAvailable, sheetPrompt } from "@/lib/drama/media/prompts";
+import { inputHash, lookAvailable, sheetInputs, sheetPrompt } from "@/lib/drama/media/prompts";
 import { refImage, sheetReferences, type ReferencePlan } from "@/lib/drama/media/references";
 import { adoptedArtifact } from "@/lib/drama/media/state";
 import { sheetsOf } from "@/lib/drama/settings-view";
@@ -70,8 +70,7 @@ export function SheetPanel({ entity, project, artifacts }: Props) {
         const identity = look.language === "en-US" ? "the current approved design sheet of this subject; keep the same identity, outfit and proportions" : "这个设定当前采用的设定图，保持同一主体的外观、服装与比例";
         const references: ReferencePlan = { images: plan.images, notes: plan.notes.map((note) => `${note.split("：")[0]}：${identity}`) };
         // Which way the profile faces is a choice per generation: it never ages the sheets already made.
-        const stable = side === "left" ? prompt : sheetPrompt({ ...input, sideView: "left" }).prompt;
-        return { prompt, references, inputHash: inputHash({ prompt: stable, aspect, model: look.model }), aspect };
+        return { prompt, references, inputHash: inputHash({ inputs: sheetInputs(input), aspect, model: look.model }), aspect };
     };
 
     return (

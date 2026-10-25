@@ -4,7 +4,7 @@ import test from "node:test";
 import { MAX_CHAPTER_CHARS, splitChapters } from "../src/lib/drama/import-text.ts";
 import { lintEpisode, lintText, type LintIssue } from "../src/lib/drama/lint.ts";
 import { translate } from "../src/lib/i18n.ts";
-import { inputHash, sheetPrompt, shotImagePrompt, shotVideoPrompt, type ShotContext } from "../src/lib/drama/media/prompts.ts";
+import { inputHash, sheetInputs, sheetPrompt, shotImagePrompt, shotInputs, shotVideoPrompt, type ShotContext } from "../src/lib/drama/media/prompts.ts";
 import { indexById, pickFirstFrame, shotImageReferences, shotVideoReferences } from "../src/lib/drama/media/references.ts";
 import { sentPrompt } from "../src/lib/drama/media/state.ts";
 import { COLOUR_PALETTE_PRESETS, createColourHarmony, generateRandomPalette, normalizeHexColor, validateColourPalette } from "../src/lib/drama/style/colour-palettes.ts";
@@ -284,4 +284,17 @@ test("hex normalisation and palette validation", () => {
 test("every style preset has a bundled preview, including Moebius", () => {
     assert.ok(STYLE_PRESETS.some((preset) => preset.id === "moebius" && preset.name === "莫比斯" && preset.nameEn === "Moebius"));
     for (const preset of STYLE_PRESETS) assert.ok(getStylePresetPreview(preset.id)?.src.startsWith("/style-presets/"), preset.id);
+});
+
+test("staleness follows content and looks, not the video plan or template wording", () => {
+    const image = (extra: Partial<ShotContext> = {}) => inputHash(shotInputs(ctx(extra), "image"));
+    assert.equal(image(), image({ shot: { ...opening, videoPrompt: "完全不同的动作", endState: "另一个结局" } }), "video-only edits keep the picture current");
+    assert.notEqual(image(), image({ shot: { ...opening, startState: "林夏坐在柜台后" } }));
+    const restyled = indexById([...entities.values()].map((e) => (e.id === "hero" ? { ...e, appearance: "长发，红色外套" } : e)));
+    assert.notEqual(image(), image({ entities: restyled }), "a changed cast look ages the picture");
+    assert.notEqual(image(), image({ useStyle: false }));
+
+    const hero = entities.get("hero")!;
+    const look = { useStyle: true, usePalette: false, language: "zh-CN" as const, aspect: "16:9" as const, style: { prompt: "水彩" } };
+    assert.equal(inputHash(sheetInputs({ ...look, entity: hero, sideView: "left" })), inputHash(sheetInputs({ ...look, entity: hero, sideView: "right" })));
 });

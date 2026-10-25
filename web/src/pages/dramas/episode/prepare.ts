@@ -1,6 +1,6 @@
 import type { Look, Prepared } from "@/components/drama/generation-workbench";
 import { adoptedByShot, spokenText, type ShotMediaKind } from "@/lib/drama/episode-steps";
-import { inputHash, shotImagePrompt, shotVideoPrompt, type ShotContext } from "@/lib/drama/media/prompts";
+import { inputHash, shotImagePrompt, shotInputs, shotVideoPrompt, type ShotContext } from "@/lib/drama/media/prompts";
 import { shotImageReferences, shotVideoReferences, type EntityMap, type RefImage, type SheetMap } from "@/lib/drama/media/references";
 import { referenceCapacity, renderedVideoSeconds } from "@/lib/drama/media/model-options";
 import type { DramaArtifact, DramaProject, DramaShot } from "@/lib/drama/types";
@@ -26,20 +26,22 @@ function context(env: PrepareEnv, shot: DramaShot, look: Look): ShotContext {
 
 function prepareImage(env: PrepareEnv, shot: DramaShot, look: Look): Prepared {
     const { aspect } = env.project;
-    const prompt = shotImagePrompt(context(env, shot, look));
+    const ctx = context(env, shot, look);
+    const prompt = shotImagePrompt(ctx);
     const capacity = referenceCapacity(useConfigStore.getState().config, "image", look.model);
     const references = shotImageReferences({ shot, entities: env.entities, sheets: env.sheets, language: look.language, capacity });
-    return { prompt, references, aspect, inputHash: inputHash({ kind: "image", prompt, refs: references.images.map((image) => image.artifactId), model: look.model, aspect }) };
+    return { prompt, references, aspect, inputHash: inputHash({ inputs: shotInputs(ctx, "image"), refs: references.images.map((image) => image.artifactId), model: look.model, aspect }) };
 }
 
 /** The hash follows the storyboard picture but not which first frame is chosen, so switching the source never makes finished videos look out of date. */
 function prepareVideo(env: PrepareEnv, shot: DramaShot, look: Look, firstFrame?: RefImage): Prepared {
     const { aspect } = env.project;
     const seconds = renderedVideoSeconds(useConfigStore.getState().config, look.model, shot.seconds);
-    const prompt = shotVideoPrompt({ ...context(env, shot, look), videoSeconds: seconds });
+    const ctx = { ...context(env, shot, look), videoSeconds: seconds };
+    const prompt = shotVideoPrompt(ctx);
     const capacity = referenceCapacity(useConfigStore.getState().config, "video", look.model);
     const references = shotVideoReferences({ shot, entities: env.entities, sheets: env.sheets, language: look.language, capacity }, firstFrame);
-    const hash = inputHash({ kind: "video", prompt, refs: references.images.map((image) => image.artifactId), board: env.storyboards.get(shot.id)?.id ?? "", model: look.model, seconds: shot.seconds, aspect });
+    const hash = inputHash({ inputs: shotInputs(ctx, "video"), refs: references.images.map((image) => image.artifactId), board: env.storyboards.get(shot.id)?.id ?? "", model: look.model, aspect });
     return { prompt, references, firstFrame, aspect, inputHash: hash, params: { seconds } };
 }
 

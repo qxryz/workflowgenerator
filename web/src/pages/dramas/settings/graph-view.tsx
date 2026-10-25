@@ -66,7 +66,7 @@ export function GraphView({ snapshot, filter, selectedId, onSelect }: Props) {
     }, [nodeKey]);
     const points = useMemo(() => ({ ...placed, ...moved }), [placed, moved]);
 
-    const fit = useCallback(() => setView(fitView(nodes, points, size.width, size.height, { top: 52, bottom: 56, side: 28 })), [nodes, points, size]);
+    const fit = useCallback(() => setView(fitView(nodes, points, size.width, size.height, { top: 28, bottom: 64, side: 28 })), [nodes, points, size]);
     useEffect(() => {
         const element = box.current;
         if (!element) return;
@@ -197,7 +197,7 @@ export function GraphView({ snapshot, filter, selectedId, onSelect }: Props) {
             {!nodes.length ? <p className="!mb-0 pointer-events-none absolute inset-0 grid place-items-center text-sm text-[color:var(--wg-home-muted)]">{t("这一类还没有设定")}</p> : null}
             {nodes.length && !snapshot.relations.length ? <p className="!mb-0 pointer-events-none absolute inset-x-0 top-14 text-center text-[12px] text-[color:var(--wg-home-muted)]">{t("还没有关系。点「连线」，依次点选两个设定来添加。")}</p> : null}
 
-            <div className="absolute right-3 top-3 flex items-center gap-1 rounded-xl border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] p-1">
+            <div className="absolute bottom-3 right-3 flex items-center gap-1 rounded-xl border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] p-1">
                 <button
                     type="button"
                     aria-pressed={connecting}
@@ -266,7 +266,7 @@ const trim = (text: string) => (text.length > 10 ? `${text.slice(0, 9)}…` : te
 function Legend() {
     const { t } = useAppTranslation();
     return (
-        <div className="pointer-events-none absolute bottom-3 left-3 flex max-w-[calc(100%-1.5rem)] flex-wrap items-center gap-x-3.5 gap-y-1 rounded-xl border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] px-3 py-1.5 text-[11px] text-[color:var(--wg-home-muted)]">
+        <div className="pointer-events-none absolute bottom-3 left-3 flex max-w-[calc(100%-19rem)] flex-wrap items-center gap-x-3.5 gap-y-1 rounded-xl border border-[color:var(--wg-home-line)] bg-[color:var(--wg-panel)] px-3 py-1.5 text-[11px] text-[color:var(--wg-home-muted)]">
             {KIND_ORDER.map((kind) => (
                 <span key={kind} className="flex items-center gap-1.5">
                     <span className={cn("size-3 rounded-full border-2", kind === "world" && "border-dashed")} style={{ borderColor: KIND_COLOR[kind] }} />
