@@ -119,8 +119,8 @@ export function shotImagePrompt(ctx: ShotContext): string {
         start && `${en ? "Opening state" : "开拍状态"}：${start}`,
         scene && `${en ? "Frame" : "画面"}：${scene}`,
         en
-            ? "A single still frame of the very first instant of the shot. Do not depict any later action or result. No subtitles, text, watermark or storyboard frame."
-            : "单帧静态画面，只表现镜头开始的这一瞬间，不画之后发生的动作或结果。无字幕、文字、水印和分镜框。",
+            ? "A single still frame of the very first instant of the shot. Do not depict any later action or result. No subtitles, text, watermark or storyboard frame; signs and screens show shapes only, never readable words."
+            : "单帧静态画面，只表现镜头开始的这一瞬间，不画之后发生的动作或结果。无字幕、文字、水印和分镜框；招牌、屏幕只画形状，不出现可读的字。",
     );
 }
 
@@ -147,7 +147,7 @@ export function shotVideoPrompt(ctx: ShotContext): string {
         shot.endState.trim() && `${en ? "End" : "结束"}：${shot.endState.trim()}`,
         speech.length > 0 && `${en ? "Performance" : "表演"}：${speech.join(en ? "; " : "；")}`,
         narration,
-        en ? "No subtitles, captions, text or watermark in the picture." : "画面中不出现字幕、文字和水印。",
+        en ? "No subtitles, captions, text or watermark in the picture; signs and screens show shapes only, never readable words." : "画面中不出现字幕、文字和水印；招牌、屏幕只画形状，不出现可读的字。",
     );
 }
 

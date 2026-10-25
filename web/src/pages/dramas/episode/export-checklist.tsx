@@ -31,7 +31,13 @@ export function ExportChecklist({ ctx }: { ctx: EpisodeCtx }) {
                                 onClick={() => ctx.go("video", shot.id)}
                             >
                                 <span className="grid h-9 w-14 shrink-0 place-items-center overflow-hidden rounded-md bg-[color:var(--wg-home-ghost)] text-[color:var(--wg-home-muted-strong)]">
-                                    {cover?.mediaUrl ? <img src={cover.mediaUrl} alt="" loading="lazy" className="size-full object-cover" /> : <Film className="size-4" strokeWidth={1.4} />}
+                                    {cover?.mediaUrl ? (
+                                        <img src={cover.mediaUrl} alt="" loading="lazy" className="size-full object-cover" />
+                                    ) : videos.get(shot.id)?.mediaUrl ? (
+                                        <video src={`${videos.get(shot.id)!.mediaUrl}#t=0.001`} muted playsInline preload="metadata" className="size-full object-cover" />
+                                    ) : (
+                                        <Film className="size-4" strokeWidth={1.4} />
+                                    )}
                                 </span>
                                 <span className="min-w-0 flex-1">
                                     <span className="block text-[12px] font-semibold tabular-nums">

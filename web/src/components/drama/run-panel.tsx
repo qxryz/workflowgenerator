@@ -110,7 +110,13 @@ function RunRow({ run, snapshot, now, onNavigate, showStage }: { run: DramaRun; 
                 <StatusTag status={run.status} stage={run.stage} />
             </div>
             <div className="mt-1.5 flex items-center gap-2 text-[12px] tabular-nums text-[color:var(--wg-home-muted)]">
-                <span>{run.status === "running" ? t("已用时 {time}", { time: formatElapsed(now - run.createdAt) }) : formatClock(run.finishedAt ?? run.createdAt)}</span>
+                <span>
+                    {run.status === "running"
+                        ? t("已用时 {time}", { time: formatElapsed(now - run.createdAt) })
+                        : run.finishedAt
+                          ? `${formatClock(run.finishedAt)} · ${t("用时 {time}", { time: formatElapsed(run.finishedAt - run.createdAt) })}`
+                          : formatClock(run.createdAt)}
+                </span>
                 <span className="ml-auto flex items-center gap-1">
                     {run.status === "running" ? (
                         <button type="button" className="wg-text-button !h-7" onClick={() => void stop(run)}>

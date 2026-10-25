@@ -63,6 +63,7 @@ export default {
     "第 {count} 章": "Chapter {count}",
     "第 {count} 集": "Episode {count}",
     "已用时 {time}": "Elapsed {time}",
+    "用时 {time}": "took {time}",
     "删除记录": "Delete record",
     "去查看": "Open",
     "运行中": "Running",

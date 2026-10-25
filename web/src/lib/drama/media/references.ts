@@ -5,7 +5,7 @@ import type { DramaArtifact, DramaEntity, DramaShot, EntityKind } from "../types
 
 export type RefImage = { artifactId: string; url: string; storageKey: string; name: string };
 /** `images` and `notes` line up by index; the same plan feeds the preview and the request. */
-export type ReferencePlan = { images: RefImage[]; notes: string[]; firstFrame?: RefImage };
+export type ReferencePlan = { images: RefImage[]; notes: string[]; firstFrame?: RefImage; /** Names whose sheets the model cannot take. */ skipped?: string[] };
 export type EntityMap = ReadonlyMap<string, DramaEntity>;
 /** Adopted sheet per entity id. */
 export type SheetMap = ReadonlyMap<string, DramaArtifact>;
@@ -57,7 +57,10 @@ function sheetRefs(cast: DramaEntity[], sheets: SheetMap, language: AppLanguage,
     for (const entity of cast) {
         const sheet = sheets.get(entity.id);
         if (entity.kind === "world" || !sheet || sheet.status !== "ready" || !sheet.mediaUrl) continue;
-        if (capacity && (plan.images.length >= capacity.max || (capacity.kinds && !capacity.kinds.includes(entity.kind)))) continue;
+        if (capacity && (plan.images.length >= capacity.max || (capacity.kinds && !capacity.kinds.includes(entity.kind)))) {
+            (plan.skipped ??= []).push(entity.name);
+            continue;
+        }
         plan.images.push(refImage(sheet, entity.name));
         plan.notes.push(`${imageReferenceLabel(plan.images.length - 1)}：${ROLES[entity.kind](entity.name, language === "en-US")}`);
     }

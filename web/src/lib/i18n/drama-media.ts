@@ -33,4 +33,5 @@ export default {
     "还没有生成结果": "No results yet",
     "删除后需要重新采用其他结果。": "You will need to adopt another result afterwards.",
     "本镜分镜图": "This shot's storyboard picture",
+    "当前模型参考图数量有限，{names} 只按文字描述生成；换用支持多张参考图的模型可保持更一致。": "This model takes a limited number of reference images; {names} will follow the text description only. A model that accepts more references keeps them more consistent.",
 } as Record<string, string>;

@@ -232,6 +232,11 @@ export function GenerationWorkbench(props: GenerationWorkbenchProps) {
                             ))}
                         </div>
                     ) : null}
+                    {prepared.references.skipped?.length ? (
+                        <p className="text-[11px] leading-4 text-[color:var(--wg-home-muted)]">
+                            {t("当前模型参考图数量有限，{names} 只按文字描述生成；换用支持多张参考图的模型可保持更一致。", { names: prepared.references.skipped.join("、") })}
+                        </p>
+                    ) : null}
 
                     <div className="rounded-xl border border-[color:var(--wg-home-line)]">
                         <div className="flex items-center justify-between px-2.5 py-1.5">
