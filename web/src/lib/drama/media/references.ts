@@ -49,24 +49,28 @@ const ROLES: Record<Exclude<EntityKind, "world">, (name: string, en: boolean) =>
 
 export const refImage = (artifact: DramaArtifact, name: string): RefImage => ({ artifactId: artifact.id, url: artifact.mediaUrl, storageKey: artifact.mediaKey, name });
 
-function sheetRefs(cast: DramaEntity[], sheets: SheetMap, language: AppLanguage): ReferencePlan {
+/** How many sheet pictures a provider takes (and of which kinds); what does not fit is described in the prompt text instead. */
+export type ReferenceCapacity = { max: number; kinds?: readonly EntityKind[] };
+
+function sheetRefs(cast: DramaEntity[], sheets: SheetMap, language: AppLanguage, capacity?: ReferenceCapacity): ReferencePlan {
     const plan: ReferencePlan = { images: [], notes: [] };
     for (const entity of cast) {
         const sheet = sheets.get(entity.id);
         if (entity.kind === "world" || !sheet || sheet.status !== "ready" || !sheet.mediaUrl) continue;
+        if (capacity && (plan.images.length >= capacity.max || (capacity.kinds && !capacity.kinds.includes(entity.kind)))) continue;
         plan.images.push(refImage(sheet, entity.name));
         plan.notes.push(`${imageReferenceLabel(plan.images.length - 1)}：${ROLES[entity.kind](entity.name, language === "en-US")}`);
     }
     return plan;
 }
 
-export type ShotReferenceInput = { shot: DramaShot; entities: EntityMap; sheets: SheetMap; language: AppLanguage };
+export type ShotReferenceInput = { shot: DramaShot; entities: EntityMap; sheets: SheetMap; language: AppLanguage; capacity?: ReferenceCapacity };
 
-export const shotImageReferences = ({ shot, entities, sheets, language }: ShotReferenceInput): ReferencePlan => sheetRefs(shotCast(shot, entities, "start"), sheets, language);
+export const shotImageReferences = ({ shot, entities, sheets, language, capacity }: ShotReferenceInput): ReferencePlan => sheetRefs(shotCast(shot, entities, "start"), sheets, language, capacity);
 
 /** `firstFrame` is the storyboard image or the previous shot's tail frame, passed separately from the sheets. */
 export function shotVideoReferences(input: ShotReferenceInput, firstFrame?: RefImage): ReferencePlan {
-    const plan = sheetRefs(shotCast(input.shot, input.entities, "any"), input.sheets, input.language);
+    const plan = sheetRefs(shotCast(input.shot, input.entities, "any"), input.sheets, input.language, input.capacity);
     return firstFrame ? { ...plan, firstFrame } : plan;
 }
 

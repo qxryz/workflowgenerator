@@ -675,9 +675,12 @@ fn shots(conn: &Connection, run: &RunInfo, p: &Value) -> Result<ShotsPlan> {
         let mut entity_ids: Vec<String> = vec![];
         for name in strings(item.get("entities")) {
             match find(&known, &name) {
+                // A world setting has nothing to film; models list it as "出场" now and then.
+                Some(k) if k.kind == "world" => {}
                 Some(k) if !entity_ids.contains(&k.id) => entity_ids.push(k.id.clone()),
                 Some(_) => {}
-                None => issues.push(format!("{path}.entities"), format!("出场设定「{name}」不存在，请使用设定列表中的名称或标签")),
+                // Incidental objects the settings do not list are scenery; the description already mentions them.
+                None => {}
             }
         }
         let character = |name: &str, issues: &mut Issues, field: String| -> String {
@@ -712,10 +715,8 @@ fn shots(conn: &Connection, run: &RunInfo, p: &Value) -> Result<ShotsPlan> {
             for (j, prop) in items.iter().enumerate() {
                 let field = format!("{path}.props[{j}]");
                 let name = plain(prop.get("entity"));
-                let Some(entity) = find(&known, &name) else {
-                    issues.push(format!("{field}.entity"), format!("道具「{name}」不存在，请先在设定中列出"));
-                    continue;
-                };
+                // Only a prop has a state; a character or scene label here is the model pointing at the holder.
+                let Some(entity) = find(&known, &name).filter(|k| k.kind == "prop") else { continue };
                 if !entity_ids.contains(&entity.id) {
                     entity_ids.push(entity.id.clone());
                 }
@@ -740,6 +741,9 @@ fn shots(conn: &Connection, run: &RunInfo, p: &Value) -> Result<ShotsPlan> {
             }
         }
         let transition = enum_field(&mut issues, item, "transition", &path, TRANSITIONS, Some("cut"));
+        if i == 0 && transition == "continuous" {
+            issues.push(format!("{path}.transition"), "第 1 镜没有上一镜，transition 不能是 continuous，请用 cut");
+        }
         let fields = json!({
             "seconds": seconds,
             "size": opt(&mut issues, item, "size", &path, "景别", 20),

@@ -212,12 +212,12 @@ export function GenerationWorkbench(props: GenerationWorkbenchProps) {
                                 <Input size="small" className="w-40" value={voice} placeholder={t(typeof prepared.params?.voice === "string" ? prepared.params.voice : "默认音色")} onChange={(event) => setVoice(event.target.value)} />
                             </Option>
                         ) : null}
-                        {hasStyle ? (
+                        {hasStyle && kind !== "audio" ? (
                             <Checkbox checked={styleOn} onChange={(event) => setStyleOn(event.target.checked)}>
                                 {t("画风")}
                             </Checkbox>
                         ) : null}
-                        {hasPalette ? (
+                        {hasPalette && kind !== "audio" ? (
                             <Checkbox checked={paletteOn} onChange={(event) => setPaletteOn(event.target.checked)}>
                                 {t("色卡")}
                             </Checkbox>

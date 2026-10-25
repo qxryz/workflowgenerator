@@ -5,7 +5,8 @@ import { shotCast, type EntityMap } from "@/lib/drama/media/references";
 
 export type Look = { style?: DramaStyle | null; palette?: DramaPalette | null; useStyle: boolean; usePalette: boolean; language: AppLanguage };
 export type SheetInput = Look & { entity: DramaEntity; aspect: DramaAspect; sideView?: "left" | "right" };
-export type ShotContext = Look & { shot: DramaShot; prev?: DramaShot; entities: EntityMap; aspect: DramaAspect };
+/** `videoSeconds`: the length the video model will really render, when it cannot take the shot's own. */
+export type ShotContext = Look & { shot: DramaShot; prev?: DramaShot; entities: EntityMap; aspect: DramaAspect; videoSeconds?: number };
 
 /** Whether the drama has a style / a palette to switch on; the one place that decides it. */
 export const lookAvailable = (project: Pick<DramaProject, "style" | "palette">) => ({
@@ -40,13 +41,13 @@ const SHEET_RULES = {
     character: (en: boolean, side: "left" | "right") => {
         const views = en ? ["Front full body", side === "right" ? "Right profile full body" : "Left profile full body", "Back full body"] : ["正面全身", side === "right" ? "右侧全身" : "左侧全身", "背面全身"];
         return en
-            ? `Create one character turnaround sheet in three equal-width horizontal panels. From left to right: ${views.join(", ")}. The profile is a strict 90-degree side view, never a three-quarter view. Show three equally tall complete figures from head to shoes with aligned head and foot baselines, identical camera height and scale, and no portrait close-up. Keep identity, clothing, hair and proportions consistent with the specified age and species. Use the same natural standing pose with empty hands. No weapons or handheld props. Clean neutral background, even lighting, no labels, watermark or story scenery.`
-            : `绘制一张人物三视图，横向三个等宽分区，从左到右依次为：${views.join("、")}。侧面必须为严格 90 度侧视，不使用四分之三角度。三个人像等高并列、从头顶到鞋底完整可见，脚底与头顶各自对齐，统一镜头高度和比例，不画肖像特写。同一人物、同一服装、同一发型与比例，符合设定中的年龄和物种，不强制成人比例。保持同一自然站姿，双手空手，不拿武器、道具或其他物件。中性纯净背景、均匀光照，无文字标签、水印和剧情背景。`;
+            ? `Create one character turnaround sheet in three equal-width horizontal panels: left panel ${views[0]} (facing the camera), middle panel ${views[1]} (strict 90-degree side view, never three-quarter), right panel ${views[2]} (facing away, face not visible). Show three equally tall complete figures from head to shoes with aligned head and foot baselines, identical camera height and scale, and no portrait close-up. Keep identity, clothing, hair and proportions consistent with the specified age and species. Use the same natural standing pose with empty hands. No weapons or handheld props. The background must be a plain neutral grey with even lighting; the style and palette apply to the figure's rendering only, so no fog, rain, bokeh, environment or oversized face. No labels, watermark or story scenery.`
+            : `绘制一张人物三视图，画面分为左、中、右三个等宽分区：左格${views[0]}（面朝镜头），中格${views[1]}（严格 90 度侧视，不使用四分之三角度），右格${views[2]}（背对镜头，看不到脸）。三个人像等高并列、从头顶到鞋底完整可见，脚底与头顶各自对齐，统一镜头高度和比例，不画肖像特写。同一人物、同一服装、同一发型与比例，符合设定中的年龄和物种，不强制成人比例。保持同一自然站姿，双手空手，不拿武器、道具或其他物件。背景必须是纯色中性灰、均匀光照，画风与色彩只用于人物的质感与上色，不画雾气、雨、光斑、环境或虚化的大头像，无文字标签、水印和剧情背景。`;
     },
     prop: (en: boolean) =>
         en
-            ? "Create a square prop design sheet with front, side and rear views of the same object, plus three key structural or material details. Keep geometry, color and proportions consistent. Show the complete object independently on a clean background. No characters, hands, story scenery, text or watermark."
-            : "绘制一张正方形道具设定图，展示同一物件的正面、侧面、背面三视图，以及三个关键结构或材质细节。各视图形制、颜色、比例一致。物件完整、独立呈现，背景干净，不出现人物、手掌、剧情场景、文字或水印。",
+            ? "Create a square prop design sheet with front, side and rear views of the same object, plus three key structural or material details. Keep geometry, color and proportions consistent. Show the complete object independently on a plain neutral background; the style and palette apply to the object's rendering only, so no fog, rain, bokeh or environment. No characters, hands, story scenery, text or watermark."
+            : "绘制一张正方形道具设定图，展示同一物件的正面、侧面、背面三视图，以及三个关键结构或材质细节。各视图形制、颜色、比例一致。物件完整、独立呈现，背景为纯色中性底，画风与色彩只用于物件的材质与上色，不画雾气、雨、光斑和环境，不出现人物、手掌、剧情场景、文字或水印。",
     scene: (en: boolean) =>
         en
             ? "Create one full-bleed environment keyframe of a coherent space. Clearly establish spatial depth, structure, permanent furnishings, materials and baseline lighting. No collage, panels, floor-plan overlay, characters, blocking, camera icons, arrows, text or watermark. Preserve understandable spatial structure for later camera viewpoints."
@@ -68,8 +69,8 @@ export function sheetPrompt(input: SheetInput): { prompt: string; aspect: DramaA
         styleText(input),
         paletteText(input, "still"),
         `${en ? "Subject" : "设定名称"}：${entity.name.trim()}`,
-        entity.description.trim(),
-        entity.appearance.trim() && `${en ? "Appearance" : "外观"}：${entity.appearance.trim()}`,
+        // The description is story (who they are to the plot); the sheet needs how it looks. Fall back to it only when there is no appearance.
+        entity.appearance.trim() ? `${en ? "Appearance" : "外观"}：${entity.appearance.trim()}` : entity.description.trim(),
         rule,
     );
     return { prompt, aspect };
@@ -138,7 +139,7 @@ export function shotVideoPrompt(ctx: ShotContext): string {
     return join(
         styleText(ctx),
         paletteText(ctx, "video"),
-        [`${en ? "Aspect ratio" : "画幅"}：${ctx.aspect}`, `${en ? "Duration" : "时长"}：${shot.seconds}${en ? " seconds" : " 秒"}`, ...sizeAndCamera(ctx, true)].join(en ? ". " : "。"),
+        [`${en ? "Aspect ratio" : "画幅"}：${ctx.aspect}`, `${en ? "Duration" : "时长"}：${ctx.videoSeconds ?? shot.seconds}${en ? " seconds" : " 秒"}`, ...sizeAndCamera(ctx, true)].join(en ? ". " : "。"),
         link,
         castLine(ctx, "any").join("\n"),
         start && `${en ? "Start" : "开始"}：${start}`,

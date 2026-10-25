@@ -15,8 +15,8 @@ const SYSTEM = `你是短剧总编剧，把小说章节规划成分集。
 只输出一个 JSON 对象，格式如下：
 {
   "episodes": [
-    {"ref": "P1", "title": "雨夜渡口", "outline": "林夏在渡口茶棚等到周远，却只等来他留下的怀表……", "targetSeconds": 120, "sourceChapters": [1]},
-    {"title": "断链", "outline": "……", "targetSeconds": 90, "sourceChapters": [2, 3]}
+    {"ref": "P1", "title": "打烊之后", "outline": "许青在书店等到老蒋，却只等来他留下的雨伞……", "targetSeconds": 120, "sourceChapters": [1]},
+    {"title": "借书条", "outline": "……", "targetSeconds": 90, "sourceChapters": [2, 3]}
   ]
 }`;
 

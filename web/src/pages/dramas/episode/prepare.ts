@@ -2,7 +2,9 @@ import type { Look, Prepared } from "@/components/drama/generation-workbench";
 import { adoptedByShot, spokenText, type ShotMediaKind } from "@/lib/drama/episode-steps";
 import { inputHash, shotImagePrompt, shotVideoPrompt, type ShotContext } from "@/lib/drama/media/prompts";
 import { shotImageReferences, shotVideoReferences, type EntityMap, type RefImage, type SheetMap } from "@/lib/drama/media/references";
+import { referenceCapacity, renderedVideoSeconds } from "@/lib/drama/media/model-options";
 import type { DramaArtifact, DramaProject, DramaShot } from "@/lib/drama/types";
+import { useConfigStore } from "@/stores/use-config-store";
 
 /** What a shot's media is made from. Prompts, references and the staleness hash all come from here, so the workbench, the strip and batches agree. */
 export type PrepareEnv = {
@@ -25,17 +27,20 @@ function context(env: PrepareEnv, shot: DramaShot, look: Look): ShotContext {
 function prepareImage(env: PrepareEnv, shot: DramaShot, look: Look): Prepared {
     const { aspect } = env.project;
     const prompt = shotImagePrompt(context(env, shot, look));
-    const references = shotImageReferences({ shot, entities: env.entities, sheets: env.sheets, language: look.language });
+    const capacity = referenceCapacity(useConfigStore.getState().config, "image", look.model);
+    const references = shotImageReferences({ shot, entities: env.entities, sheets: env.sheets, language: look.language, capacity });
     return { prompt, references, aspect, inputHash: inputHash({ kind: "image", prompt, refs: references.images.map((image) => image.artifactId), model: look.model, aspect }) };
 }
 
 /** The hash follows the storyboard picture but not which first frame is chosen, so switching the source never makes finished videos look out of date. */
 function prepareVideo(env: PrepareEnv, shot: DramaShot, look: Look, firstFrame?: RefImage): Prepared {
     const { aspect } = env.project;
-    const prompt = shotVideoPrompt(context(env, shot, look));
-    const references = shotVideoReferences({ shot, entities: env.entities, sheets: env.sheets, language: look.language }, firstFrame);
+    const seconds = renderedVideoSeconds(useConfigStore.getState().config, look.model, shot.seconds);
+    const prompt = shotVideoPrompt({ ...context(env, shot, look), videoSeconds: seconds });
+    const capacity = referenceCapacity(useConfigStore.getState().config, "video", look.model);
+    const references = shotVideoReferences({ shot, entities: env.entities, sheets: env.sheets, language: look.language, capacity }, firstFrame);
     const hash = inputHash({ kind: "video", prompt, refs: references.images.map((image) => image.artifactId), board: env.storyboards.get(shot.id)?.id ?? "", model: look.model, seconds: shot.seconds, aspect });
-    return { prompt, references, firstFrame, aspect, inputHash: hash, params: { seconds: shot.seconds } };
+    return { prompt, references, firstFrame, aspect, inputHash: hash, params: { seconds } };
 }
 
 function prepareAudio(env: PrepareEnv, shot: DramaShot, look: Look): Prepared {

@@ -3,7 +3,7 @@ import { useEffect } from "react";
 
 import { dramaKey, episodeKey } from "@/hooks/use-drama";
 import type { DramaRun } from "@/lib/drama/types";
-import { updateRun } from "@/services/drama-api";
+import { getRun, updateRun } from "@/services/drama-api";
 import { useDramaRuns } from "@/stores/use-drama-runs";
 
 /** A run is streamed by the tab that started it; after a reload nothing streams it, and the server still says running. */
@@ -19,7 +19,11 @@ export function useOrphanedRuns(dramaId: string | undefined, runs: readonly Dram
         const orphans = (runs ?? []).filter((run) => run.status === "running" && !streaming[run.id] && !handled.has(run.id) && Date.now() - run.createdAt > ORPHAN_AFTER_MS);
         if (!dramaId || !orphans.length) return;
         for (const run of orphans) handled.add(run.id);
-        void Promise.allSettled(orphans.map((run) => updateRun(run.id, { status: "stopped", error: ORPHAN_ERROR }))).then(() => {
+        // The snapshot can lag behind a run that just finished in this tab, so ask the server before stopping anything.
+        const stop = async (run: DramaRun) => {
+            if ((await getRun(run.id)).status === "running") await updateRun(run.id, { status: "stopped", error: ORPHAN_ERROR });
+        };
+        void Promise.allSettled(orphans.map(stop)).then(() => {
             void client.invalidateQueries({ queryKey: dramaKey(dramaId) });
             if (episodeId) void client.invalidateQueries({ queryKey: episodeKey(episodeId) });
         });

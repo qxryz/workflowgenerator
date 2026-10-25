@@ -61,7 +61,9 @@ test("chapter.parse reads the tag format with leading prose and a ledger", () =>
 \`\`\`
 </ledger>`;
     const result = chapter.parse(text);
-    assert.equal(result.title, "第三章 雨夜渡口");
+    assert.equal(result.title, "雨夜渡口");
+    assert.equal(chapter.parse("<title>第 12 章：夜航</title><body>b</body>").title, "夜航");
+    assert.equal(chapter.parse("<title>第三章</title><body>b</body>").title, "第三章");
     assert.equal(result.body, "雨点砸在油布上。\n\n林夏把怀表按在桌面。");
     assert.equal(result.endState, "深夜，渡口茶棚，林夏握着怀表。");
     assert.deepEqual(result.ledger.map((entry) => [entry.op, entry.kind, entry.name]), [["add", "item", "黄铜怀表"], ["resolve", "thread", "失踪的船票"]]);
@@ -94,6 +96,20 @@ test("episodes.parse normalizes numbers and chapter references", () => {
     assert.deepEqual(result.episodes[0].sourceChapters, [1, 2]);
     assert.equal(result.episodes[1].ref, undefined);
     assert.equal(result.episodes[1].targetSeconds, 90);
+});
+
+test("script and shot prompts tell the model how much fits in the runtime", () => {
+    assert.match(script.pacing(35), /约 6 拍、2 个场景以内/);
+    assert.match(script.pacing(180), /约 30 拍、4 个场景以内/);
+    assert.match(shots.shotBudget(35), /7 个左右.*32–39 秒/);
+    assert.match(shots.shotBudget(3), /2 个左右/);
+    const user = shots.build({ snapshot: { ...snapshot(), episodes: [episodeRow(1, { script: "【场景 1】…", targetSeconds: 35 })] }, scope: {}, episodeId: "p1", instruction: "" }).user;
+    assert.match(user, /镜头数控制在 7 个左右/);
+});
+
+test("shots.parse reads a dialogue line whichever key the model used for the words", () => {
+    const parsed = shots.parse(JSON.stringify({ shots: [{ seconds: 4, dialogue: [{ speaker: "E1", line: "你来晚了。" }, { speaker: "E2", content: "路上堵车。" }, { speaker: "E1", text: "进来吧。" }] }] }));
+    assert.deepEqual(parsed.shots[0].dialogue.map((d) => d.text), ["你来晚了。", "路上堵车。", "进来吧。"]);
 });
 
 test("script.parse needs a non-empty script", () => {

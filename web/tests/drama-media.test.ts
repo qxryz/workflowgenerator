@@ -96,20 +96,31 @@ test("video prompt runs start, action, end and carries colour codes and cues", (
     assert.doesNotMatch(text, /门铃响起/, "only continuous shots link to the previous end state");
     assert.match(shotVideoPrompt(ctx({ shot: { ...opening, transition: "continuous" }, prev: shot("s0", { endState: "门铃响起" }) })), /门铃响起/);
     assert.match(shotVideoPrompt(ctx({ language: "en-US" })), /slow dolly in/);
+    assert.match(shotVideoPrompt(ctx()), /时长：8 秒/);
+    assert.match(shotVideoPrompt(ctx({ videoSeconds: 10 })), /时长：10 秒/, "the length the model really renders is what the prompt says");
 });
 
 test("sheet prompts follow the entity kind", () => {
     const base = { style: null, palette: { name: "p", colors: ["#000000", "#FFFFFF"] }, useStyle: true, usePalette: true, language: "zh-CN" as const, aspect: "9:16" as const };
     const character = sheetPrompt({ ...base, entity: entities.get("hero")!, sideView: "right" });
     assert.equal(character.aspect, "16:9");
-    assert.match(character.prompt, /正面全身、右侧全身、背面全身/);
+    assert.match(character.prompt, /左格正面全身（面朝镜头），中格右侧全身（严格 90 度侧视.*右格背面全身（背对镜头/);
     assert.match(character.prompt, /严格 90 度侧视/);
     assert.match(character.prompt, /双手空手/);
     assert.match(character.prompt, /不绘制色卡/);
     assert.equal(sheetPrompt({ ...base, entity: entities.get("sword")! }).aspect, "1:1");
     assert.equal(sheetPrompt({ ...base, entity: entities.get("room")! }).aspect, "9:16");
     assert.match(sheetPrompt({ ...base, entity: entities.get("realm")! }).prompt, /世界观氛围图/);
-    assert.match(sheetPrompt({ ...base, entity: entities.get("hero")!, language: "en-US" }).prompt, /Left profile full body/);
+    assert.match(sheetPrompt({ ...base, entity: entities.get("hero")!, language: "en-US" }).prompt, /middle panel Left profile full body/);
+});
+
+test("a sheet describes how the subject looks, not its story role", () => {
+    const base = { style: null, palette: null, useStyle: true, usePalette: true, language: "zh-CN" as const, aspect: "16:9" as const };
+    const hero = entities.get("hero")!;
+    const withLook = sheetPrompt({ ...base, entity: { ...hero, description: "账房的女儿，正在找失踪的父亲", appearance: "短发，灰色风衣" } }).prompt;
+    assert.match(withLook, /外观：短发，灰色风衣/);
+    assert.doesNotMatch(withLook, /失踪的父亲/);
+    assert.match(sheetPrompt({ ...base, entity: { ...hero, description: "账房的女儿", appearance: "" } }).prompt, /账房的女儿/, "no appearance yet: the description is all there is");
 });
 
 test("input hash is stable under key order and sensitive to every part", () => {
@@ -130,6 +141,15 @@ test("image references keep only entities visible at the opening instant", () =>
     assert.match(text, /图片4：道具「信件」/);
     assert.doesNotMatch(sentPrompt("video", "提示词", plan), /参考图片编号/, "video requests are not numbered by the image endpoint");
     assert.equal(sentPrompt("video", "提示词", plan), ["提示词", ...plan.notes].join("\n\n"));
+});
+
+test("a provider that takes one character reference gets the first character and no scene or prop pictures", () => {
+    const plan = shotImageReferences({ shot: opening, entities, sheets, language: "zh-CN", capacity: { max: 1, kinds: ["character"] } });
+    assert.deepEqual(plan.images.map((image) => image.artifactId), ["sheet-hero"]);
+    assert.deepEqual(plan.notes, ["图片1：人物「林夏」三视图，仅用于外观一致"]);
+    const firstFrameOnly = shotVideoReferences({ shot: opening, entities, sheets, language: "zh-CN", capacity: { max: 0 } }, { artifactId: "frame", url: "/f", storageKey: "k", name: "本镜分镜图" });
+    assert.deepEqual(firstFrameOnly.images, []);
+    assert.equal(firstFrameOnly.firstFrame?.artifactId, "frame");
 });
 
 test("video references add props that appear later and carry the first frame separately", () => {
@@ -172,6 +192,8 @@ test("lint flags the table problems and stays quiet on a clean table", () => {
     const total = issues.find((issue) => !issue.shotId);
     assert.match(lintZh(total!), /合计 15 秒，与目标 60 秒/);
     assert.equal(lintEpisode(clean, entities, 16).length, 0, "within 20% of target");
+    const long = lintEpisode([shot("a", { seconds: 4, camera: "推镜", size: "远景", dialogue: [{ speaker: "hero", text: "我的黄铜钥匙呢？房东明早八点收房，迟一分钟就加一天房租。" }] })], entities, 4).map(lintZh);
+    assert.ok(long.some((m) => m.includes("对白约需 6 秒，超过镜头的 4 秒")), long.join("|"));
 });
 
 test("lint compares prop state with the previous shot only for continuous shots", () => {

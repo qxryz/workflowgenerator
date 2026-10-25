@@ -130,6 +130,13 @@ async fn shots_adopt_binds_entities_and_episode_delete_cascades() {
         "imagePrompt":"林溪站在柜台前，台灯未亮","videoPrompt":"林溪按下开关，灯亮起"});
     let mut next = shot.clone();
     next["transition"] = json!("连续");
+    let mut opening = shot.clone();
+    opening["transition"] = json!("continuous");
+    let (status, body) = f.call("POST", &format!("/api/drama-runs/{shots}/proposal"), json!({"proposal": {"shots": [opening]}})).await;
+    assert_eq!((status, body["issues"][0]["path"].as_str()), (422, Some("shots[0].transition")));
+    // Objects and world settings the shot cannot show are left out instead of failing the whole table.
+    next["entities"] = json!(["林溪", "旧港邮局", "湿伞", "归航灯"]);
+    next["props"] = json!([{"entity":"黄铜台灯","quantity":1,"startVisible":true,"endVisible":true}, {"entity":"手电筒","quantity":1,"startVisible":true,"endVisible":true}, {"entity":"林溪","quantity":1,"startVisible":true,"endVisible":true}]);
     let submitted = f.ok("POST", &format!("/api/drama-runs/{shots}/proposal"), json!({"proposal": {"shots": [shot, next]}})).await;
     assert_eq!(submitted["proposal"]["shots"][1]["transition"], "continuous");
     f.ok("POST", &format!("/api/drama-runs/{shots}/adopt"), Value::Null).await;
@@ -137,6 +144,8 @@ async fn shots_adopt_binds_entities_and_episode_delete_cascades() {
     let detail = f.ok("GET", &format!("/api/drama-episodes/{episode}"), Value::Null).await;
     let first = &detail["shots"][0];
     assert_eq!(first["entityIds"].as_array().unwrap().len(), 3, "speaker, scene and prop are bound");
+    assert_eq!(detail["shots"][1]["entityIds"].as_array().unwrap().len(), 3, "unknown objects and the world setting are not bound");
+    assert_eq!(detail["shots"][1]["props"].as_array().unwrap().len(), 1);
     assert_eq!(first["dialogue"][1]["speaker"], "");
     let shot_id = first["id"].as_str().unwrap();
     let artifact = f.ok("POST", &format!("/api/dramas/{drama}/artifacts"), json!({"shotId":shot_id,"kind":"image","prompt":"p"})).await;

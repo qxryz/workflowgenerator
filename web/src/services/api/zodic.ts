@@ -323,11 +323,15 @@ async function requestMiniMaxStep(config: ReturnType<typeof resolveModelRequestC
     type Block = { type?: string; text?: string; thinking?: string; signature?: string; id?: string; name?: string; input?: unknown; json?: string };
     const blocks = new Map<number, Block>();
     let text = "";
+    /** The provider said the reply is complete; a stream that just stops is a dropped connection, not an answer. */
+    let finished = false;
     const consume = (payload: { type?: string; index?: number; content_block?: Block; delta?: Block & { type?: string; partial_json?: string; stop_reason?: string }; content?: Block[]; stop_reason?: string; error?: { message?: string }; base_resp?: { status_code?: number; status_msg?: string } }) => {
         if (payload.error?.message) throw new Error(payload.error.message);
         if (payload.base_resp?.status_code) throw new Error(payload.base_resp.status_msg || "MiniMax 请求失败");
         if (payload.stop_reason === "max_tokens" || payload.delta?.stop_reason === "max_tokens") throw new Error("模型回答被截断，请重试或缩小本次任务");
+        if (payload.type === "message_stop" || payload.stop_reason || payload.delta?.stop_reason) finished = true;
         if (payload.content) {
+            finished = true; // a whole (non-streamed) message
             payload.content.forEach((part, index) => { blocks.set(index, part); if (part.type === "text") text += part.text || ""; if (part.type === "thinking" && part.thinking) options?.onReasoning?.(part.thinking); });
             if (text) onDelta(text);
         }
@@ -348,6 +352,7 @@ async function requestMiniMaxStep(config: ReturnType<typeof resolveModelRequestC
         return payload.type === "message_stop";
     };
     await streamProvider(endpoint, config.apiKey, body, consume, options, undefined, { "anthropic-version": "2023-06-01" });
+    if (!finished) throw new Error("模型连接中断，回答不完整，请重试");
     const parts = [...blocks.entries()].sort(([a], [b]) => a - b).map(([, block]) => {
         const { json, ...part } = block;
         if (json) part.input = JSON.parse(json);

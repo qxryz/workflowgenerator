@@ -171,9 +171,9 @@ export const STYLE_PRESETS: readonly StylePreset[] = [
         id: "cg_noir",
         name: "黑色写实",
         nameEn: "Noir realism",
-        prompt: "黑色电影质感的写实CG人像，大面积暗部里单一硬光源的伦勃朗式布光，光比极大而暗部仍有层次，空气中的薄雾与尘埃分离前后景，皮肤高光克制、瞳孔里一点锐利眼神光，低饱和近单色调，长焦浅景深，",
+        prompt: "黑色电影质感的写实CG画面，大面积暗部里单一硬光源的伦勃朗式布光，光比极大而暗部仍有层次，空气中的薄雾与尘埃分离前后景，皮肤高光克制、瞳孔里一点锐利眼神光，低饱和近单色调，长焦浅景深，",
         promptEn:
-            "film-noir photoreal CG portraiture, single hard key light with Rembrandt shaping against deep shadow, extreme lighting ratio with retained shadow detail, thin haze and dust separating foreground from background, restrained skin speculars with a sharp catchlight in the eye, desaturated near-monochrome palette, long lens shallow depth of field, ",
+            "film-noir photoreal CG imagery, single hard key light with Rembrandt shaping against deep shadow, extreme lighting ratio with retained shadow detail, thin haze and dust separating foreground from background, restrained skin speculars with a sharp catchlight in the eye, desaturated near-monochrome palette, long lens shallow depth of field, ",
     },
     {
         id: "game_sim",

@@ -392,7 +392,8 @@ export type MiniMaxHailuoInput = {
 };
 
 export function normalizeMiniMaxHailuoVideoOptions(resolution: string, duration: number) {
-    const normalizedDuration = duration === 10 ? 10 : 6;
+    // Hailuo 2.3 only renders 6 or 10 seconds; take the shortest one that covers the request (export trims the excess).
+    const normalizedDuration = duration > 6 ? 10 : 6;
     const normalizedResolution = /^1080p?$/iu.test(resolution.trim()) && normalizedDuration === 6 ? "1080P" : "768P";
     return { resolution: normalizedResolution as (typeof MINIMAX_HAILUO_RESOLUTIONS)[number], duration: normalizedDuration as (typeof MINIMAX_HAILUO_DURATIONS)[number] };
 }

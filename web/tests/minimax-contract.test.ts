@@ -101,6 +101,9 @@ describe("MiniMax native contract", () => {
         );
         assert.deepEqual(normalizeMiniMaxHailuoVideoOptions("1080P", 10), { resolution: "768P", duration: 10 });
         assert.deepEqual(normalizeMiniMaxHailuoVideoOptions("1080P", 6), { resolution: "1080P", duration: 6 });
+        assert.equal(normalizeMiniMaxHailuoVideoOptions("720p", 5).duration, 6);
+        assert.equal(normalizeMiniMaxHailuoVideoOptions("720p", 7).duration, 10);
+        assert.equal(normalizeMiniMaxHailuoVideoOptions("720p", 15).duration, 10);
         assert.throws(
             () => buildMiniMaxHailuoRequest("MiniMax-Hailuo-2.3-Fast", { prompt: "missing frame", duration: 6, resolution: "768P" }),
             /需要一张首帧图片/,

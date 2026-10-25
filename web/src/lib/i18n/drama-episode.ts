@@ -169,6 +169,7 @@ export default {
     "连续镜头默认接着上一镜的结尾，也可以改用本镜画面": "Continuous shots pick up from the previous shot's ending by default; you can use this shot's picture instead",
     "有镜头接着上一镜，但上一镜还没有采用的视频，已跳过": "A shot continues from the previous one, which has no adopted video yet, so it was skipped",
     "读不到上一镜的结尾画面，请稍后重试": "Couldn't read the previous shot's last frame. Try again later",
+    "第 {n} 镜的对白约需 {need} 秒，超过镜头的 {seconds} 秒，配音会被截断": "Shot {n}'s dialogue needs about {need}s, longer than the shot's {seconds}s; the voice will be cut off",
     "第 {n} 镜与上一镜运镜相同（{camera}）": "Shot {n} uses the same camera movement as the previous shot ({camera})",
     "第 {from}–{to} 镜景别都是「{size}」，可以变换一下": "Shots {from}–{to} are all \"{size}\"; consider varying them",
     "第 {n} 镜没有绑定出场设定": "Shot {n} has no settings attached",

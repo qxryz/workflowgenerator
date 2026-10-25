@@ -11,6 +11,9 @@ type Translate = (message: string, values?: Record<string, string | number>) => 
 export const lintText = (issue: LintIssue, t: Translate): string =>
     t(issue.message, { ...issue.values, ...Object.fromEntries(Object.entries(issue.terms ?? {}).map(([key, word]) => [key, t(word)])) });
 
+/** Spoken Chinese runs at about four characters a second. */
+const SPEECH_CHARS_PER_SECOND = 4.2;
+
 /** Free, offline checks over a shot table; nothing here calls a model. */
 export function lintEpisode(shots: readonly DramaShot[], entities: ReadonlyMap<string, DramaEntity>, targetSeconds: number): LintIssue[] {
     const issues: LintIssue[] = [];
@@ -36,6 +39,10 @@ export function lintEpisode(shots: readonly DramaShot[], entities: ReadonlyMap<s
         if (noImage || noVideo) add(shot, "warn", noImage && noVideo ? "第 {n} 镜缺少画面提示词和视频提示词" : noImage ? "第 {n} 镜缺少画面提示词" : "第 {n} 镜缺少视频提示词", { n });
         for (const speaker of new Set(shot.dialogue.map((line) => line.speaker).filter(Boolean)))
             if (!shot.entityIds.includes(speaker)) add(shot, "warn", "第 {n} 镜的说话人「{speaker}」没有绑定为出场设定", { n, speaker: name(speaker) });
+
+        const spoken = [...shot.dialogue.map((line) => line.text), shot.narration].join("").replace(/[\s，。！？、；：,.!?;:"“”‘’…—（）()]/g, "").length;
+        const need = Math.ceil(spoken / SPEECH_CHARS_PER_SECOND);
+        if (need > shot.seconds) add(shot, "warn", "第 {n} 镜的对白约需 {need} 秒，超过镜头的 {seconds} 秒，配音会被截断", { n, need, seconds: shot.seconds });
 
         if (prev && shot.transition === "continuous") {
             for (const before of prev.props) {

@@ -13,6 +13,9 @@ const SYSTEM = `你是短剧美术与设定统筹，把小说资料整理成可�
 要求：
 - 以“创作账本”为主要依据，账本里的人物、地点、物件、世界观条目都要落成设定；章节摘要和正文片段用来补细节，不要凭空添加有名有姓的新人物。
 - 上下文里已有的设定带短标签（如 E3）：要修改它就在 ref 里填该标签，不要重复新建；没有变化的不用输出。只增改，不删除。
+- 设定是要出图、要在镜头里反复用到的资产：道具只保留对情节起作用、会被特写或反复出现的物件（一般不超过 8 个）；一次性的日用品、背景杂物不要单列，写进所在场景的 appearance 里。人物只列有名有姓或有台词的角色。
+- 人物的 appearance 只写身体与穿着（年龄、身形、脸、发型、服装、固定的配饰），不写手里拿着或随身带着的物品——那些是道具，在道具里单列。
+- description 和 appearance 只写设定本身（是什么、长什么样），不写“资料前后矛盾”“尚未揭示”之类对资料的评论；有矛盾时选一个说法，把疑点写进 sourceNote。
 - parent、relations 的 from/to 可以写设定名称或短标签。
 - aliases 写资料里出现过的别称；sourceNote 写依据，如“账本·人物；第2章”。
 - 关系 kind 只能是：family 亲属、ally 同伴、mentor 师徒、enemy 敌对、love 感情、belong 隶属、rival 对手、other 其他；label 用 2–6 个字的中文关系名（如“结义兄妹”）。同一对人物只写一条最主要的关系。
@@ -21,13 +24,13 @@ const SYSTEM = `你是短剧美术与设定统筹，把小说资料整理成可�
 只输出一个 JSON 对象，格式如下：
 {
   "entities": [
-    {"ref": "E3", "kind": "character", "name": "林夏", "aliases": ["小夏"], "description": "码头账房的女儿，沉默谨慎，在找失踪的父亲。", "appearance": "二十二岁，身形瘦削，齐肩黑发常挽在脑后，深蓝粗布长衫，袖口磨白，左腕缠一圈旧麻绳。", "parent": "", "sourceNote": "账本·人物；第1-3章"},
-    {"kind": "scene", "name": "渡口茶棚", "aliases": [], "description": "林夏与周远每次碰头的地方。", "appearance": "临江的竹木茶棚，四张方桌，棚顶油布泛黄，一盏煤油灯悬在梁下，江雾常年不散，色调灰青。", "parent": "", "sourceNote": "账本·地点；第1章"},
-    {"kind": "prop", "name": "黄铜怀表", "aliases": [], "description": "周远留给林夏的线索。", "appearance": "拇指大的圆形黄铜怀表，表盖内刻“七”字，链条断过一节。", "parent": "林夏", "sourceNote": "账本·物件；第3章"},
-    {"kind": "world", "name": "七号码头的规矩", "aliases": [], "description": "夜里不许点明火，违者由码头会处置。", "appearance": "", "parent": "", "sourceNote": "账本·世界观"}
+    {"ref": "E3", "kind": "character", "name": "许青", "aliases": ["小青"], "description": "旧书店的店员，沉默谨慎，在找一本被人买走的账册。", "appearance": "二十六岁，身形瘦削，齐肩黑发常挽在脑后，深灰色针织开衫，袖口起球，左腕戴一根褪色的红绳。", "parent": "", "sourceNote": "账本·人物；第1-3章"},
+    {"kind": "scene", "name": "纸页书店", "aliases": [], "description": "许青与老蒋每次碰头的地方。", "appearance": "街角的老书店，高到天花板的深色木书架，窄窄的过道，收银台上一盏绿罩台灯，窗外是潮湿的街道，色调偏暖黄。", "parent": "", "sourceNote": "账本·地点；第1章"},
+    {"kind": "prop", "name": "蓝布雨伞", "aliases": [], "description": "老蒋留给许青的线索。", "appearance": "折叠长柄雨伞，蓝色布面，伞骨有一根弯折，木质伞柄上缠着一圈白胶布。", "parent": "许青", "sourceNote": "账本·物件；第3章"},
+    {"kind": "world", "name": "书店的规矩", "aliases": [], "description": "打烊后不许外借孤本，违者取消会员。", "appearance": "", "parent": "", "sourceNote": "账本·世界观"}
   ],
   "relations": [
-    {"from": "林夏", "to": "周远", "kind": "ally", "label": "同伴", "note": "周远欠林夏父亲一条命"}
+    {"from": "许青", "to": "老蒋", "kind": "ally", "label": "忘年交", "note": "老蒋是书店的常客，帮过许青很多次"}
   ]
 }`;
 

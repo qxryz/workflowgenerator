@@ -32,6 +32,16 @@ test("MiniMax preserves streamed thinking and fragmented tool arguments across a
  assert.equal(toolStarted,true); assert.equal(requests,1); assert.deepEqual(reasoning,["检查参数"]);
  approve(); assert.equal(await pending,"已完成"); assert.equal(requests,2);
 });
+test("a MiniMax stream that closes without a stop event is a dropped connection, not a finished answer", async t => {
+ const original = fetch; t.after(() => globalThis.fetch = original);
+ const minimax = {...config, channels:[createModelChannel({id:"fixture",vendor:"minimax-api",apiFormat:"minimax",baseUrl:"https://api.minimaxi.com",apiKey:"fixture",models:[{name:"fixture",capability:"text"}]})]};
+ const reply = (events) => new Response(new ReadableStream({start(c){events.forEach(e=>c.enqueue(encode(e))); c.close();}}),{headers:{"content-type":"text/event-stream"}});
+ const delta = {type:"content_block_delta",index:0,delta:{text:"半句"}};
+ globalThis.fetch = async () => reply([{type:"content_block_start",index:0,content_block:{type:"text",text:""}}, delta]);
+ await assert.rejects(requestZodicReply(minimax,[{role:"user",content:"hi"}],()=>{}, {responseTimeoutMs:1000}),/连接中断/);
+ globalThis.fetch = async () => reply([{type:"content_block_start",index:0,content_block:{type:"text",text:""}}, delta, {type:"message_delta",delta:{stop_reason:"end_turn"}}, {type:"message_stop"}]);
+ assert.equal(await requestZodicReply(minimax,[{role:"user",content:"hi"}],()=>{}, {responseTimeoutMs:1000}),"半句");
+});
 test("provider timeout terminates a stalled request and exposes an actionable error", async t => {
  const original=fetch; t.after(()=>globalThis.fetch=original);
  globalThis.fetch=async (_path,init)=>new Promise((_,reject)=>init.signal.addEventListener("abort",()=>reject(new DOMException("Aborted","AbortError"))));

@@ -24,8 +24,8 @@ const SYSTEM = `你是严格的小说与短剧编辑，对给定内容做七项�
 只输出一个 JSON 对象，必须恰好七项，顺序同上：
 {
   "items": [
-    {"criterion": "consistency", "verdict": "issue", "note": "第 3 章写林夏左手戴麻绳，设定里她的麻绳在右腕。", "suggestion": "第 3 章改为右腕，或在设定里补充换手的原因。"},
-    {"criterion": "character", "verdict": "pass", "note": "周远两次拒绝帮忙都与他“欠账不欠命”的设定一致。", "suggestion": ""}
+    {"criterion": "consistency", "verdict": "issue", "note": "第 3 章写许青左手戴红绳，设定里她的红绳在右腕。", "suggestion": "第 3 章改为右腕，或在设定里补充换手的原因。"},
+    {"criterion": "character", "verdict": "pass", "note": "老蒋两次拒绝帮忙都与他“从不欠人情”的设定一致。", "suggestion": ""}
   ]
 }`;
 

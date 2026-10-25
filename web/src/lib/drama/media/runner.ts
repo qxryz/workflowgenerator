@@ -73,7 +73,14 @@ function requestConfig(kind: ArtifactKind, model: string, params: Record<string,
 }
 
 /** Providers read bytes from `dataUrl`; the plan only carries storage keys. */
-const loadImages = (images: RefImage[]): Promise<ReferenceImage[]> => Promise.all(toReferenceImages(images).map(async (image) => ({ ...image, dataUrl: await imageToDataUrl(image) })));
+const loadImages = (images: RefImage[]): Promise<ReferenceImage[]> =>
+    Promise.all(
+        toReferenceImages(images).map(async (image) => {
+            const dataUrl = await imageToDataUrl(image);
+            // Providers validate the declared type, so replace the "image/*" placeholder with the real one.
+            return { ...image, dataUrl, type: dataUrl.match(/^data:(image\/[^;,]+)/i)?.[1] ?? image.type };
+        }),
+    );
 
 const fileResult = (file: UploadedFile): Result => ({
     patch: { mediaKey: file.storageKey, mediaUrl: file.url, mime: file.mimeType, width: file.width, height: file.height, durationMs: file.durationMs },
