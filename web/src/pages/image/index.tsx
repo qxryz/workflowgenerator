@@ -2,6 +2,7 @@ import { ArrowLeft, ArrowRight, BookOpen, CheckSquare, ClipboardPaste, Download,
 import { useEffect, useRef, useState } from "react";
 import { App, Button, Checkbox, Drawer, Empty, Image, Input, Modal, Popconfirm, Tag, Tooltip, Typography } from "antd";
 import { downloadFile } from "@/services/download-file";
+import { clearWorkspaceActivity, setWorkspaceActivity } from "@/services/workspace-activity";
 
 import { ImageSettingsPanel } from "@/components/image-settings-panel";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -217,6 +218,7 @@ export default function ImagePage() {
         if (!activeBatch) return;
         activeBatchRef.current = null;
         activeBatch.controller.abort();
+        clearWorkspaceActivity(`image-generation:${activeBatch.id}`);
         if (activeBatch.logId) generationLogVisibility.suppress(activeBatch.logId);
         if (activeBatch.agentTaskId) {
             updateAgentTask(activeBatch.agentTaskId, { status: "failed", error: reason });
@@ -240,10 +242,12 @@ export default function ImagePage() {
         invalidateActiveBatch("已被新的生图任务替代");
         const batch = { id, slotIds, controller: new AbortController(), agentTaskId };
         activeBatchRef.current = batch;
+        setWorkspaceActivity({ id: `image-generation:${id}`, title: "图片生成", status: "generating", route: "/workbench/image" });
         return batch;
     };
 
     const finishGenerationBatch = (batch: ActiveGenerationBatch) => {
+        clearWorkspaceActivity(`image-generation:${batch.id}`);
         if (!isBatchCurrent(batch)) return;
         activeBatchRef.current = null;
         setRunning(false);
@@ -429,6 +433,7 @@ export default function ImagePage() {
         let uploadsSettled = false;
 
         try {
+            setWorkspaceActivity({ id: `image-generation:${batch.id}`, title: "图片生成", status: "saving", route: "/workbench/image" });
             const uploadResults = await Promise.allSettled(
                 successImages.map(async (image) => {
                     if (!isBatchCurrent(batch)) throw new StaleGenerationError();
@@ -783,6 +788,7 @@ export default function ImagePage() {
         try {
             const image = await runGenerationSlot(slotId, snapshot, batch);
             if (!isBatchCurrent(batch)) return;
+            setWorkspaceActivity({ id: `image-generation:${batch.id}`, title: "图片生成", status: "saving", route: "/workbench/image" });
             const uploaded = await uploadImage(image.dataUrl);
             stored = uploaded;
             if (!isBatchCurrent(batch)) {

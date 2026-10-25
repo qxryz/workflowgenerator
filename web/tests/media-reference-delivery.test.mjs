@@ -210,7 +210,28 @@ test("Seedance custom server requires its own upload credentials", async () => {
     assert.equal(calls.length, 0);
 });
 
-test("Seedance official server uploads without a shared secret", async () => {
+test("Seedance local reference videos are never uploaded until a server is chosen", async () => {
+    globalThis.__mediaReferenceDeliveryVideoBlob = new Blob(["video bytes"], { type: "video/mp4" });
+    const originalFetch = globalThis.fetch;
+    let uploads = 0;
+    globalThis.fetch = async () => { uploads += 1; throw new Error("Unexpected upload"); };
+    try {
+        for (const extra of [{}, { seedanceVideoRelayMode: "off", seedanceVideoRelayUrl: "https://relay.example/media", seedanceVideoRelayToken: "leftover-token" }]) {
+            calls.length = 0;
+            await assert.rejects(
+                createVideoGenerationTask(config("ark", extra), "延续参考视频的动作", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]),
+                /选择上传服务器/u,
+            );
+            assert.equal(calls.length, 0);
+        }
+        assert.equal(uploads, 0);
+    } finally {
+        globalThis.fetch = originalFetch;
+        globalThis.__mediaReferenceDeliveryVideoBlob = null;
+    }
+});
+
+test("Seedance author server uploads without a shared secret once the user has chosen it", async () => {
     calls.length = 0;
     globalThis.__mediaReferenceDeliveryVideoBlob = new Blob(["video bytes"], { type: "video/mp4" });
     const originalFetch = globalThis.fetch;
@@ -220,7 +241,7 @@ test("Seedance official server uploads without a shared secret", async () => {
         return new Response(JSON.stringify({ url: "https://wg.coco120.cn/seedance-media/v1/media/abc.mp4" }), { status: 201, headers: { "Content-Type": "application/json" } });
     };
     try {
-        await createVideoGenerationTask(config("ark", { seedanceVideoRelayMode: "official", seedanceVideoRelayUrl: "https://relay.example/media", seedanceVideoRelayToken: "leftover-token" }), "延续参考视频", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]);
+        await createVideoGenerationTask(config("ark", { seedanceVideoRelayMode: "author", seedanceVideoRelayUrl: "https://relay.example/media", seedanceVideoRelayToken: "leftover-token" }), "延续参考视频", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]);
         assert.equal(uploads[0].url, "https://wg.coco120.cn/seedance-media/v1/public-upload");
         assert.equal(uploads[0].headers.Authorization, undefined);
         assert.equal(uploads.some(upload => upload.url.includes("relay.example") || JSON.stringify(upload.headers).includes("leftover-token")), false);
@@ -238,7 +259,7 @@ test("failed Seedance upload does not create a paid provider task", async () => 
     globalThis.fetch = async () => new Response(JSON.stringify({ error: "upload unavailable" }), { status: 503, headers: { "Content-Type": "application/json" } });
     try {
         await assert.rejects(
-            createVideoGenerationTask(config("ark", { seedanceVideoRelayMode: "official" }), "延续参考视频", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]),
+            createVideoGenerationTask(config("ark", { seedanceVideoRelayMode: "author" }), "延续参考视频", images(1), [{ ...video(), url: "wg-media://local-cat", storageKey: "media:local-cat" }]),
             /参考视频上传失败/u,
         );
         assert.equal(calls.length, 0);

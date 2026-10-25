@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type DragEvent } from "react";
 import { App, Button, Checkbox, Drawer, Empty, Input, Modal, Popconfirm, Tag, Typography } from "antd";
 import { nanoid } from "nanoid";
 import { downloadFile } from "@/services/download-file";
+import { clearWorkspaceActivity, setWorkspaceActivity } from "@/services/workspace-activity";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -148,8 +149,15 @@ const CANCELLATION_JOURNAL_KEY = "workflowgenerator:video-cancellation-journal-v
 const MINIMAX_HAILUO_IMAGE_MAX_BYTES = 20 * 1024 * 1024;
 const logStore = createServerJsonStore("video-generation-logs-v1");
 const cancelledJobStore = createServerJsonStore("video-generation-cancellations-v1");
-const videoGenerationRunRegistry = new VideoGenerationRunRegistry();
+const videoGenerationRunRegistry = new VideoGenerationRunRegistry({
+    started: (run) => setWorkspaceActivity({ id: `video-generation:${run.runId}`, title: "视频生成", status: "generating", route: "/workbench/video" }),
+    finished: (run) => clearWorkspaceActivity(`video-generation:${run.runId}`),
+});
 const videoRetrySnapshots = new Map<string, GenerationLog>();
+
+function updateVideoRunActivity(run: VideoGenerationRun, status: "generating" | "saving") {
+    videoGenerationRunRegistry.runIfActive(run, () => setWorkspaceActivity({ id: `video-generation:${run.runId}`, title: "视频生成", status, route: "/workbench/video" }));
+}
 
 function readSynchronousCancellationJournal() {
     if (typeof window === "undefined") return new Map<string, CancelledVideoJob>();
@@ -681,6 +689,7 @@ export default function VideoPage() {
                 status: "生成中",
                 task,
             });
+            updateVideoRunActivity(run, "saving");
             const pendingLogOutcome = retryLog ? await saveRetriedLogForRun(run, retryLog, log) : await saveLogForRun(run, log);
             if (pendingLogOutcome.status !== "committed") {
                 if (pendingLogOutcome.error && runRegistry.isForeground(run)) throw pendingLogOutcome.error;
@@ -688,6 +697,7 @@ export default function VideoPage() {
             }
             if (!runRegistry.isForeground(run)) return;
             setPreviewLog(log);
+            updateVideoRunActivity(run, "generating");
             handedOffToPolling = true;
             void pollGenerationLog(log, snapshot.config, agentTaskId, run, "foreground", retryLog);
         } catch (error) {
@@ -1267,6 +1277,7 @@ export default function VideoPage() {
                 }
                 if (!runRegistry.isActive(run)) return;
                 if (state.status === "completed") {
+                    updateVideoRunActivity(run, "saving");
                     let stored: Awaited<ReturnType<typeof storeGeneratedVideo>>;
                     try {
                         stored = await storeGeneratedVideo(state.result);

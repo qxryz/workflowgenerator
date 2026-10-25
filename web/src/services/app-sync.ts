@@ -12,6 +12,7 @@ import { isStructuredAsset, useAssetStore } from "@/stores/use-asset-store";
 import type { WebdavSyncConfig } from "@/stores/use-config-store";
 import type { CanvasProject } from "@/stores/canvas/use-canvas-store";
 import { useCanvasStore } from "@/stores/canvas/use-canvas-store";
+import { withWorkspaceActivity } from "./workspace-activity";
 
 export type AppSyncDomainKey = "canvas" | "assets";
 type DomainKey = AppSyncDomainKey;
@@ -73,6 +74,10 @@ const storageKeyPattern = /^(image|video|audio|file|video-reference|audio-refere
 const MAX_SYNC_MANIFEST_BYTES = 8 * 1024 * 1024;
 
 export async function syncAppDataToWebdav(config: WebdavSyncConfig, onProgress?: AppSyncProgress): Promise<AppSyncResult> {
+    return withWorkspaceActivity({ id: `webdav-${crypto.randomUUID()}`, title: "WebDAV 同步", status: "syncing", route: "/config" }, () => performAppDataSync(config, onProgress));
+}
+
+async function performAppDataSync(config: WebdavSyncConfig, onProgress?: AppSyncProgress): Promise<AppSyncResult> {
     emitProgress(onProgress, { stage: "等待本地数据加载" });
     await Promise.all([waitForHydration(useCanvasStore), waitForHydration(useAssetStore)]);
 

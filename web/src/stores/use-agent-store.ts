@@ -3,6 +3,7 @@ import { create } from "zustand";
 import type { CanvasAgentOp, CanvasAgentSnapshot } from "@/lib/canvas/canvas-agent-ops";
 import type { WorkflowExecutionMode, WorkflowRunSnapshot } from "@/lib/canvas/workflow-execution";
 import { readMigratedUserPreference, saveUserPreference } from "@/lib/user-preference-storage";
+import type { WorkspaceActivity, WorkspaceWorkStatus } from "@/lib/agent/workspace-status";
 
 export type AgentApplyOptions = {
     resumeExistingStructure?: boolean;
@@ -37,8 +38,11 @@ type AgentStore = {
     canvasContext: AgentCanvasContext | null;
     contexts: Record<string, AgentCanvasContext>;
     selectedProjectId: string | null;
-    work: Record<string, Record<string, boolean>>;
-    setWork: (projectId: string, kind: string, busy: boolean) => void;
+    work: Record<string, Record<string, boolean | WorkspaceWorkStatus>>;
+    activities: Record<string, WorkspaceActivity>;
+    setActivity: (activity: WorkspaceActivity) => void;
+    clearActivity: (id: string) => void;
+    setWork: (projectId: string, kind: string, busy: boolean | WorkspaceWorkStatus) => void;
     removeContext: (projectId: string) => void;
     preferencesHydrated: boolean;
     setAgentState: (patch: Partial<Omit<AgentStore, "setAgentState" | "openPanel" | "closePanel" | "togglePanel" | "setCanvasContext">>) => void;
@@ -64,6 +68,14 @@ export const useAgentStore = create<AgentStore>((set, get) => ({
     contexts: {},
     selectedProjectId: null,
     work: {},
+    activities: {},
+    setActivity: (activity) => set(state => ({ activities: { ...state.activities, [activity.id]: { ...activity } } })),
+    clearActivity: (id) => set(state => {
+        if (!state.activities[id]) return state;
+        const activities = { ...state.activities };
+        delete activities[id];
+        return { activities };
+    }),
     setWork: (id, kind, busy) => set((state) => ({ work: { ...state.work, [id]: { ...state.work[id], [kind]: busy } } })),
     removeContext: (id) =>
         set((state) => {

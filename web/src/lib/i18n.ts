@@ -1,3 +1,4 @@
+
 export const APP_LANGUAGES = ["zh-CN", "en-US"] as const;
 
 export type AppLanguage = (typeof APP_LANGUAGES)[number];
@@ -184,10 +185,14 @@ const englishMessages: Record<string, string> = {
     "渠道聚合、默认模型和同步偏好": "Model providers, defaults, and sync preferences",
     "导出文件不包含 API Key、视频中转凭证和 WebDAV 密码。": "Exports never include API keys, video relay tokens, or WebDAV passwords.",
     "Seedance 参考视频上传": "Seedance reference video upload",
-    "提交 Seedance 任务时，本机参考视频会上传到所选服务器，供生成服务读取。": "When you submit a Seedance task, local reference videos are uploaded to the selected server for the video provider to read.",
-    "官方服务器的临时视频 48 小时后删除。": "Temporary videos on the official server are deleted after 48 hours.",
+    "默认不上传。选择服务器后，提交 Seedance 任务时，本机参考视频会上传到该服务器，供生成服务读取。": "Nothing is uploaded by default. Once you choose a server, local reference videos are uploaded to it when you submit a Seedance task, for the video provider to read.",
+    "作者服务器上的临时视频 48 小时后删除。": "Temporary videos on the author's server are deleted after 48 hours.",
+    "上传到作者的服务器？": "Upload to the author's server?",
+    "本机参考视频会上传到作者运营的服务器（wg.coco120.cn），并生成可公开访问的临时链接，48 小时后删除。仅在内容可以公开时选择。": "Local reference videos are uploaded to the server operated by the author (wg.coco120.cn), which creates a publicly accessible temporary link and deletes the video after 48 hours. Choose this only if the content can be public.",
+    "同意并启用": "Agree and enable",
+    "不上传": "Do not upload",
+    "作者的服务器": "Author's server",
     "视频上传服务器": "Video upload server",
-    "官方服务器": "Official server",
     "自定义服务器": "Custom server",
     "服务器 HTTPS 地址": "Server HTTPS URL",
     "上传凭证": "Upload token",
@@ -1220,6 +1225,27 @@ const englishMessages: Record<string, string> = {
     "访问令牌已失效，请重新输入。": "The access token is no longer valid. Enter it again.",
     "访问令牌没有生效，请重新输入。": "The access token did not take effect. Enter it again.",
     "提交失败，请重试。": "Could not submit. Try again.",
+    "页面不存在": "Page not found",
+    "页面暂时无法打开": "This page can't be opened right now",
+    "页面资源没有完整加载。请重新加载；如果问题持续，可以先返回首页继续工作。": "The page resources did not finish loading. Reload the page; if the problem continues, go back to the home page to keep working.",
+    "进行中 {count}": "{count} in progress",
+    "生成中 {count}": "{count} generating",
+    "下载中 {count}": "{count} downloading",
+    "上传中 {count}": "{count} uploading",
+    "保存中 {count}": "{count} saving",
+    "导出中 {count}": "{count} exporting",
+    "同步中 {count}": "{count} syncing",
+    "等待确认 {count}": "{count} awaiting confirmation",
+    "待处理 {count}": "{count} need attention",
+    "插件安装": "Plugin installation",
+    "技能安装": "Skill installation",
+    "作者库保存": "Saving from author library",
+    "WebDAV 同步": "WebDAV sync",
+    "软件更新": "App update",
+    "图片生成": "Image generation",
+    "视频生成": "Video generation",
+    "音频处理": "Audio processing",
+    "Seedance 2.5 视频生成": "Seedance 2.5 video generation",
 };
 
 function interpolate(message: string, values?: TranslationValues) {

@@ -513,7 +513,7 @@ function InfiniteCanvasPage({ projectId, active }: { projectId: string; active: 
     const assets = useAssetStore((state) => state.assets);
     const activeWorkflowSnapshot = useWorkflowRunStore((state) => (state.runIdsByProject[projectId] ? state.runs[state.runIdsByProject[projectId]] || null : null));
     useEffect(() => {
-        useAgentStore.getState().setWork(projectId, "workflow", activeWorkflowSnapshot?.status === "running" || activeWorkflowSnapshot?.status === "waiting_review");
+        useAgentStore.getState().setWork(projectId, "workflow", activeWorkflowSnapshot?.status === "waiting_review" ? "waiting" : activeWorkflowSnapshot?.status === "running" ? "running" : false);
     }, [projectId, activeWorkflowSnapshot?.status]);
     const hydrated = useCanvasStore((state) => state.hydrated);
     const createProject = useCanvasStore((state) => state.createProject);

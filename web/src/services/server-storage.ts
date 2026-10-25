@@ -55,6 +55,17 @@ export type ServerModelMultipartFile = {
 const MEDIA_CHUNK_BYTES = 4 * 1024 * 1024;
 const CHUNKED_MEDIA_THRESHOLD = 8 * 1024 * 1024;
 const pendingWrites = new Set<Promise<unknown>>();
+const writeListeners = new Set<() => void>();
+export const pendingWriteCount = () => pendingWrites.size;
+export function subscribePendingWrites(listener: () => void) {
+    writeListeners.add(listener);
+    return () => { writeListeners.delete(listener); };
+}
+function notifyPendingWrites() {
+    for (const listener of writeListeners) {
+        try { listener(); } catch { /* Status observers must not reject a durable write. */ }
+    }
+}
 // Persisted Zustand snapshots for one key must reach SQLite in the same order
 // they were produced, especially when several skills are installed in a row.
 const storeWrites = new Map<string, Promise<void>>();
@@ -319,8 +330,9 @@ export async function flushPendingWrites() {
 }
 
 function trackWrite<T>(write: Promise<T>) {
-    const tracked = write.finally(() => pendingWrites.delete(tracked));
+    const tracked = write.finally(() => { pendingWrites.delete(tracked); notifyPendingWrites(); });
     pendingWrites.add(tracked);
+    notifyPendingWrites();
     return tracked;
 }
 

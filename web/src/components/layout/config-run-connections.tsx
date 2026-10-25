@@ -7,7 +7,7 @@ import { getZodiacRuntimeMonitor, revealAppData, revealWorkspace, type ZodiacRun
 
 const labels: Record<string, string> = { busy: "运行中", retry: "重试中", idle: "待命", stopped: "已停止", unavailable: "暂时无法连接" };
 export function ConfigRunConnections() {
-    const { message } = App.useApp();
+    const { message, modal } = App.useApp();
     const { t } = useAppTranslation();
     const config = useConfigStore(s => s.config);
     const updateConfig = useConfigStore(s => s.updateConfig);
@@ -57,15 +57,26 @@ export function ConfigRunConnections() {
         </section>
         <section className="border-t border-stone-200 pt-6 dark:border-stone-800" aria-labelledby="seedance-relay-heading">
             <h3 id="seedance-relay-heading" className="text-sm font-semibold">{t("Seedance 参考视频上传")}</h3>
-            <p className="mt-2 text-xs leading-5 opacity-60">{t("提交 Seedance 任务时，本机参考视频会上传到所选服务器，供生成服务读取。")}</p>
-            <Radio.Group className="mt-4" value={config.seedanceVideoRelayMode} onChange={event => updateConfig("seedanceVideoRelayMode", event.target.value)} aria-label={t("视频上传服务器")}>
-                <Radio value="official">{t("官方服务器")}</Radio>
+            <p className="mt-2 text-xs leading-5 opacity-60">{t("默认不上传。选择服务器后，提交 Seedance 任务时，本机参考视频会上传到该服务器，供生成服务读取。")}</p>
+            <Radio.Group className="mt-4" value={config.seedanceVideoRelayMode} onChange={event => {
+                const mode = event.target.value as typeof config.seedanceVideoRelayMode;
+                if (mode !== "author") { updateConfig("seedanceVideoRelayMode", mode); return; }
+                modal.confirm({
+                    title: t("上传到作者的服务器？"),
+                    content: t("本机参考视频会上传到作者运营的服务器（wg.coco120.cn），并生成可公开访问的临时链接，48 小时后删除。仅在内容可以公开时选择。"),
+                    okText: t("同意并启用"),
+                    cancelText: t("取消"),
+                    onOk: () => updateConfig("seedanceVideoRelayMode", "author"),
+                });
+            }} aria-label={t("视频上传服务器")}>
+                <Radio value="off">{t("不上传")}</Radio>
+                <Radio value="author">{t("作者的服务器")}</Radio>
                 <Radio value="custom">{t("自定义服务器")}</Radio>
             </Radio.Group>
             {config.seedanceVideoRelayMode === "custom" ? <div className="mt-4 space-y-3">
                 <Input aria-label={t("服务器 HTTPS 地址")} placeholder="https://example.com/seedance-media" value={config.seedanceVideoRelayUrl} onChange={event => updateConfig("seedanceVideoRelayUrl", event.target.value)} />
                 <Input.Password aria-label={t("上传凭证")} placeholder={t("上传凭证")} autoComplete="off" value={config.seedanceVideoRelayToken} onChange={event => updateConfig("seedanceVideoRelayToken", event.target.value)} />
-            </div> : <p className="mt-2 text-xs leading-5 opacity-60">{t("官方服务器的临时视频 48 小时后删除。")}</p>}
+            </div> : config.seedanceVideoRelayMode === "author" ? <p className="mt-2 text-xs leading-5 opacity-60">{t("作者服务器上的临时视频 48 小时后删除。")}</p> : null}
         </section>
     </div>;
 }

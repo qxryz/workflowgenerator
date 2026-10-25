@@ -167,7 +167,7 @@ export function ZodicPanel({ projectId, visible = true }: { projectId?: string; 
     const [stageRunning, setStageRunning] = useState(false);
     useEffect(() => {
         if (!projectId) return;
-        useAgentStore.getState().setWork(projectId, "agent", sending || stageRunning || !!approval);
+        useAgentStore.getState().setWork(projectId, "agent", approval ? "waiting" : sending || stageRunning ? "running" : false);
     }, [projectId, sending, stageRunning, approval]);
     const planActionsRef = useRef<ZodiacPlanActions | null>(null);
     const confirmingPlanRef = useRef(false);

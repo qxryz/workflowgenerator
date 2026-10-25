@@ -72,6 +72,48 @@ test("finishing a stale run cannot remove its replacement", () => {
     assert.equal(registry.hasJob("job-1"), true);
 });
 
+test("activity lifecycle tracks foreground and restored polling without stale clears", () => {
+    const activities = new Set();
+    const events = [];
+    const registry = new VideoGenerationRunRegistry({
+        started: (run) => { activities.add(run.runId); events.push(`start:${run.runId}`); },
+        finished: (run) => { activities.delete(run.runId); events.push(`finish:${run.runId}`); },
+    });
+    const background = registry.start({ runId: "background", jobId: "restored", mode: "background" });
+    const old = registry.start({ runId: "old", jobId: "current", mode: "foreground" });
+    assert.ok(background);
+    assert.ok(old);
+    assert.equal(registry.start({ runId: "duplicate", jobId: "restored", mode: "background" }), null);
+    registry.cancel(old);
+    const replacement = registry.start({ runId: "replacement", jobId: "current", mode: "foreground" });
+    assert.ok(replacement);
+    registry.finish(old);
+    assert.deepEqual([...activities], ["background", "replacement"]);
+    assert.deepEqual(events, ["start:background", "start:old", "finish:old", "start:replacement"]);
+    registry.finish(background);
+    registry.cancelForeground();
+    assert.deepEqual([...activities], []);
+    assert.deepEqual(events.slice(-2), ["finish:background", "finish:replacement"]);
+});
+
+test("background activity remains registered until its asynchronous save finishes", async () => {
+    const activities = new Set();
+    const registry = new VideoGenerationRunRegistry({
+        started: (run) => activities.add(run.runId),
+        finished: (run) => activities.delete(run.runId),
+    });
+    const run = registry.start({ runId: "restore", jobId: "stored", mode: "background" });
+    assert.ok(run);
+    const persisted = deferred();
+    const completion = (async () => {
+        try { await persisted.promise; } finally { registry.finish(run); }
+    })();
+    assert.equal(activities.has(run.runId), true);
+    persisted.reject(new Error("save failed"));
+    await assert.rejects(completion, /save failed/);
+    assert.equal(activities.has(run.runId), false);
+});
+
 test("cancelAll aborts foreground and background work", () => {
     const registry = new VideoGenerationRunRegistry();
     const foreground = registry.start({ runId: "run-1", jobId: "job-1", mode: "foreground" });

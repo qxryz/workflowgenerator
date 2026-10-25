@@ -3,6 +3,7 @@ import { App, Button, Drawer, Input, InputNumber, Modal, Select, Switch, Tag } f
 import { BookOpen, Check, Copy, Download, FileAudio, FolderPlus, LoaderCircle, Mic2, Sparkles, Speech, Trash2, Upload, WandSparkles } from "lucide-react";
 import { nanoid } from "nanoid";
 import { downloadFile } from "@/services/download-file";
+import { clearWorkspaceActivity, setWorkspaceActivity } from "@/services/workspace-activity";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -180,6 +181,8 @@ export default function AudioPage() {
         const controller = new AbortController();
         abortRef.current = controller;
         const begun = Date.now();
+        const activity = { id: `audio-generation:${nanoid()}`, title: "音频处理", route: "/workbench/audio" };
+        setWorkspaceActivity({ ...activity, status: "generating" });
         setRunning(true);
         setResult(null);
         let uploaded: UploadedFile | undefined;
@@ -199,6 +202,7 @@ export default function AudioPage() {
                           { text: text.trim(), voice: voice.trim(), format: format === "flac" ? "mp3" : format, language: language === "auto" ? undefined : language, sampleRate, instruction, rate: speechRate, pitch, volume, aigcTag: speechWatermark },
                           controller.signal,
                       );
+                setWorkspaceActivity({ ...activity, status: "saving" });
                 uploaded = await uploadMediaFile(url, "audio");
                 completed = makeLog({ task, model, input: text.trim(), durationMs: Date.now() - begun, audio: uploaded });
             } else if (task === "voice-clone") {
@@ -210,6 +214,7 @@ export default function AudioPage() {
                 const cloned = isMiniMaxModel
                     ? await requestMiniMaxVoiceClone(config, model, { file: sample, voiceId: cloneName, previewText: transcriptHint }, controller.signal)
                     : await requestQwenVoiceClone(config, model, { audioDataUrl: await fileToDataUrl(sample), name: cloneName, transcript: transcriptHint, language: language === "auto" ? undefined : language }, controller.signal);
+                setWorkspaceActivity({ ...activity, status: "saving" });
                 if ("previewUrl" in cloned && cloned.previewUrl) uploaded = await uploadMediaFile(cloned.previewUrl, "audio");
                 completed = makeLog({ task, model, input: sample.name, durationMs: Date.now() - begun, voiceId: cloned.voice, outputText: cloned.voice, audio: uploaded });
                 setVoice(cloned.voice);
@@ -219,6 +224,7 @@ export default function AudioPage() {
                 const transcribed = await requestQwenTranscription(config, model, { audioDataUrl: await fileToDataUrl(sample), language, enableItn, context }, controller.signal);
                 completed = makeLog({ task, model, input: sample.name, durationMs: Date.now() - begun, outputText: transcribed.text });
             }
+            setWorkspaceActivity({ ...activity, status: "saving" });
             await logStore.setItem(completed.id, serializeLog(completed));
             if (uploaded) publishUploadedMedia(uploaded);
             setLogs((current) => [completed!, ...current.filter((item) => item.id !== completed!.id)]);
@@ -233,6 +239,7 @@ export default function AudioPage() {
             setResult(failed);
             message.error(detail);
         } finally {
+            clearWorkspaceActivity(activity.id);
             if (abortRef.current === controller) abortRef.current = null;
             setRunning(false);
         }

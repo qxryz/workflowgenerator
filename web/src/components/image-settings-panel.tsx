@@ -7,13 +7,9 @@ import { modelExperienceKind, supportsArkPromptOptimization } from "@/lib/model-
 import { ModelExperienceHeader } from "@/components/model-experience-header";
 import { resolveModelUi } from "@/lib/model-ui-adaptation";
 import { ModelParamPanel } from "@/components/model-param-panel";
+import { DEFAULT_IMAGE_QUALITY_OPTIONS, imageQualityOptionsForModel } from "@/lib/generation/image-quality-options";
 
-const qualityOptions = [
-    { value: "auto", label: "自动" },
-    { value: "high", label: "高" },
-    { value: "medium", label: "中" },
-    { value: "low", label: "低" },
-];
+const qualityOptions = DEFAULT_IMAGE_QUALITY_OPTIONS;
 const DIMENSION_STEP = 16;
 
 const aspectOptions = [
@@ -186,19 +182,7 @@ function CreatorImageSettingsPanel({ experience, config, onConfigChange, theme, 
             : experience === "grok-image"
               ? creatorAspectOptions.filter((item) => item.value !== "adaptive" && item.value !== "21:9")
               : creatorAspectOptions.filter((item) => item.value !== "21:9");
-    const qualityChoices =
-        experience === "grok-image"
-            ? [
-                  { value: "1k", label: "1K", hint: "更快" },
-                  { value: "2k", label: "2K", hint: "细节更多" },
-              ]
-            : experience === "seedream-image"
-              ? [
-                    { value: "1k", label: "1K", hint: "快速" },
-                    { value: "2k", label: "2K", hint: "高清" },
-                    { value: "4k", label: "4K", hint: "精细输出" },
-                ]
-              : [];
+    const qualityChoices = imageQualityOptionsForModel(resolveModelRequestConfig(config, config.model || config.imageModel).apiFormat, modelName);
     return (
         <ImageSettingsTheme theme={theme}>
             <div className={className} style={{ color: theme.node.text }} onMouseDown={(event) => event.stopPropagation()}>

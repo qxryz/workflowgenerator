@@ -13,7 +13,7 @@ const cameraPanelSource = readFileSync(new URL("../src/director-desk/editor/pane
 const directorStoreSource = readFileSync(new URL("../src/director-desk/editor/store/directorStore.ts", import.meta.url), "utf8");
 
 test("Director Desk is a first-level route immediately after the workbench", () => {
-    assert.match(routerSource, /const DirectorPage = lazy\(\(\) => import\("@\/pages\/director"\)\)/u);
+    assert.match(routerSource, /const DirectorPage = lazyRoute\(\(\) => import\("@\/pages\/director"\)\)/u);
     assert.match(routerSource, /\{ path: "\/director", element: <DirectorPage \/> \}/u);
     const workbench = topNavSource.indexOf('{ label: "工作台"');
     const director = topNavSource.indexOf('{ label: "导演台"');

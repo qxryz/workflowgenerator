@@ -5,6 +5,7 @@ mod proxy;
 mod publisher;
 mod routes;
 mod state;
+mod static_files;
 mod storage;
 mod zodiac_plans;
 
@@ -51,12 +52,13 @@ async fn run() -> Result<(), String> {
 
     // SPA fallback: unknown paths return index.html so client-side routes such
     // as /canvas/<id> survive a hard refresh.
-    let static_files =
+    let static_service =
         ServeDir::new(&static_dir).fallback(ServeFile::new(static_dir.join("index.html")));
 
     let app = routes::router()
         .with_state(app_state)
-        .fallback_service(static_files);
+        .fallback_service(static_service)
+        .layer(axum::middleware::from_fn(static_files::reject_html_asset_fallback));
 
     let address = SocketAddr::new(host, port);
     let listener = TcpListener::bind(address)

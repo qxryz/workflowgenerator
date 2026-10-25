@@ -1,4 +1,5 @@
 import type { InstalledSkill, SkillCapability, SkillCatalogSource, SkillFile, SkillRegistrySource } from "./skill-presets";
+import { withWorkspaceActivity } from "@/services/workspace-activity";
 
 const skillRegistryEnv = (import.meta as ImportMeta & { env?: Record<string, string | undefined> }).env;
 export const SKILL_REGISTRY_URL = skillRegistryEnv?.VITE_SKILL_REGISTRY_URL || "https://raw.githubusercontent.com/qxryz/wg-dist/skills-dist/official-skills.json";
@@ -114,25 +115,34 @@ export function assertSafeSkillFilePath(value: string): string {
 }
 
 export async function downloadRegistrySkill(entry: SkillRegistryEntry): Promise<InstalledSkill> {
-    const files = await Promise.all(entry.files.map((file) => downloadRegistrySkillFile(entry, file)));
-    const body = files.find((file) => file.path === entry.entry) || files[0];
-    if (!body) throw new Error(`「${entry.name}」技能包没有可安装的文件`);
-    const now = new Date().toISOString();
-    return {
-        ...entry,
-        body: body.content,
-        files,
-        checksum: registryEntryIntegrity(entry),
-        source: "registry",
-        registrySource: entry.source,
-        tagsEn: entry.tagsEn,
-        triggerWords: entry.triggerWords,
-        sourceUrl: entry.contentUrl,
-        enabled: true,
-        priority: 100,
-        installedAt: now,
-        updatedAt: now,
-    };
+    return withWorkspaceActivity({ id: `skill-install:${crypto.randomUUID()}`, title: "技能安装", status: "downloading", route: "/skills" }, async () => {
+        // A failed file does not end the batch while its other downloads are live.
+        let failure: { error: unknown } | undefined;
+        const results = await Promise.allSettled(entry.files.map((file) => downloadRegistrySkillFile(entry, file).catch(error => {
+            failure ??= { error };
+            throw error;
+        })));
+        if (failure) throw failure.error;
+        const files = results.map((result) => (result as PromiseFulfilledResult<SkillFile>).value);
+        const body = files.find((file) => file.path === entry.entry) || files[0];
+        if (!body) throw new Error(`「${entry.name}」技能包没有可安装的文件`);
+        const now = new Date().toISOString();
+        return {
+            ...entry,
+            body: body.content,
+            files,
+            checksum: registryEntryIntegrity(entry),
+            source: "registry",
+            registrySource: entry.source,
+            tagsEn: entry.tagsEn,
+            triggerWords: entry.triggerWords,
+            sourceUrl: entry.contentUrl,
+            enabled: true,
+            priority: 100,
+            installedAt: now,
+            updatedAt: now,
+        };
+    });
 }
 
 export async function fetchRegistrySkillBody(entry: SkillRegistryEntry): Promise<string> {

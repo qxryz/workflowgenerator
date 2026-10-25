@@ -7,6 +7,7 @@ import { useAuthorPromptStore, type InstalledAuthorPrompt } from "@/stores/use-a
 import { useSkillStore } from "@/stores/use-skill-store";
 import type { AuthorAssetItem, AuthorLibraryItem, AuthorPromptItem, AuthorSkillItem } from "./contract";
 import { readResponseBytes } from "@/lib/limited-response";
+import { withWorkspaceActivity } from "@/services/workspace-activity";
 
 export type AuthorLibraryInstallResult = {
     destination: "skill" | "prompt" | "asset";
@@ -24,18 +25,22 @@ const maxAssetBytes = {
 } as const;
 
 export async function installAuthorLibraryItem(item: AuthorLibraryItem, publisher: string): Promise<AuthorLibraryInstallResult> {
-    if (item.kind === "skill") {
-        const skill = await downloadAuthorSkill(item, publisher);
-        useSkillStore.getState().save(skill);
-        return { destination: "skill", id: skill.id, title: skill.name };
-    }
-    if (item.kind === "prompt") {
-        const prompt = await downloadAuthorPrompt(item, publisher);
-        useAuthorPromptStore.getState().save(prompt);
-        return { destination: "prompt", id: prompt.id, title: prompt.title };
-    }
-    const id = await downloadAuthorAsset(item, publisher);
-    return { destination: "asset", id, title: item.title };
+    return withWorkspaceActivity({ id: `author-library-install:${crypto.randomUUID()}`, title: "作者库保存", status: "downloading", route: "/about-author" }, async setStatus => {
+        if (item.kind === "skill") {
+            const skill = await downloadAuthorSkill(item, publisher);
+            setStatus("saving");
+            useSkillStore.getState().save(skill);
+            return { destination: "skill", id: skill.id, title: skill.name };
+        }
+        if (item.kind === "prompt") {
+            const prompt = await downloadAuthorPrompt(item, publisher);
+            setStatus("saving");
+            useAuthorPromptStore.getState().save(prompt);
+            return { destination: "prompt", id: prompt.id, title: prompt.title };
+        }
+        const id = await downloadAuthorAsset(item, publisher);
+        return { destination: "asset", id, title: item.title };
+    });
 }
 
 export function installedAuthorAsset(itemId: string) {

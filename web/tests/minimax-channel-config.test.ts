@@ -37,14 +37,17 @@ const webdavModule = await server.ssrLoadModule("/src/services/webdav-sync.ts");
 const limitedResponseModule = await server.ssrLoadModule("/src/lib/limited-response.ts");
 const syncValidationModule = await server.ssrLoadModule("/src/services/app-sync-validation.ts");
 
-test("legacy official Seedance relay credentials are removed without changing a custom server", () => {
+test("Seedance relay defaults to no upload, drops legacy author-relay credentials and keeps explicit choices", () => {
     const legacy = configModule.normalizeAiConfig({
         seedanceVideoRelayUrl: "https://wg.coco120.cn/seedance-media/",
         seedanceVideoRelayToken: "old-private-token",
     });
-    assert.equal(legacy.seedanceVideoRelayMode, "official");
+    assert.equal(legacy.seedanceVideoRelayMode, "off");
     assert.equal(legacy.seedanceVideoRelayUrl, "");
     assert.equal(legacy.seedanceVideoRelayToken, "");
+    assert.equal(configModule.normalizeAiConfig({}).seedanceVideoRelayMode, "off");
+    assert.equal(configModule.normalizeAiConfig({ seedanceVideoRelayMode: "official" }).seedanceVideoRelayMode, "off");
+    assert.equal(configModule.normalizeAiConfig({ seedanceVideoRelayMode: "author" }).seedanceVideoRelayMode, "author");
     const custom = configModule.normalizeAiConfig({
         seedanceVideoRelayMode: "custom",
         seedanceVideoRelayUrl: "https://relay.example/media",

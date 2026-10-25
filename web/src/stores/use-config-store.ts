@@ -85,8 +85,8 @@ export type AiConfig = {
     seedance25ReturnLastFrame: string;
     seedance25WebSearch: string;
     seedance25CameraFixed: string;
-    /** Built-in relay or a user-operated relay for local Seedance videos. */
-    seedanceVideoRelayMode: "official" | "custom";
+    /** Local Seedance videos leave this device only after the user picks a server: the author's relay or their own. */
+    seedanceVideoRelayMode: "off" | "author" | "custom";
     seedanceVideoRelayUrl: string;
     seedanceVideoRelayToken: string;
     minimaxVideoInputMode: MiniMaxVideoInputMode;
@@ -170,7 +170,7 @@ export const defaultConfig: AiConfig = {
     seedance25ReturnLastFrame: "true",
     seedance25WebSearch: "false",
     seedance25CameraFixed: "false",
-    seedanceVideoRelayMode: "official",
+    seedanceVideoRelayMode: "off",
     seedanceVideoRelayUrl: "",
     seedanceVideoRelayToken: "",
     minimaxVideoInputMode: "auto",
@@ -523,7 +523,10 @@ export function normalizeAiConfig(persistedConfig: Partial<AiConfig>): AiConfig 
     });
     const firstChannel = channels[0];
     const legacyOfficialRelay = persistedConfig.seedanceVideoRelayUrl?.trim().replace(/\/+$/, "") === LEGACY_OFFICIAL_SEEDANCE_RELAY_URL;
-    const relayMode = legacyOfficialRelay ? "official" : persistedConfig.seedanceVideoRelayMode === "custom" || (!persistedConfig.seedanceVideoRelayMode && !!persistedConfig.seedanceVideoRelayUrl) ? "custom" : "official";
+    // Earlier builds uploaded to the author's relay by default, so a saved
+    // "official" choice was never an explicit consent and is reset to "off".
+    const persistedRelayMode = persistedConfig.seedanceVideoRelayMode;
+    const relayMode = legacyOfficialRelay ? "off" : persistedRelayMode === "custom" || persistedRelayMode === "author" ? persistedRelayMode : !persistedRelayMode && persistedConfig.seedanceVideoRelayUrl ? "custom" : "off";
     return {
         ...config,
         language: normalizeAppLanguage(config.language),

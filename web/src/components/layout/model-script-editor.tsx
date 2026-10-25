@@ -27,7 +27,7 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
             open={open}
             title={
                 <div>
-                    <div className="text-base font-semibold">
+                    <div className="break-all text-base font-semibold">
                         {t(capabilityLabels[capability])}
                         {modelName ? ` - ${modelName}` : ""}
                     </div>
@@ -38,6 +38,7 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
             width={1080}
             centered
             onCancel={onClose}
+            classNames={{ body: "@container/model-script" }}
             styles={{ body: { padding: 0 } }}
             footer={
                 <div className="flex flex-wrap items-center justify-between gap-2">
@@ -66,8 +67,8 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                 </div>
             }
         >
-            <div className="flex h-[60vh] min-h-[420px] border-t border-stone-200 dark:border-stone-800">
-                <aside className="flex w-[320px] shrink-0 flex-col overflow-y-auto border-r border-stone-200 bg-stone-50/80 dark:border-stone-800 dark:bg-stone-900/40">
+            <div className="flex h-[60vh] min-h-[320px] flex-col border-t border-stone-200 @min-[760px]/model-script:flex-row dark:border-stone-800">
+                <aside className="flex max-h-[40%] shrink-0 flex-col overflow-y-auto border-b border-stone-200 bg-stone-50/80 @min-[760px]/model-script:max-h-none @min-[760px]/model-script:w-[320px] @min-[760px]/model-script:border-r @min-[760px]/model-script:border-b-0 dark:border-stone-800 dark:bg-stone-900/40">
                     <div className="border-b border-stone-200/70 px-4 py-3 dark:border-stone-800/70">
                         <div className="mb-1.5 text-[11px] font-semibold uppercase tracking-wide text-stone-400">{t("返回要求")}</div>
                         <div className="text-xs leading-6 text-stone-600 dark:text-stone-300">{PLUGIN_RETURNS[capability]}</div>
@@ -97,7 +98,7 @@ export function ModelScriptEditor({ open, capability, modelName, value, onSave, 
                         </div>
                     </div>
                 </aside>
-                <div className="min-w-0 flex-1 overflow-hidden bg-white dark:bg-stone-950">
+                <div className="min-h-0 min-w-0 flex-1 overflow-hidden bg-white dark:bg-stone-950">
                     <CodeMirror
                         value={draft}
                         onChange={setDraft}

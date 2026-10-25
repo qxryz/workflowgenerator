@@ -4,6 +4,7 @@ import { getPluginRuntime } from "@/lib/canvas/plugin-runtime";
 import { usePluginStore, type InstalledPlugin } from "@/stores/canvas/use-plugin-store";
 import type { CanvasPlugin } from "@/types/canvas-plugin";
 import { readResponseBytes } from "@/lib/limited-response";
+import { withWorkspaceActivity } from "@/services/workspace-activity";
 
 const MAX_PLUGIN_SOURCE_BYTES = 5 * 1024 * 1024;
 export const UNTRUSTED_PLUGINS_ENABLED = Boolean(import.meta.env?.DEV && import.meta.env?.VITE_ENABLE_UNSAFE_PLUGINS === "true");
@@ -149,32 +150,36 @@ function withCacheBust(url: string) {
 export async function installPluginFromUrl(url: string, opts?: { official?: boolean; bustCache?: boolean; enabled?: boolean; expectedSha256?: string }) {
     if (!opts?.official && !UNTRUSTED_PLUGINS_ENABLED) throw new Error("当前版本只允许安装经过签名校验的官方插件");
     if (opts?.official && !isBundledOfficialPluginUrl(url) && !opts.expectedSha256) throw new Error("官方插件缺少完整性信息");
-    const loadedPlugin = await loadPlugin(url, undefined, opts?.bustCache, opts?.expectedSha256);
-    const { plugin, source } = loadedPlugin;
-    const previous = activePlugins.get(plugin.id);
-    const enabled = opts?.enabled ?? !isBundledOfficialPluginUrl(url);
-    try {
-        deactivatePlugin(plugin.id); // 覆盖旧版本
-        if (enabled) activatePlugin(plugin);
-        usePluginStore.getState().upsert({ id: plugin.id, name: plugin.name || plugin.id, version: plugin.version || "0.0.0", description: plugin.description, url, source, enabled, official: opts?.official, sha256: opts?.expectedSha256 });
-        return plugin;
-    } catch (error) {
-        if (activePlugins.get(plugin.id) === plugin) {
-            try {
-                deactivatePlugin(plugin.id);
-            } catch {
-                // 继续尝试恢复更新前的插件。
+    return withWorkspaceActivity({ id: `plugin-install:${crypto.randomUUID()}`, title: "插件安装", status: isBundledOfficialPluginUrl(url) ? "running" : "downloading", route: "/canvas" }, async setStatus => {
+        const loadedPlugin = await loadPlugin(url, undefined, opts?.bustCache, opts?.expectedSha256);
+        setStatus("running");
+        const { plugin, source } = loadedPlugin;
+        const previous = activePlugins.get(plugin.id);
+        const enabled = opts?.enabled ?? !isBundledOfficialPluginUrl(url);
+        try {
+            deactivatePlugin(plugin.id); // 覆盖旧版本
+            if (enabled) activatePlugin(plugin);
+            setStatus("saving");
+            usePluginStore.getState().upsert({ id: plugin.id, name: plugin.name || plugin.id, version: plugin.version || "0.0.0", description: plugin.description, url, source, enabled, official: opts?.official, sha256: opts?.expectedSha256 });
+            return plugin;
+        } catch (error) {
+            if (activePlugins.get(plugin.id) === plugin) {
+                try {
+                    deactivatePlugin(plugin.id);
+                } catch {
+                    // 继续尝试恢复更新前的插件。
+                }
             }
-        }
-        if (previous) {
-            try {
-                activatePlugin(previous);
-            } catch {
-                // 安装错误仍是用户最需要看到的原因。
+            if (previous) {
+                try {
+                    activatePlugin(previous);
+                } catch {
+                    // 安装错误仍是用户最需要看到的原因。
+                }
             }
+            throw error;
         }
-        throw error;
-    }
+    });
 }
 
 export async function updatePlugin(record: InstalledPlugin, expectedSha256?: string) {

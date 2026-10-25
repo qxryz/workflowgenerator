@@ -3,6 +3,7 @@ import { App, Button, Drawer, Input, Modal, Switch } from "antd";
 import { BookOpen, Clapperboard, Download, Film, FolderPlus, GripVertical, ImagePlus, LoaderCircle, Music2, Plus, Sparkles, Trash2, Video as VideoIcon } from "lucide-react";
 import { nanoid } from "nanoid";
 import { downloadFile } from "@/services/download-file";
+import { clearWorkspaceActivity, setWorkspaceActivity } from "@/services/workspace-activity";
 
 import { AssetPickerModal, type InsertAssetPayload } from "@/components/canvas/asset-picker-modal";
 import { MediaWorkbenchHeader } from "@/components/media-workbench-header";
@@ -551,6 +552,8 @@ export default function Seedance25Page() {
             audioReferences,
             sourceVideo,
         };
+        const activity = { id: `seedance-generation:${id}`, title: "Seedance 2.5 视频生成", route: "/workbench/sd25" };
+        setWorkspaceActivity({ ...activity, status: "generating" });
         setRunning(true);
         setSelectedDraftId("");
         setSelectedRecordId(id);
@@ -559,6 +562,7 @@ export default function Seedance25Page() {
             await persistRecord(pending);
             if (sourceVideo?.storageKey) publishUploadedMedia(sourceVideo);
             const generated = await requestVideoGeneration(requestConfig, requestPrompt, references, referenceVideos, audioReferences);
+            setWorkspaceActivity({ ...activity, status: "saving" });
             const stored = await storeGeneratedVideo(generated);
             let lastFrame: UploadedImage | undefined;
             if (generated.lastFrameUrl) {
@@ -586,6 +590,7 @@ export default function Seedance25Page() {
             setRecords((items) => items.map((item) => (item.id === id ? failed : item)));
             message.error(failed.error);
         } finally {
+            clearWorkspaceActivity(activity.id);
             setRunning(false);
         }
     };

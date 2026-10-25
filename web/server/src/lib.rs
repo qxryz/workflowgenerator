@@ -5,6 +5,7 @@ mod proxy;
 mod publisher;
 mod routes;
 mod state;
+mod static_files;
 mod storage;
 mod zodiac_plans;
 
@@ -47,6 +48,7 @@ pub async fn serve_desktop(
         .merge(outputs)
         .with_state(app_state)
         .fallback_service(ServeDir::new(assets).fallback(ServeFile::new(assets.join("index.html"))))
+        .layer(middleware::from_fn(static_files::reject_html_asset_fallback))
         .layer(middleware::from_fn_with_state(
             Arc::new(DesktopSession {
                 token,

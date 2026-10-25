@@ -26,6 +26,11 @@ type StartVideoGenerationRunOptions = {
     agentTaskId?: string;
 };
 
+type VideoGenerationRunLifecycle = {
+    started?: (run: VideoGenerationRun) => void;
+    finished?: (run: VideoGenerationRun) => void;
+};
+
 export function consumePendingVideoGenerationIntent<T extends { id: string }>(pending: T | null, intentId: string) {
     return pending?.id === intentId ? pending : null;
 }
@@ -178,6 +183,11 @@ export class VideoGenerationRunRegistry {
     private readonly runIdsByJob = new Map<string, string>();
     private readonly retiredJobIds = new Set<string>();
     private foregroundRunId: string | null = null;
+    private readonly lifecycle: VideoGenerationRunLifecycle;
+
+    constructor(lifecycle: VideoGenerationRunLifecycle = {}) {
+        this.lifecycle = lifecycle;
+    }
 
     start(options: StartVideoGenerationRunOptions): VideoGenerationRun | null {
         if (this.retiredJobIds.has(options.jobId) || this.runIdsByJob.has(options.jobId)) return null;
@@ -191,6 +201,7 @@ export class VideoGenerationRunRegistry {
         this.runs.set(run.runId, run);
         this.runIdsByJob.set(run.jobId, run.runId);
         if (run.mode === "foreground") this.foregroundRunId = run.runId;
+        this.lifecycle.started?.(run);
         return run;
     }
 
@@ -237,6 +248,7 @@ export class VideoGenerationRunRegistry {
         this.runs.delete(run.runId);
         if (this.runIdsByJob.get(run.jobId) === run.runId) this.runIdsByJob.delete(run.jobId);
         if (this.foregroundRunId === run.runId) this.foregroundRunId = null;
+        this.lifecycle.finished?.(run);
     }
 
     cancel(run: VideoGenerationRun) {

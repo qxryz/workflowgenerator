@@ -3,12 +3,14 @@ import type { AiConfig } from "@/stores/use-config-store";
 import type { ReferenceVideo } from "@/types/media";
 
 const MAX_VIDEO_BYTES = 200 * 1024 * 1024;
-const OFFICIAL_RELAY_BASE = "https://wg.coco120.cn/seedance-media";
+const AUTHOR_RELAY_BASE = "https://wg.coco120.cn/seedance-media";
 
 /** Seedance accepts a public video URL, but not a local URL or video Base64. */
 export async function publishSeedanceReferenceVideo(config: AiConfig, video: ReferenceVideo, signal?: AbortSignal): Promise<string> {
+    // Nothing leaves this device until the user has chosen a server in settings.
+    if (config.seedanceVideoRelayMode !== "author" && config.seedanceVideoRelayMode !== "custom") throw new Error("本机参考视频需要先上传到视频服务器。请在“本地与网络”选择上传服务器，或改用公网视频地址");
     const custom = config.seedanceVideoRelayMode === "custom";
-    const base = custom ? config.seedanceVideoRelayUrl?.trim().replace(/\/+$/, "") || "" : OFFICIAL_RELAY_BASE;
+    const base = custom ? config.seedanceVideoRelayUrl?.trim().replace(/\/+$/, "") || "" : AUTHOR_RELAY_BASE;
     const token = custom ? config.seedanceVideoRelayToken?.trim() || "" : "";
     if (!base || (custom && !token)) throw new Error("请在“本地与网络”填写自定义视频服务器的地址和上传凭证");
     let endpoint: URL;
