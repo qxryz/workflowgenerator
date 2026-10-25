@@ -33,6 +33,7 @@ CREATE TABLE IF NOT EXISTS drama_runs (
     finished_at INTEGER
 );
 CREATE INDEX IF NOT EXISTS drama_runs_drama ON drama_runs(drama_id, created_at);
+CREATE INDEX IF NOT EXISTS drama_runs_episode ON drama_runs(episode_id);
 CREATE TABLE IF NOT EXISTS drama_chapters (
     id TEXT PRIMARY KEY,
     drama_id TEXT NOT NULL REFERENCES drama_projects(id) ON DELETE CASCADE,

@@ -38,6 +38,9 @@ export const updateDrama = (id: string, patch: { rev: number; title?: string; br
     call<DramaProject>("PATCH", drama(id), patch);
 export const deleteDrama = (id: string) => call<void>("DELETE", drama(id));
 
+/** Full chapters with bodies (the snapshot lists them without). */
+export const listChapters = (dramaId: string) => call<DramaChapter[]>("GET", `${drama(dramaId)}/chapters`);
+export const getChapter = (cid: string) => call<DramaChapter>("GET", `/api/drama-chapters/${cid}`);
 export const createChapter = (dramaId: string, input: { title: string; body: string; ord?: number }) => call<DramaChapter>("POST", `${drama(dramaId)}/chapters`, input);
 export const updateChapter = (cid: string, patch: Patch<DramaChapter>) => call<DramaChapter>("PATCH", `/api/drama-chapters/${cid}`, patch);
 export const deleteChapter = (cid: string) => call<void>("DELETE", `/api/drama-chapters/${cid}`);

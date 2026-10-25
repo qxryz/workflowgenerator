@@ -21,8 +21,8 @@ pub(crate) fn router() -> Router<AppState> {
     Router::new()
         .route("/api/dramas", get(list_dramas).post(create_drama))
         .route("/api/dramas/{id}", get(snapshot).patch(update_drama).delete(delete_drama))
-        .route("/api/dramas/{id}/chapters", post(create_chapter))
-        .route("/api/drama-chapters/{cid}", patch(update_chapter).delete(delete_chapter))
+        .route("/api/dramas/{id}/chapters", get(list_chapters).post(create_chapter))
+        .route("/api/drama-chapters/{cid}", get(get_chapter).patch(update_chapter).delete(delete_chapter))
         .route("/api/dramas/{id}/ledger", put(put_ledger))
         .route("/api/dramas/{id}/entities", post(create_entity))
         .route("/api/drama-entities/{eid}", patch(update_entity).delete(delete_entity))
@@ -179,7 +179,7 @@ async fn create_drama(State(store): Store, Json(body): Json<Value>) -> Reply {
     let t = now();
     let cover = match body.get("cover") {
         Some(c) if !c.is_null() => cover_value(c)?,
-        _ => json!({"variant": t % 6, "seed": t % 100_000}),
+        _ => json!({"variant": t % 5, "seed": t % 100_000}),
     };
     let mut conn = conn(&store)?;
     let tx = conn.transaction().map_err(db)?;
@@ -209,7 +209,7 @@ async fn create_drama(State(store): Store, Json(body): Json<Value>) -> Reply {
 async fn snapshot(State(store): Store, Path(id): Path<String>) -> Reply {
     let conn = conn(&store)?;
     let project = project(&conn, &id)?;
-    let chapters = select(&conn, &format!("SELECT {CHAPTER_COLS} FROM drama_chapters WHERE drama_id=?1 ORDER BY ord"), [&id], Chapter::from_row)?;
+    let chapters = select(&conn, &format!("SELECT {CHAPTER_SUMMARY_COLS} FROM drama_chapters WHERE drama_id=?1 ORDER BY ord"), [&id], Chapter::from_row)?;
     let ledger = select(&conn, &format!("SELECT {LEDGER_COLS} FROM drama_ledger WHERE drama_id=?1 ORDER BY kind, name"), [&id], LedgerEntry::from_row)?;
     let entities = select(&conn, &format!("SELECT {ENTITY_COLS} FROM drama_entities WHERE drama_id=?1 ORDER BY sort, seq"), [&id], Entity::from_row)?;
     let relations = select(&conn, &format!("SELECT {RELATION_COLS} FROM drama_relations WHERE drama_id=?1"), [&id], Relation::from_row)?;
@@ -226,9 +226,18 @@ async fn snapshot(State(store): Store, Path(id): Path<String>) -> Reply {
             )
             .map_err(db)?);
     }
-    let artifacts = select(&conn, &format!("SELECT {ARTIFACT_COLS} FROM drama_artifacts WHERE drama_id=?1 AND entity_id IS NOT NULL ORDER BY created_at DESC"), [&id], Artifact::from_row)?;
+    let artifacts = select(&conn, &recent_artifacts("drama_id=?1 AND entity_id IS NOT NULL", "entity_id"), [&id], Artifact::from_row)?;
     let runs = select(&conn, &format!("SELECT {RUN_COLS} FROM drama_runs WHERE drama_id=?1 ORDER BY created_at DESC LIMIT 300"), [&id], Run::from_row)?;
     ok(json!({"project": project, "chapters": chapters, "ledger": ledger, "entities": entities, "relations": relations, "episodes": episodes, "artifacts": artifacts, "runs": runs}))
+}
+
+/// Adopted, pending and the latest few results per owner; older drafts stay in
+/// the database but out of every refresh.
+fn recent_artifacts(filter: &str, owner: &str) -> String {
+    format!(
+        "SELECT {ARTIFACT_COLS} FROM (SELECT *, ROW_NUMBER() OVER (PARTITION BY {owner} ORDER BY created_at DESC) AS recent FROM drama_artifacts WHERE {filter})
+         WHERE adopted=1 OR status='pending' OR recent<=8 ORDER BY created_at DESC"
+    )
 }
 
 async fn update_drama(State(store): Store, Path(id): Path<String>, Json(body): Json<Value>) -> Reply {
@@ -263,6 +272,47 @@ fn chapter(conn: &Connection, id: &str) -> Result<Chapter> {
     one(conn, &format!("SELECT {CHAPTER_COLS} FROM drama_chapters WHERE id=?1"), id, Chapter::from_row, "章节")
 }
 
+async fn list_chapters(State(store): Store, Path(id): Path<String>) -> Reply {
+    let conn = conn(&store)?;
+    project(&conn, &id)?;
+    ok(select(&conn, &format!("SELECT {CHAPTER_COLS} FROM drama_chapters WHERE drama_id=?1 ORDER BY ord"), [&id], Chapter::from_row)?)
+}
+
+async fn get_chapter(State(store): Store, Path(cid): Path<String>) -> Reply {
+    let conn = conn(&store)?;
+    ok(chapter(&conn, &cid)?)
+}
+
+/// Chapter numbers are positions, so inserting or removing one moves every
+/// reference after it: ledger mentions and pending chapter runs. A pending run
+/// whose chapter was removed can no longer be adopted.
+fn shift_chapter_refs(conn: &Connection, drama: &str, at: i64, inserted: bool) -> Result<()> {
+    let ledger = select(conn, "SELECT id, chapter_ords_json FROM drama_ledger WHERE drama_id=?1", [drama], |r| Ok((r.get::<_, String>(0)?, r.get::<_, String>(1)?)))?;
+    for (id, ords) in ledger {
+        let ords: Vec<i64> = serde_json::from_str::<Vec<i64>>(&ords)
+            .unwrap_or_default()
+            .into_iter()
+            .filter(|o| inserted || *o != at)
+            .map(|o| if o > at || (inserted && o == at) { o + if inserted { 1 } else { -1 } } else { o })
+            .collect();
+        conn.execute("UPDATE drama_ledger SET chapter_ords_json=?1 WHERE id=?2", params![json!(ords).to_string(), id]).map_err(db)?;
+    }
+    let pending = "drama_id=?1 AND stage='chapter' AND status IN ('running','review')";
+    if !inserted {
+        conn.execute(
+            &format!("UPDATE drama_runs SET status='rejected', error='章节已删除', finished_at=?3 WHERE {pending} AND json_extract(scope_json,'$.ord')=?2"),
+            params![drama, at, now()],
+        )
+        .map_err(db)?;
+    }
+    conn.execute(
+        &format!("UPDATE drama_runs SET scope_json=json_set(scope_json,'$.ord',json_extract(scope_json,'$.ord')+?3) WHERE {pending} AND json_extract(scope_json,'$.ord')>=?2"),
+        params![drama, if inserted { at } else { at + 1 }, if inserted { 1 } else { -1 }],
+    )
+    .map_err(db)?;
+    Ok(())
+}
+
 async fn create_chapter(State(store): Store, Path(id): Path<String>, Json(body): Json<Value>) -> Reply {
     let mut conn = conn(&store)?;
     project(&conn, &id)?;
@@ -276,6 +326,9 @@ async fn create_chapter(State(store): Store, Path(id): Path<String>, Json(body):
     // Shift in two steps so the (drama_id, ord) unique index never collides.
     tx.execute("UPDATE drama_chapters SET ord=-ord-1 WHERE drama_id=?1 AND ord>=?2", params![id, ord]).map_err(db)?;
     tx.execute("UPDATE drama_chapters SET ord=-ord WHERE drama_id=?1 AND ord<0", [&id]).map_err(db)?;
+    if ord <= last {
+        shift_chapter_refs(&tx, &id, ord, true)?;
+    }
     tx.execute(
         "INSERT INTO drama_chapters(id,drama_id,ord,title,body,origin,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,'manual',?6,?6)",
         params![chapter_id, id, ord, title, text, t],
@@ -308,6 +361,7 @@ async fn delete_chapter(State(store): Store, Path(cid): Path<String>) -> Result<
     tx.execute("DELETE FROM drama_chapters WHERE id=?1", [&cid]).map_err(db)?;
     tx.execute("UPDATE drama_chapters SET ord=-(ord-1) WHERE drama_id=?1 AND ord>?2", params![drama, ord]).map_err(db)?;
     tx.execute("UPDATE drama_chapters SET ord=-ord WHERE drama_id=?1 AND ord<0", [&drama]).map_err(db)?;
+    shift_chapter_refs(&tx, &drama, ord, false)?;
     tx.commit().map_err(db)?;
     Ok(StatusCode::NO_CONTENT)
 }
@@ -346,10 +400,15 @@ fn entity(conn: &Connection, id: &str) -> Result<Entity> {
     one(conn, &format!("SELECT {ENTITY_COLS} FROM drama_entities WHERE id=?1"), id, Entity::from_row, "设定")
 }
 
-fn entity_patch(conn: &Connection, drama: &str, self_id: Option<&str>, body: &Value) -> Result<Patch> {
+/// `kind` is the entity's kind after this patch. Only props have an owner.
+fn entity_patch(conn: &Connection, drama: &str, self_id: &str, kind: &str, body: &Value) -> Result<Patch> {
     let mut patch = Patch::default();
-    if let Some(kind) = body.get("kind").and_then(Value::as_str) {
-        patch.set("kind", Sql::Text(one_of(kind, ENTITY_KINDS, "kind")?.into()));
+    let kind = one_of(body.get("kind").and_then(Value::as_str).unwrap_or(kind), ENTITY_KINDS, "kind")?;
+    if body.get("kind").is_some() {
+        patch.set("kind", Sql::Text(kind.into()));
+        if kind != "prop" {
+            patch.set("parent_id", Sql::Null);
+        }
     }
     patch.text(body, "name", "name", 60, true)?;
     patch.text(body, "description", "description", 4_000, false)?;
@@ -363,7 +422,10 @@ fn entity_patch(conn: &Connection, drama: &str, self_id: Option<&str>, body: &Va
         Some(Value::Null) => patch.set("parent_id", Sql::Null),
         Some(Value::String(parent)) => {
             let ok = entity_ids_in(conn, drama)?.iter().any(|(id, kind)| id == parent && (kind == "character" || kind == "scene"));
-            if !ok || Some(parent.as_str()) == self_id {
+            if kind != "prop" {
+                return Err(bad("只有道具可以设置所属"));
+            }
+            if !ok || parent == self_id {
                 return Err(bad("所属对象必须是本剧的人物或场景"));
             }
             patch.set("parent_id", Sql::Text(parent.clone()));
@@ -374,32 +436,34 @@ fn entity_patch(conn: &Connection, drama: &str, self_id: Option<&str>, body: &Va
 }
 
 async fn create_entity(State(store): Store, Path(id): Path<String>, Json(body): Json<Value>) -> Reply {
-    let conn = conn(&store)?;
+    let mut conn = conn(&store)?;
     project(&conn, &id)?;
     let kind = one_of(body["kind"].as_str().unwrap_or(""), ENTITY_KINDS, "kind")?;
     let name = require(&body, "name", 60)?;
-    let seq: i64 = conn.query_row("SELECT COALESCE(MAX(seq),0)+1 FROM drama_entities WHERE drama_id=?1", [&id], |r| r.get(0)).map_err(db)?;
     let entity_id = new_id();
+    let mut rest = body.clone();
+    rest["rev"] = json!(1);
+    // Validate everything before the row exists, so a rejected create leaves nothing behind.
+    let patch = entity_patch(&conn, &id, &entity_id, kind, &rest)?;
+    let seq: i64 = conn.query_row("SELECT COALESCE(MAX(seq),0)+1 FROM drama_entities WHERE drama_id=?1", [&id], |r| r.get(0)).map_err(db)?;
     let t = now();
-    conn.execute(
+    let tx = conn.transaction().map_err(db)?;
+    tx.execute(
         "INSERT INTO drama_entities(id,drama_id,seq,kind,name,sort,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?3,?6,?6)",
         params![entity_id, id, seq, kind, name, t],
     )
     .map_err(db)?;
-    let mut rest = body.clone();
-    rest["rev"] = json!(1);
-    let patch = entity_patch(&conn, &id, Some(&entity_id), &rest)?;
-    if !patch.is_empty() {
-        patch.apply(&conn, "drama_entities", &entity_id, &rest)?;
-    }
-    touch(&conn, &id)?;
+    patch.apply(&tx, "drama_entities", &entity_id, &rest)?;
+    touch(&tx, &id)?;
+    tx.commit().map_err(db)?;
     ok(entity(&conn, &entity_id)?)
 }
 
 async fn update_entity(State(store): Store, Path(eid): Path<String>, Json(body): Json<Value>) -> Reply {
     let conn = conn(&store)?;
     let drama = drama_of(&conn, "drama_entities", &eid, "设定")?;
-    entity_patch(&conn, &drama, Some(&eid), &body)?.apply(&conn, "drama_entities", &eid, &body)?;
+    let kind = entity(&conn, &eid)?.kind;
+    entity_patch(&conn, &drama, &eid, &kind, &body)?.apply(&conn, "drama_entities", &eid, &body)?;
     ok(entity(&conn, &eid)?)
 }
 
@@ -484,6 +548,10 @@ async fn update_relation(State(store): Store, Path(rid): Path<String>, Json(body
     let conn = conn(&store)?;
     let drama = drama_of(&conn, "drama_relations", &rid, "关系")?;
     let patch = relation_patch(&conn, &drama, &body)?;
+    let current = relation(&conn, &rid)?;
+    if body["fromId"].as_str().unwrap_or(&current.from_id) == body["toId"].as_str().unwrap_or(&current.to_id) {
+        return Err(bad("请选择两个不同的设定"));
+    }
     if !patch.is_empty() {
         let (sets, values) = patch.into_parts();
         let mut values = values;
@@ -519,26 +587,26 @@ fn episode_patch(conn: &Connection, drama: &str, body: &Value) -> Result<Patch> 
 }
 
 async fn create_episode(State(store): Store, Path(id): Path<String>, Json(body): Json<Value>) -> Reply {
-    let conn = conn(&store)?;
+    let mut conn = conn(&store)?;
     project(&conn, &id)?;
     let title = require(&body, "title", 80)?;
+    let mut rest = body.clone();
+    rest["rev"] = json!(1);
+    let patch = episode_patch(&conn, &id, &rest)?;
     let (seq, ord): (i64, i64) = conn
         .query_row("SELECT COALESCE(MAX(seq),0)+1, COALESCE(MAX(ord),0)+1 FROM drama_episodes WHERE drama_id=?1", [&id], |r| Ok((r.get(0)?, r.get(1)?)))
         .map_err(db)?;
     let episode_id = new_id();
     let t = now();
-    conn.execute(
+    let tx = conn.transaction().map_err(db)?;
+    tx.execute(
         "INSERT INTO drama_episodes(id,drama_id,seq,ord,title,created_at,updated_at) VALUES(?1,?2,?3,?4,?5,?6,?6)",
         params![episode_id, id, seq, ord, title, t],
     )
     .map_err(db)?;
-    let mut rest = body.clone();
-    rest["rev"] = json!(1);
-    let patch = episode_patch(&conn, &id, &rest)?;
-    if !patch.is_empty() {
-        patch.apply(&conn, "drama_episodes", &episode_id, &rest)?;
-    }
-    touch(&conn, &id)?;
+    patch.apply(&tx, "drama_episodes", &episode_id, &rest)?;
+    touch(&tx, &id)?;
+    tx.commit().map_err(db)?;
     ok(episode_row(&conn, &episode_id)?)
 }
 
@@ -550,7 +618,16 @@ async fn update_episode(State(store): Store, Path(eid): Path<String>, Json(body)
 }
 
 async fn delete_episode(State(store): Store, Path(eid): Path<String>) -> Result<StatusCode> {
-    conn(&store)?.execute("DELETE FROM drama_episodes WHERE id=?1", [&eid]).map_err(db)?;
+    let mut conn = conn(&store)?;
+    let (drama, ord): (String, i64) = conn
+        .query_row("SELECT drama_id, ord FROM drama_episodes WHERE id=?1", [&eid], |r| Ok((r.get(0)?, r.get(1)?)))
+        .optional()
+        .map_err(db)?
+        .ok_or_else(|| missing("分集"))?;
+    let tx = conn.transaction().map_err(db)?;
+    tx.execute("DELETE FROM drama_episodes WHERE id=?1", [&eid]).map_err(db)?;
+    tx.execute("UPDATE drama_episodes SET ord=ord-1 WHERE drama_id=?1 AND ord>?2", params![drama, ord]).map_err(db)?;
+    tx.commit().map_err(db)?;
     Ok(StatusCode::NO_CONTENT)
 }
 
@@ -580,7 +657,7 @@ async fn episode(State(store): Store, Path(eid): Path<String>) -> Reply {
     let shots = shots_of(&conn, &eid)?;
     let artifacts = select(
         &conn,
-        &format!("SELECT {} FROM drama_artifacts a JOIN drama_shots s ON s.id=a.shot_id WHERE s.episode_id=?1 ORDER BY a.created_at DESC", ARTIFACT_COLS.split(',').map(|c| format!("a.{c}")).collect::<Vec<_>>().join(",")),
+        &recent_artifacts("shot_id IN (SELECT id FROM drama_shots WHERE episode_id=?1)", "shot_id, kind"),
         [&eid],
         Artifact::from_row,
     )?;
@@ -701,6 +778,7 @@ async fn delete_shot(State(store): Store, Path(sid): Path<String>) -> Result<Sta
 
 async fn reorder_shots(State(store): Store, Path(eid): Path<String>, Json(body): Json<Value>) -> Reply {
     let mut conn = conn(&store)?;
+    drama_of(&conn, "drama_episodes", &eid, "分集")?;
     let ids = str_list(&body["ids"], "ids", 500, 64)?;
     let current: Vec<String> = select(&conn, "SELECT id FROM drama_shots WHERE episode_id=?1", [&eid], |r| r.get(0))?;
     let mut sorted = ids.clone();
@@ -712,7 +790,7 @@ async fn reorder_shots(State(store): Store, Path(eid): Path<String>, Json(body):
     }
     let tx = conn.transaction().map_err(db)?;
     for (i, id) in ids.iter().enumerate() {
-        tx.execute("UPDATE drama_shots SET ord=?1, rev=rev+1 WHERE id=?2", params![i as i64 + 1, id]).map_err(db)?;
+        tx.execute("UPDATE drama_shots SET ord=?1 WHERE id=?2", params![i as i64 + 1, id]).map_err(db)?;
     }
     tx.commit().map_err(db)?;
     ok(shots_of(&conn, &eid)?)
@@ -763,6 +841,9 @@ async fn update_artifact(State(store): Store, Path(aid): Path<String>, Json(body
     let mut patch = Patch::default();
     if let Some(status) = body.get("status").and_then(Value::as_str) {
         patch.set("status", Sql::Text(one_of(status, &["pending", "ready", "failed"], "status")?.into()));
+        if current.adopted && status != "ready" {
+            return Err(bad("已采用的结果不能改回未完成"));
+        }
         if status == "ready" && (body["mediaKey"].as_str().unwrap_or(&current.media_key).is_empty() || body["mediaUrl"].as_str().unwrap_or(&current.media_url).is_empty()) {
             return Err(bad("完成的生成记录必须带媒体文件"));
         }
@@ -838,8 +919,8 @@ async fn create_run(State(store): Store, Path(id): Path<String>, Json(body): Jso
     }
     let busy: bool = conn
         .query_row(
-            "SELECT EXISTS(SELECT 1 FROM drama_runs WHERE drama_id=?1 AND stage=?2 AND status='running' AND COALESCE(episode_id,'')=?3)",
-            params![id, stage, episode.unwrap_or("")],
+            "SELECT EXISTS(SELECT 1 FROM drama_runs WHERE drama_id=?1 AND stage=?2 AND status='running' AND COALESCE(episode_id,'')=?3 AND scope_json=?4)",
+            params![id, stage, episode.unwrap_or(""), scope.to_string()],
             |r| r.get(0),
         )
         .map_err(db)?;
@@ -896,9 +977,11 @@ async fn submit_proposal(State(store): Store, Path(rid): Path<String>, Json(body
         return Err(conflict("任务已结束，不能再提交结果"));
     }
     let normalized = proposal::check(&conn, &info, body.get("proposal").unwrap_or(&Value::Null))?;
+    // A review is a report, not something to adopt: it is finished on arrival.
+    let status = if info.stage == "review" { "accepted" } else { "review" };
     conn.execute(
-        "UPDATE drama_runs SET proposal_json=?1, status='review', finished_at=?2 WHERE id=?3",
-        params![normalized.to_string(), now(), rid],
+        "UPDATE drama_runs SET proposal_json=?1, status=?2, finished_at=?3 WHERE id=?4",
+        params![normalized.to_string(), status, now(), rid],
     )
     .map_err(db)?;
     ok(run_full(&conn, &rid)?)
@@ -956,6 +1039,7 @@ async fn media_keys(State(store): Store) -> Reply {
         "SELECT media_key FROM drama_artifacts WHERE media_key<>''
          UNION SELECT media_key FROM drama_exports WHERE media_key<>''
          UNION SELECT srt_key FROM drama_exports WHERE srt_key<>''
+         UNION SELECT json_extract(options_json,'$.musicKey') FROM drama_exports WHERE json_extract(options_json,'$.musicKey') IS NOT NULL
          UNION SELECT json_extract(cover_json,'$.mediaKey') FROM drama_projects WHERE json_extract(cover_json,'$.mediaKey') IS NOT NULL",
         [],
         |r| r.get(0),

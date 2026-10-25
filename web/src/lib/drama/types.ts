@@ -35,6 +35,8 @@ export type DramaChapter = {
     body: string;
     summary: string;
     endState: string;
+    /** Body length in characters; the drama snapshot omits `body` (empty string). */
+    chars: number;
     origin: ChapterOrigin;
     runId: string | null;
     updatedAt: number;
@@ -221,6 +223,7 @@ export type ExportOptions = { resolution: "720p" | "1080p"; keepOriginalAudio: b
 
 export type DramaSnapshot = {
     project: DramaProject;
+    /** Without bodies; fetch with getChapter / listChapters. */
     chapters: DramaChapter[];
     ledger: LedgerEntry[];
     entities: DramaEntity[];

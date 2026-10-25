@@ -61,12 +61,15 @@ pub struct Chapter {
     pub body: String,
     pub summary: String,
     pub end_state: String,
+    pub chars: i64,
     pub origin: String,
     pub run_id: Option<String>,
     pub updated_at: i64,
     pub rev: i64,
 }
-pub const CHAPTER_COLS: &str = "id,ord,title,body,summary,end_state,origin,run_id,updated_at,rev";
+pub const CHAPTER_COLS: &str = "id,ord,title,body,summary,end_state,origin,run_id,updated_at,rev,length(body)";
+/// Same row without the body; the snapshot lists chapters, the reader fetches one.
+pub const CHAPTER_SUMMARY_COLS: &str = "id,ord,title,'',summary,end_state,origin,run_id,updated_at,rev,length(body)";
 impl Chapter {
     pub fn from_row(r: &Row) -> rusqlite::Result<Self> {
         let ord: i64 = r.get(1)?;
@@ -78,6 +81,7 @@ impl Chapter {
             body: r.get(3)?,
             summary: r.get(4)?,
             end_state: r.get(5)?,
+            chars: r.get(10)?,
             origin: r.get(6)?,
             run_id: r.get(7)?,
             updated_at: r.get(8)?,

@@ -1,9 +1,23 @@
 //! Resolve the offline ffmpeg/ffprobe: packaged and checksum-verified, or an
 //! explicit `WG_FFMPEG_DIR` for development and containers.
 use sha2::{Digest, Sha256};
-use std::path::PathBuf;
+use std::{collections::HashMap, path::PathBuf, sync::Mutex};
+
+/// Hashing ffmpeg costs tens of milliseconds; verify once per process.
+static VERIFIED: Mutex<Option<HashMap<String, PathBuf>>> = Mutex::new(None);
 
 pub(crate) fn binary(name: &str) -> Result<PathBuf, String> {
+    if let Some(path) = VERIFIED.lock().ok().and_then(|cache| cache.as_ref()?.get(name).cloned()) {
+        return Ok(path);
+    }
+    let path = locate(name)?;
+    if let Ok(mut cache) = VERIFIED.lock() {
+        cache.get_or_insert_with(HashMap::new).insert(name.to_owned(), path.clone());
+    }
+    Ok(path)
+}
+
+fn locate(name: &str) -> Result<PathBuf, String> {
     if !matches!(name, "ffmpeg" | "ffprobe") {
         return Err("媒体工具名称无效".into());
     }

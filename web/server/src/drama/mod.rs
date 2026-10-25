@@ -85,6 +85,35 @@ fn hex(bytes: &[u8]) -> String {
     bytes.iter().map(|b| format!("{b:02x}")).collect()
 }
 
+/// Field names as users see them in error messages.
+pub(crate) fn field(key: &str) -> &str {
+    match key {
+        "title" => "标题",
+        "name" => "名称",
+        "body" => "正文",
+        "summary" => "摘要",
+        "endState" => "章末状态",
+        "brief" => "简介",
+        "description" => "描述",
+        "appearance" => "外观",
+        "sourceNote" => "出处说明",
+        "outline" => "梗概",
+        "script" => "剧本",
+        "note" => "说明",
+        "label" => "关系标签",
+        "prompt" | "imagePrompt" | "videoPrompt" => "提示词",
+        "startState" => "开拍状态",
+        "narration" => "旁白",
+        "size" => "景别",
+        "camera" => "运镜",
+        "seconds" => "镜头时长",
+        "targetSeconds" => "目标时长",
+        "aliases" => "别名",
+        "instruction" => "补充要求",
+        _ => key,
+    }
+}
+
 /// Reads an optional text field, trimmed and bounded by character count.
 pub(crate) fn text_field(body: &Value, key: &str, max: usize) -> Result<Option<String>> {
     match body.get(key) {
@@ -92,11 +121,11 @@ pub(crate) fn text_field(body: &Value, key: &str, max: usize) -> Result<Option<S
         Some(Value::String(s)) => {
             let s = s.trim();
             if s.chars().count() > max {
-                return Err(bad(format!("{key} 不能超过 {max} 个字")));
+                return Err(bad(format!("{}不能超过 {max} 个字", field(key))));
             }
             Ok(Some(s.to_owned()))
         }
-        Some(_) => Err(bad(format!("{key} 必须是文字"))),
+        Some(_) => Err(bad(format!("{}必须是文字", field(key)))),
     }
 }
 
@@ -114,7 +143,7 @@ impl Patch {
     pub fn text(&mut self, body: &Value, key: &str, column: &str, max: usize, required: bool) -> Result<()> {
         if let Some(value) = text_field(body, key, max)? {
             if required && value.is_empty() {
-                return Err(bad(format!("{key} 不能为空")));
+                return Err(bad(format!("{}不能为空", field(key))));
             }
             self.set(column, Sql::Text(value));
         }
@@ -122,9 +151,9 @@ impl Patch {
     }
     pub fn int(&mut self, body: &Value, key: &str, column: &str, min: i64, max: i64) -> Result<()> {
         if let Some(value) = body.get(key).filter(|v| !v.is_null()) {
-            let n = value.as_i64().ok_or_else(|| bad(format!("{key} 必须是整数")))?;
+            let n = value.as_i64().ok_or_else(|| bad(format!("{}必须是整数", field(key))))?;
             if n < min || n > max {
-                return Err(bad(format!("{key} 必须在 {min} 到 {max} 之间")));
+                return Err(bad(format!("{}必须在 {min} 到 {max} 之间", field(key))));
             }
             self.set(column, Sql::Integer(n));
         }
@@ -141,7 +170,7 @@ impl Patch {
     }
     /// Applies the update when `rev` still matches; bumps rev and updated_at.
     pub fn apply(mut self, conn: &Connection, table: &str, id: &str, body: &Value) -> Result<()> {
-        let rev = body.get("rev").and_then(Value::as_i64).ok_or_else(|| bad("缺少 rev"))?;
+        let rev = body.get("rev").and_then(Value::as_i64).ok_or_else(|| conflict("内容已在别处修改，请刷新后再试"))?;
         self.sets.push("updated_at=?".into());
         self.values.push(Sql::Integer(now()));
         self.values.push(Sql::Text(id.to_owned()));

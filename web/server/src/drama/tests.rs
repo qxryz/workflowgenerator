@@ -197,11 +197,22 @@ async fn chapter_runs_write_the_target_chapter_and_merge_the_ledger() {
     assert_eq!(letter["chapterOrds"], json!([1, 2]));
     assert_eq!(ledger.iter().find(|e| e["name"] == "林溪").unwrap()["status"], "resolved");
 
+    f.ok("DELETE", &format!("/api/drama-chapters/{}", snapshot["chapters"][0]["id"].as_str().unwrap()), Value::Null).await;
+    let snapshot = f.ok("GET", &format!("/api/dramas/{drama}"), Value::Null).await;
+    assert_eq!(snapshot["chapters"][0]["ord"], 1);
+    let letter = snapshot["ledger"].as_array().unwrap().iter().find(|e| e["name"] == "未寄出的信").unwrap().clone();
+    assert_eq!(letter["chapterOrds"], json!([1]), "chapter 2 became chapter 1");
+
     let (status, _) = f.call("POST", &format!("/api/dramas/{drama}/runs"), json!({"stage":"chapter"})).await;
     assert_eq!(status, 400);
     let busy = f.run(&drama, json!({"stage":"review","scope":{"target":"chapters"}})).await;
-    let (status, _) = f.call("POST", &format!("/api/dramas/{drama}/runs"), json!({"stage":"review"})).await;
-    assert_eq!(status, 409);
+    let items: Vec<Value> = ["设定一致", "人设", "情节连贯", "AI 腔", "文风", "伏笔", "节奏"].iter().map(|c| json!({"criterion": c, "verdict": "通过", "note": "无问题"})).collect();
+    let report = f.ok("POST", &format!("/api/drama-runs/{busy}/proposal"), json!({"proposal": {"items": items}})).await;
+    assert_eq!(report["status"], "accepted", "reviews finish without adoption");
+    let busy = f.run(&drama, json!({"stage":"review","scope":{"target":"chapters"}})).await;
+    let (status, _) = f.call("POST", &format!("/api/dramas/{drama}/runs"), json!({"stage":"review","scope":{"target":"chapters"}})).await;
+    assert_eq!(status, 409, "the same task cannot run twice");
+    f.run(&drama, json!({"stage":"review","scope":{"target":"settings"}})).await;
     let (status, _) = f.call("DELETE", &format!("/api/drama-runs/{busy}"), Value::Null).await;
     assert_eq!(status, 409);
 }
@@ -228,4 +239,24 @@ async fn restart_settles_interrupted_work_but_keeps_resumable_video_tasks() {
     assert_eq!(snapshot["artifacts"].as_array().unwrap().iter().find(|a| a["id"] == sheet["id"]).unwrap()["status"], "failed");
     let detail = f.ok("GET", &format!("/api/drama-episodes/{}", episode["id"].as_str().unwrap()), Value::Null).await;
     assert_eq!(detail["artifacts"][0]["status"], "pending");
+}
+
+#[tokio::test]
+async fn deleting_a_chapter_retargets_pending_chapter_runs() {
+    let f = fixture();
+    let drama = f.drama().await;
+    let rewrite_second = f.run(&drama, json!({"stage":"chapter","scope":{"ord":2}})).await;
+    let rewrite_first = f.run(&drama, json!({"stage":"chapter","scope":{"ord":1}})).await;
+    let snapshot = f.ok("GET", &format!("/api/dramas/{drama}"), Value::Null).await;
+    assert_eq!(snapshot["chapters"][0]["body"], "", "the snapshot lists chapters without bodies");
+    assert_eq!(snapshot["chapters"][0]["chars"], 8);
+    f.ok("DELETE", &format!("/api/drama-chapters/{}", snapshot["chapters"][0]["id"].as_str().unwrap()), Value::Null).await;
+
+    let moved = f.ok("GET", &format!("/api/drama-runs/{rewrite_second}"), Value::Null).await;
+    assert_eq!(moved["scope"]["ord"], 1);
+    assert_eq!(moved["status"], "running");
+    let orphan = f.ok("GET", &format!("/api/drama-runs/{rewrite_first}"), Value::Null).await;
+    assert_eq!(orphan["status"], "rejected");
+    let full = f.ok("GET", &format!("/api/dramas/{drama}/chapters"), Value::Null).await;
+    assert_eq!(full[0]["body"], "圆圆找到信。");
 }

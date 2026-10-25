@@ -530,6 +530,7 @@ fn apply_settings(conn: &Connection, run_id: &str, run: &RunInfo, plan: Settings
 
 struct EpisodePlan {
     target: Option<String>,
+    target_label: Option<String>,
     title: String,
     outline: String,
     seconds: i64,
@@ -577,21 +578,20 @@ fn episodes(conn: &Connection, run: &RunInfo, p: &Value) -> Result<EpisodesPlan>
         }
         let reference = plain(item.get("ref"));
         let target = if reference.is_empty() {
-            existing.iter().find(|(_, _, t)| name_key(t) == name_key(&title)).map(|e| e.0.clone())
+            existing.iter().find(|(_, _, t)| name_key(t) == name_key(&title))
         } else {
-            match label_seq(&reference, 'P').and_then(|seq| existing.iter().find(|e| e.1 == seq)) {
-                Some(e) => Some(e.0.clone()),
-                None => {
-                    issues.push(format!("{path}.ref"), format!("ref「{reference}」不是已有分集，新分集请省略 ref"));
-                    None
-                }
+            let found = label_seq(&reference, 'P').and_then(|seq| existing.iter().find(|e| e.1 == seq));
+            if found.is_none() {
+                issues.push(format!("{path}.ref"), format!("ref「{reference}」不是已有分集，新分集请省略 ref"));
             }
+            found
         };
-        plans.push(EpisodePlan { target, title, outline, seconds, chapters: ids });
+        plans.push(EpisodePlan { target: target.map(|e| e.0.clone()), target_label: target.map(|e| format!("P{}", e.1)), title, outline, seconds, chapters: ids });
     }
     let normalized = json!({"episodes": p.get("episodes").and_then(Value::as_array).map(|items| items.iter().zip(&plans).map(|(item, e)| {
         let mut v = json!({"title": e.title, "outline": e.outline, "targetSeconds": e.seconds, "sourceChapters": item.get("sourceChapters").cloned().unwrap_or(json!([]))});
-        if let Some(r) = item.get("ref").filter(|r| !plain(Some(r)).is_empty()) { v["ref"] = r.clone(); }
+        // `ref` marks an update of an existing episode, matched by label or title.
+        if let Some(label) = &e.target_label { v["ref"] = json!(label); }
         v
     }).collect::<Vec<_>>()).unwrap_or_default()});
     issues.finish(EpisodesPlan { normalized, episodes: plans })
