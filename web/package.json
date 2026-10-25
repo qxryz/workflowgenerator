@@ -1,6 +1,6 @@
 {
     "name": "workflowgenerator",
-    "version": "0.1.10",
+    "version": "0.1.11",
     "private": true,
     "type": "module",
     "scripts": {
@@ -18,7 +18,9 @@
         "format:check": "prettier --check .",
         "author-library:validate": "node scripts/validate-author-library.mjs public/author-library/catalog.json",
         "desktop:dev": "tauri dev",
-        "desktop:build": "tauri build"
+        "desktop:build": "tauri build",
+        "release:package": "node scripts/package-release.mjs",
+        "release:verify": "node scripts/package-release.mjs --verify-remote"
     },
     "dependencies": {
         "@ant-design/icons": "^6.1.1",
