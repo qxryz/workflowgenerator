@@ -134,3 +134,20 @@ test("director project discards provisional screenshots when preparing a later c
     );
     assert.deepEqual(discarded, ["image:one"]);
 });
+
+test("a version 2 project with camera motion opens, and saving from this desk keeps the motion", async () => {
+    const storage = {
+        store: async () => ({ url: "wg-media://images/capture", storageKey: "image:capture", width: 1, height: 1, bytes: 1, mimeType: "image/png" }),
+        resolve: async (storageKey: string) => `wg-media://images/${storageKey}`,
+        discard: async () => undefined,
+    };
+    const sequence = { version: 1, duration: 5, fps: 24, cameras: [{ cameraId: "cam_2", presetId: "rack_focus" }], actors: [] };
+    const saved = { ...createProject([]), version: 2, sequence };
+    const opened = await hydrateDirectorProjectCaptures(saved, async (_key, fallback) => fallback);
+    assert.equal(opened.version, 2);
+
+    const fromEditor = createProject([]);
+    const next = await prepareDirectorProjectForStorage(fromEditor, saved, storage);
+    assert.equal(next.project.version, 2);
+    assert.deepEqual(next.project.sequence, sequence);
+});

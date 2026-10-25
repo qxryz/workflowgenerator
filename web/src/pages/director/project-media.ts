@@ -134,8 +134,10 @@ export async function prepareDirectorProjectForStorage(
             });
         }
 
+        // The editor does not know motion sequences yet; keep a saved one instead of erasing it.
+        const keep = project.sequence === undefined && previous?.sequence !== undefined ? { version: previous.version, sequence: previous.sequence } : {};
         return {
-            project: { ...project, cameras },
+            project: { ...project, cameras, ...keep },
             uploaded,
         };
     } catch (error) {

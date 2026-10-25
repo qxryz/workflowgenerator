@@ -96,7 +96,9 @@ export interface DirectorCameraShot {
 }
 
 export interface DirectorProject {
-    version: 1;
+    /** 2 adds `sequence` (camera and actor motion); this desk opens both and keeps `sequence` as saved. */
+    version: 1 | 2;
+    sequence?: unknown;
     scene: SceneSettings;
     assets: DirectorAssetRef[];
     objects: DirectorObject[];

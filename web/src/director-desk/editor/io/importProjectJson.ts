@@ -13,7 +13,7 @@ function hasTransform(value: unknown) {
 }
 
 export function isDirectorProject(value: unknown): value is DirectorProject {
-    if (!isRecord(value) || value.version !== 1) return false;
+    if (!isRecord(value) || (value.version !== 1 && value.version !== 2)) return false;
     if (!isRecord(value.scene) || !Array.isArray(value.assets) || !Array.isArray(value.objects) || !Array.isArray(value.cameras)) {
         return false;
     }
