@@ -5,6 +5,7 @@
  *   run: DramaRun                    the run to show (a snapshot summary is enough; the full result is loaded here)
  *   title: string                    Chinese source text, e.g. "第 3 章草稿"
  *   children(proposal: RunProposal)  renders the result body; it scrolls inside the frame. Called only when a result exists.
+ *   defaultExpanded?: boolean        accepted / rejected runs start open (e.g. when picked from the history)
  *   confirmAdopt?: string            if set, 采用 first asks this question (e.g. "会替换已有的 12 个镜头，继续吗？")
  *   onAdopted?()                     after the run was adopted and the drama/episode queries were refreshed
  * States: running (live text + 停止) / review (body + 采用 · 放弃 · 修订) / failed or stopped (message + 重试) / accepted or rejected (read-only, collapsed).
@@ -28,9 +29,9 @@ import type { DramaRun, RunProposal } from "@/lib/drama/types";
 import { cn } from "@/lib/utils";
 import { adoptRun, getRun, rejectRun } from "@/services/drama-api";
 
-type Props = { run: DramaRun; title: string; onAdopted?: () => void; children: (proposal: RunProposal) => ReactNode; confirmAdopt?: string };
+type Props = { run: DramaRun; title: string; onAdopted?: () => void; children: (proposal: RunProposal) => ReactNode; confirmAdopt?: string; defaultExpanded?: boolean };
 
-export function ProposalShell({ run, title, onAdopted, children, confirmAdopt }: Props) {
+export function ProposalShell({ run, title, onAdopted, children, confirmAdopt, defaultExpanded = false }: Props) {
     const { t } = useAppTranslation();
     const { message, modal } = App.useApp();
     const { id: dramaId } = useParams();
@@ -40,7 +41,7 @@ export function ProposalShell({ run, title, onAdopted, children, confirmAdopt }:
     const { stop, refresh } = useDramaRunActions(dramaId);
     const [busy, setBusy] = useState<"adopt" | "reject" | "revise" | "retry" | null>(null);
     const [feedback, setFeedback] = useState("");
-    const [expanded, setExpanded] = useState(false);
+    const [expanded, setExpanded] = useState(defaultExpanded);
 
     const settled = run.status === "accepted" || run.status === "rejected";
     const wantsBody = run.status === "review" || (settled && expanded);

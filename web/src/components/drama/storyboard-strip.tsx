@@ -54,7 +54,7 @@ export function StoryboardStrip({ shots, artifacts, kind, selectedId, onSelect, 
 
     return (
         <div ref={grid} className="grid grid-cols-[repeat(auto-fill,minmax(150px,1fr))] gap-2.5" role="listbox" aria-label={t("镜头")}>
-            {shots.map((shot) => {
+            {shots.map((shot, index) => {
                 const own = artifacts.filter((artifact) => artifact.shotId === shot.id && artifact.kind === kind);
                 const adopted = adoptedArtifact(own);
                 const ownState = ownerState(own);
@@ -77,7 +77,7 @@ export function StoryboardStrip({ shots, artifacts, kind, selectedId, onSelect, 
                     >
                         <Thumb cover={cover} adopted={adopted} kind={kind} state={state} ratio={ratio} />
                         <div className="flex items-center gap-1.5 px-0.5 text-[11px] text-[color:var(--wg-home-muted)]">
-                            <span className="font-semibold text-[color:var(--wg-home-text)]">{shot.ord + 1}</span>
+                            <span className="font-semibold text-[color:var(--wg-home-text)]">{index + 1}</span>
                             <span>{shot.seconds}s</span>
                             <span className="ml-auto flex items-center gap-1" title={t(MEDIA_STATE_LABELS[state])}>
                                 <span className={cn("size-2 rounded-full", DOT[state])} />

@@ -42,7 +42,7 @@ function Candidate({ artifact, kind, ratio, stale, onAdopt, onDelete, onPreview 
                 ready ? <audio src={artifact.mediaUrl} controls preload="metadata" className="h-9 w-full" /> : <Placeholder artifact={artifact} ratio="auto" />
             ) : ready ? (
                 <button type="button" className="relative block overflow-hidden rounded-lg bg-[color:var(--wg-home-ghost)]" style={{ aspectRatio: ratio }} onClick={() => onPreview(artifact)} title={t("放大预览")}>
-                    {kind === "video" ? <video src={artifact.mediaUrl} preload="metadata" muted className="size-full object-contain" /> : <img src={artifact.mediaUrl} alt="" loading="lazy" className={cn("size-full object-contain", stale && "opacity-60")} />}
+                    {kind === "video" ? <video src={`${artifact.mediaUrl}#t=0.001`} preload="metadata" muted playsInline className="size-full object-contain" /> : <img src={artifact.mediaUrl} alt="" loading="lazy" className={cn("size-full object-contain", stale && "opacity-60")} />}
                 </button>
             ) : (
                 <Placeholder artifact={artifact} ratio={ratio} />

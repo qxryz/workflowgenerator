@@ -1,5 +1,6 @@
 import dramaEpisode from "./i18n/drama-episode.ts";
 import dramaMedia from "./i18n/drama-media.ts";
+import dramaSettings from "./i18n/drama-settings.ts";
 import dramaShell from "./i18n/drama-shell.ts";
 import dramaStory from "./i18n/drama-story.ts";
 
@@ -1252,6 +1253,7 @@ const englishMessages: Record<string, string> = {
     "Seedance 2.5 视频生成": "Seedance 2.5 video generation",
     ...dramaShell,
     ...dramaMedia,
+    ...dramaSettings,
     ...dramaStory,
     ...dramaEpisode,
 };
