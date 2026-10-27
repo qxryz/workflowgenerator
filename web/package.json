@@ -20,7 +20,8 @@
         "desktop:dev": "tauri dev",
         "desktop:build": "tauri build",
         "release:package": "node scripts/package-release.mjs",
-        "release:verify": "node scripts/package-release.mjs --verify-remote"
+        "release:verify": "node scripts/package-release.mjs --verify-remote",
+        "release:check": "node scripts/package-release.mjs --check"
     },
     "dependencies": {
         "@ant-design/icons": "^6.1.1",

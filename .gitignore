@@ -57,3 +57,9 @@ AGENTS.md
 # Isolated development data
 .dev-data/
 .zodiac-dev/
+
+# Local macOS signing configuration and resumable notarization state
+/.macos-signing.local.json
+/.macos-signing.local.*.json
+**/.notary/
+**/.release-state.json
