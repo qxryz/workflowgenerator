@@ -63,3 +63,6 @@ AGENTS.md
 /.macos-signing.local.*.json
 **/.notary/
 **/.release-state.json
+
+# Generated desktop schemas
+/web/src-tauri/gen/schemas/
