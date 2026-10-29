@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
 import { fileURLToPath } from "node:url";
-import { realpathSync } from "node:fs";
+import { fstatSync, realpathSync } from "node:fs";
 import { delimiter, join, resolve } from "node:path";
 
 // Cargo supplies the selected compiler (or workspace wrapper) as the first arg.
@@ -28,7 +28,24 @@ const query = args.includes("-vV") || args.includes("--version");
 const remaps = query ? [] : policy.mappings.map(([from, to]) => `--remap-path-prefix=${from}=${to}`);
 const command = previous || compiler;
 const childArgs = previous ? [compiler, ...args, ...remaps] : [...args, ...remaps];
-const result = spawnSync(command, childArgs, { stdio: "inherit", env: process.env });
+function compilerStdio() {
+  const descriptors = new Set();
+  const flags = process.env.CARGO_MAKEFLAGS ?? "";
+  const pairs = flags.matchAll(/(?:^|\s)--jobserver-(?:auth|fds)(?:=|\s+)(\d+),(\d+)(?=\s|$)/g);
+  for (const match of pairs) {
+    const pair = [Number(match[1]), Number(match[2])];
+    if (pair[0] === pair[1] || pair.some((fd) => !Number.isSafeInteger(fd) || fd < 3 || fd > 64)) continue;
+    try {
+      if (pair.every((fd) => fstatSync(fd).isFIFO())) pair.forEach((fd) => descriptors.add(fd));
+    } catch { /* An unavailable descriptor must not be inherited. */ }
+  }
+  if (!descriptors.size) return "inherit";
+  const stdio = Array(Math.max(...descriptors) + 1).fill("ignore");
+  stdio.splice(0, 3, "inherit", "inherit", "inherit");
+  for (const fd of descriptors) stdio[fd] = fd;
+  return stdio;
+}
+const result = spawnSync(command, childArgs, { stdio: compilerStdio(), env: process.env });
 if (result.error) {
   console.error("The release compiler could not be started");
   process.exit(1);

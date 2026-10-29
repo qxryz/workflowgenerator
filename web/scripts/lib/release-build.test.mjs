@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { execFileSync, spawnSync } from "node:child_process";
-import { chmodSync, mkdirSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { chmodSync, closeSync, constants, fstatSync, mkdirSync, openSync, mkdtempSync, readFileSync, realpathSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -123,6 +123,58 @@ test("Cargo config flags and workspace wrappers survive a complete fixture build
   execFileSync("cargo", ["build", "--offline", "--release"], { cwd: f.projectRoot, env, stdio: ["ignore", "pipe", "pipe"] });
   const binary = join(env.CARGO_TARGET_DIR, "release/release_fixture");
   assert.doesNotMatch(execFileSync(binary, { encoding: "utf8" }), new RegExp(f.home.replace(/[.*+?^${}()|[\]\\]/g, "\\$&")));
+});
+
+test("a real Cargo build retains the jobserver without compiler warnings", (t) => {
+  const f = fixture(t);
+  mkdirSync(join(f.projectRoot, "src"));
+  writeFileSync(join(f.projectRoot, "Cargo.toml"), '[package]\nname="jobserver_fixture"\nversion="0.1.0"\nedition="2021"\n');
+  writeFileSync(join(f.projectRoot, "src/main.rs"), 'fn main(){println!("fixture");}\n');
+  const previous = join(f.root, "jobserver-wrapper.sh");
+  writeFileSync(previous, '#!/bin/sh\nexec "$@"\n');
+  chmodSync(previous, 0o755);
+  const inherited = { ...f.env, RUSTC_WRAPPER: previous };
+  delete inherited.CARGO_BUILD_RUSTC_WRAPPER;
+  delete inherited.RUSTC_WORKSPACE_WRAPPER;
+  const env = releaseBuildEnvironment({ ...f, env: inherited });
+  const result = spawnSync("cargo", ["build", "--offline", "--release", "--jobs", "2"], { cwd: f.projectRoot, env, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  assert.doesNotMatch(result.stderr, /jobserver.*(?:warning|cannot)|(?:warning|cannot).*jobserver|Bad file descriptor/i);
+});
+
+function descriptorFixture(t, flags, regular = false, first = 8, second = 9) {
+  const f = fixture(t);
+  const descriptorFile = join(f.root, regular ? "ordinary-file" : "jobserver-pipe");
+  if (regular) writeFileSync(descriptorFile, "not a pipe");
+  else execFileSync("mkfifo", [descriptorFile]);
+  const read = openSync(descriptorFile, constants.O_RDWR);
+  const write = openSync(descriptorFile, constants.O_RDWR);
+  t.after(() => { closeSync(read); closeSync(write); });
+  const checker = join(f.root, "descriptor-check.mjs");
+  const expected = fstatSync(read);
+  writeFileSync(checker, `import {fstatSync} from "node:fs"; const check=(fd)=>{try{const s=fstatSync(fd);return s.isFIFO()&&s.dev===${expected.dev}&&s.ino===${expected.ino}}catch{return false}}; console.log(JSON.stringify([check(${first}),check(${second})]));\n`);
+  const inherited = { ...f.env, CARGO_MAKEFLAGS: flags };
+  delete inherited.RUSTC_WRAPPER;
+  delete inherited.CARGO_BUILD_RUSTC_WRAPPER;
+  delete inherited.RUSTC_WORKSPACE_WRAPPER;
+  const env = releaseBuildEnvironment({ ...f, env: inherited });
+  const stdio = Array(second + 1).fill("ignore");
+  stdio.splice(0, 3, "ignore", "pipe", "pipe");
+  stdio[first] = read;
+  stdio[second] = write;
+  const result = spawnSync(wrapper, [process.execPath, checker], { env, stdio, encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr);
+  return JSON.parse(result.stdout.trim());
+}
+
+test("both numeric jobserver flag forms preserve valid pipe descriptors", (t) => {
+  assert.deepEqual(descriptorFixture(t, "-j --jobserver-auth=8,9 --jobserver-fds=8,9"), [true, true]);
+  assert.deepEqual(descriptorFixture(t, "-j --jobserver-fds 8,9"), [true, true]);
+});
+
+test("ordinary files and excessive descriptors are not forwarded as a jobserver", (t) => {
+  assert.deepEqual(descriptorFixture(t, "--jobserver-auth=8,9", true), [false, false]);
+  assert.deepEqual(descriptorFixture(t, "--jobserver-auth=128,129", false, 128, 129), [false, false]);
 });
 
 for (const encoding of ["utf8", "utf16le", "utf16be"]) {
