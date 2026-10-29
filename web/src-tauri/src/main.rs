@@ -11,11 +11,14 @@ fn main() {
             None => workflowgenerator_server::data_layout::desktop_root(&app.path().home_dir()?, &app.path().app_data_dir()?).map_err(std::io::Error::other)?,
         };
         let bundled_assets = app.path().resource_dir()?.join("web");
-        let assets = if cfg!(debug_assertions) && !bundled_assets.join("index.html").exists() {
+        #[cfg(debug_assertions)]
+        let assets = if !bundled_assets.join("index.html").exists() {
             std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../dist")
         } else {
             bundled_assets
         };
+        #[cfg(not(debug_assertions))]
+        let assets = bundled_assets;
         if !assets.join("index.html").exists() { return Err("界面资源缺失，请重新安装应用。".into()); }
         let downloads = app.path().download_dir()?;
         let listener = std::net::TcpListener::bind("127.0.0.1:0")?;

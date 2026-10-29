@@ -8,13 +8,17 @@ import { fileURLToPath } from "node:url";
 import test from "node:test";
 
 import {
+    appBuildEnvironment,
     assertReadyAssets,
     assertSourceUnchanged,
     markReadyForSource,
     createUpdateManifest,
+    copyPreservedSource,
+    preservedSourceInput,
     releaseVersion,
     signReleaseApplication,
     updateRuntimeManifests,
+    validateBaseManifest,
     writeReleaseChecksums,
 } from "../scripts/package-release.mjs";
 
@@ -123,6 +127,83 @@ test("createUpdateManifest binds the signature and URL to the requested version"
     }
 });
 
+function manifestFixture() {
+    return {
+        version: VERSION,
+        notes: "Retain the existing release notes",
+        pub_date: "2026-01-02T03:04:05.000Z",
+        metadata: { channel: "stable", retained: true },
+        platforms: {
+            "darwin-aarch64": {
+                signature: "existing-mac-signature",
+                url: `https://github.com/qxryz/workflowgenerator/releases/download/v${VERSION}/WorkflowGenerator-${VERSION}-macos-arm64.updater.tar.gz`,
+                retained: { minimumSystemVersion: "13.0" },
+            },
+            "windows-x86_64": {
+                signature: "existing-windows-signature",
+                url: `https://github.com/qxryz/workflowgenerator/releases/download/v${VERSION}/installer.exe`,
+                retained: true,
+            },
+        },
+    };
+}
+
+test("a same-version manifest changes only the Mac signature and leaves its input untouched", () => {
+    const base = manifestFixture();
+    const original = structuredClone(base);
+    const actual = createUpdateManifest({ version: VERSION, signature: "replacement-mac-signature", base });
+    const expected = structuredClone(original);
+    expected.platforms["darwin-aarch64"].signature = "replacement-mac-signature";
+    assert.deepEqual(actual, expected);
+    assert.deepEqual(base, original);
+    assert.notEqual(actual.platforms, base.platforms);
+});
+
+test("a same-version manifest cannot change notes or use a different version", () => {
+    const base = manifestFixture();
+    assert.throws(() => createUpdateManifest({ version: VERSION, notes: "Changed notes", signature: "replacement", base }));
+    assert.throws(() => createUpdateManifest({ version: "0.9.5", signature: "replacement", base }));
+    assert.deepEqual(validateBaseManifest(base, VERSION), base);
+});
+
+test("an existing manifest rejects incomplete and mismatched platform metadata", async (t) => {
+    const mutations = {
+        "missing Mac": (base) => { delete base.platforms["darwin-aarch64"]; },
+        "non-HTTPS": (base) => { base.platforms["windows-x86_64"].url = "http://example.invalid/setup.exe"; },
+        "wrong tag": (base) => { base.platforms["windows-x86_64"].url = "https://github.com/qxryz/workflowgenerator/releases/download/v0.9.5/setup.exe"; },
+        "empty signature": (base) => { base.platforms["windows-x86_64"].signature = ""; },
+        "invalid date": (base) => { base.pub_date = "not-a-date"; },
+    };
+    for (const [name, mutate] of Object.entries(mutations)) {
+        await t.test(name, () => {
+            const base = manifestFixture();
+            mutate(base);
+            assert.throws(() => validateBaseManifest(base, VERSION));
+        });
+    }
+});
+
+test("the App build retains the helper-selected target directory", () => {
+    const inherited = {
+        CARGO_ENCODED_RUSTFLAGS: "-C\x1fopt-level=2",
+        APPLE_ID: "fixture-account",
+        TAURI_SIGNING_PRIVATE_KEY: "fixture-signing-input",
+        CARGO_BUILD_TARGET: "fixture-target",
+    };
+    const env = appBuildEnvironment(inherited);
+    assert.match(env.CARGO_TARGET_DIR, /[/\\]release-build[/\\][a-f0-9]+$/);
+    assert.equal(env.CARGO_ENCODED_RUSTFLAGS, inherited.CARGO_ENCODED_RUSTFLAGS);
+    assert.equal(env.APPLE_ID, undefined);
+    assert.equal(env.TAURI_SIGNING_PRIVATE_KEY, undefined);
+    assert.equal(env.CARGO_BUILD_TARGET, undefined);
+    assert.deepEqual(inherited, {
+        CARGO_ENCODED_RUSTFLAGS: "-C\x1fopt-level=2",
+        APPLE_ID: "fixture-account",
+        TAURI_SIGNING_PRIVATE_KEY: "fixture-signing-input",
+        CARGO_BUILD_TARGET: "fixture-target",
+    });
+});
+
 test("updateRuntimeManifests replaces all three binary hashes and preserves other metadata", (t) => {
     const originals = runtimeFixture(fixture(t));
     for (const path of NESTED_PATHS) write(originals.app, path, `signed:${path}`);
@@ -163,6 +244,69 @@ test("release signing refreshes runtime checksums after nested signing and befor
 
     signReleaseApplication(originals.app, resolvedConfig, signingApi, entitlementsPath);
     assert.deepEqual(events, [...NESTED_PATHS.map((path) => `nested:${path}`), "runtime-checksums-updated", "outer-seal"]);
+});
+
+function sourceArchiveFixture(t, { packageVersion = VERSION, versionFile = VERSION, outsideMember = false } = {}) {
+    const root = fixture(t);
+    const contents = join(root, "archive-input");
+    const prefix = `workflowgenerator-${VERSION}`;
+    write(contents, `${prefix}/VERSION`, `v${versionFile}\n`);
+    write(contents, `${prefix}/web/package.json`, JSON.stringify({ version: packageVersion }));
+    write(contents, `${prefix}/LICENSE`, "Fixture source license\n");
+    const members = [prefix];
+    if (outsideMember) {
+        write(contents, "outside.txt", "not part of the source root\n");
+        members.push("outside.txt");
+    }
+    const source = join(root, `WorkflowGenerator-${VERSION}-source.tar.gz`);
+    execFileSync("tar", ["-czf", source, "-C", contents, ...members], {
+        stdio: ["ignore", "pipe", "pipe"], env: { ...process.env, COPYFILE_DISABLE: "1" },
+    });
+    return { root, source, sha256: sha256(readFileSync(source)) };
+}
+
+test("a verified same-version source archive is copied byte for byte", (t) => {
+    const original = sourceArchiveFixture(t);
+    const input = preservedSourceInput({ source: original.source, version: VERSION, sha256: original.sha256 });
+    assert.deepEqual(input, {
+        path: realpathSync(original.source), name: basename(original.source), sha256: original.sha256,
+    });
+    const destination = join(original.root, "output", basename(original.source));
+    mkdirSync(dirname(destination));
+    assert.equal(copyPreservedSource(input, destination), true);
+    assert.deepEqual(readFileSync(destination), readFileSync(original.source));
+});
+
+test("a preserved source archive requires its expected digest and versioned filename", (t) => {
+    const original = sourceArchiveFixture(t);
+    assert.throws(() => preservedSourceInput({ source: original.source, version: VERSION, sha256: "0".repeat(64) }));
+    assert.throws(() => preservedSourceInput({ source: original.source, version: VERSION }));
+    const renamed = write(original.root, "other-source.tar.gz", readFileSync(original.source));
+    assert.throws(() => preservedSourceInput({ source: renamed, version: VERSION, sha256: original.sha256 }));
+});
+
+test("a preserved source archive rejects mismatched embedded versions", async (t) => {
+    for (const field of ["packageVersion", "versionFile"]) {
+        await t.test(field, (t) => {
+            const original = sourceArchiveFixture(t, { [field]: "0.9.5" });
+            assert.throws(() => preservedSourceInput({ source: original.source, version: VERSION, sha256: original.sha256 }));
+        });
+    }
+});
+
+test("a preserved source archive rejects members outside its versioned root", (t) => {
+    const original = sourceArchiveFixture(t, { outsideMember: true });
+    assert.throws(() => preservedSourceInput({ source: original.source, version: VERSION, sha256: original.sha256 }));
+});
+
+test("a preserved source input cannot change after validation", (t) => {
+    const original = sourceArchiveFixture(t);
+    const input = preservedSourceInput({ source: original.source, version: VERSION, sha256: original.sha256 });
+    writeFileSync(original.source, Buffer.concat([readFileSync(original.source), Buffer.from("changed input")]));
+    const destination = join(original.root, "output", basename(original.source));
+    mkdirSync(dirname(destination));
+    assert.throws(() => copyPreservedSource(input, destination));
+    assert.equal(existsSync(destination), false);
 });
 
 function readyResult(names) {
@@ -312,9 +456,25 @@ test("unchanged source permits READY only after passing the exact asset whitelis
         },
     };
 
+    const app = join(workspace, "WorkflowGenerator.app");
+    write(app, "Contents/MacOS/fixture", "portable application bytes\n");
     assert.equal(assertSourceUnchanged(repo, sourceCommit), true);
-    assert.doesNotThrow(() => markReadyForSource(session, repo, sourceCommit, paths, names));
+    assert.doesNotThrow(() => markReadyForSource(session, repo, sourceCommit, paths, names, { app }));
     assert.deepEqual(calls, [paths]);
+});
+
+test("unchanged source cannot mark a bundle with host paths READY", (t) => {
+    const { workspace, repo, sourceCommit } = sourceFixture(t);
+    const home = join(workspace, "build-home");
+    const app = join(workspace, "WorkflowGenerator.app");
+    mkdirSync(home);
+    write(app, "Contents/MacOS/fixture", `source location: ${home}/.cargo/registry/src/fixture/src/lib.rs\n`);
+    let readyCalls = 0;
+    const session = { markReady() { readyCalls++; return readyResult(["release.zip"]); } };
+
+    assert.equal(assertSourceUnchanged(repo, sourceCommit), true);
+    assert.throws(() => markReadyForSource(session, repo, sourceCommit, [], ["release.zip"], { app, home }));
+    assert.equal(readyCalls, 0);
 });
 
 test("the release CLI runs through direct, symlink, and available /var entry paths", async (t) => {

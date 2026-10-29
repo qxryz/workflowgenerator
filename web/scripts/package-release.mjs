@@ -2,11 +2,12 @@
 // Local release entry point. Upload only the READY session's assets whitelist.
 import { createHash, createPublicKey, verify } from "node:crypto";
 import { execFileSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
+import { copyFileSync, existsSync, lstatSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, readlinkSync, realpathSync, renameSync, rmSync, symlinkSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { basename, dirname, join, resolve } from "node:path";
 import { isDeepStrictEqual } from "node:util";
 import { fileURLToPath } from "node:url";
+import { assertPortableBundle, releaseBuildEnvironment } from "./lib/release-build.mjs";
 
 const scripts = dirname(fileURLToPath(import.meta.url));
 const web = resolve(scripts, "..");
@@ -92,8 +93,34 @@ function verifyRuntimeManifests(app) {
     return true;
 }
 
-export function createUpdateManifest({ version, notes, signature, pubDate = new Date().toISOString() }) {
-    if (!version || !notes || !signature || Number.isNaN(Date.parse(pubDate))) fail("更新清单缺少版本、说明、签名或有效日期");
+export function validateBaseManifest(base, version) {
+    if (!base || typeof base !== "object" || Array.isArray(base) || base.version !== version ||
+        typeof base.notes !== "string" || !base.notes.trim() || Number.isNaN(Date.parse(base.pub_date)) ||
+        !base.platforms || typeof base.platforms !== "object" || Array.isArray(base.platforms)) fail("既有更新清单必须属于同一版本并包含完整元数据");
+    for (const entry of Object.values(base.platforms)) {
+        if (!entry || typeof entry !== "object" || typeof entry.signature !== "string" || !entry.signature.trim() || typeof entry.url !== "string") fail("既有更新清单的平台信息无效");
+        let url;
+        try { url = new URL(entry.url); } catch { fail("既有更新清单的平台地址无效"); }
+        if (url.protocol !== "https:") fail("更新清单的平台地址必须使用 HTTPS");
+        if (url.hostname === "github.com" && url.pathname.includes("/releases/download/")) {
+            const tag = url.pathname.split("/releases/download/")[1].split("/")[0];
+            if (decodeURIComponent(tag) !== `v${version}`) fail("更新清单的平台地址属于其他版本");
+        }
+    }
+    const expected = `https://github.com/${REPOSITORY}/releases/download/v${version}/WorkflowGenerator-${version}-macos-arm64.updater.tar.gz`;
+    if (base.platforms[PLATFORM]?.url !== expected) fail("既有更新清单缺少当前版本的 Mac 附件地址");
+    return structuredClone(base);
+}
+
+export function createUpdateManifest({ version, notes, signature, pubDate = new Date().toISOString(), base }) {
+    if (typeof version !== "string" || !version || typeof signature !== "string" || !signature.trim()) fail("更新清单缺少版本或签名");
+    if (base) {
+        const manifest = validateBaseManifest(base, version);
+        if (notes !== undefined && notes !== manifest.notes) fail("使用既有更新清单时必须保留原更新说明");
+        manifest.platforms[PLATFORM].signature = signature;
+        return manifest;
+    }
+    if (typeof notes !== "string" || !notes.trim() || Number.isNaN(Date.parse(pubDate))) fail("更新清单缺少说明或有效日期");
     return {
         version, notes, pub_date: pubDate,
         platforms: { [PLATFORM]: { signature, url: `https://github.com/${REPOSITORY}/releases/download/v${version}/WorkflowGenerator-${version}-macos-arm64.updater.tar.gz` } },
@@ -130,9 +157,34 @@ export function assertSourceUnchanged(repoRoot, sourceCommit) {
     return true;
 }
 
-export function markReadyForSource(session, repoRoot, sourceCommit, assets, expectedNames) {
+export function markReadyForSource(session, repoRoot, sourceCommit, assets, expectedNames, { app, ...buildOptions } = {}) {
     assertSourceUnchanged(repoRoot, sourceCommit);
+    if (!app) fail("发布会话缺少最终应用");
+    assertPortableBundle(app, { projectRoot: repoRoot, ...buildOptions });
     return assertReadyAssets(session.markReady(assets), expectedNames);
+}
+
+export function preservedSourceInput({ source, version, sha256 }) {
+    const name = `WorkflowGenerator-${version}-source.tar.gz`;
+    if (!source || basename(source) !== name || !/^[a-f0-9]{64}$/.test(sha256 ?? "")) fail("既有源码附件需要同版本文件名和 SHA256");
+    const original = resolve(source);
+    if (!lstatSync(original).isFile() || lstatSync(original).isSymbolicLink()) fail("既有源码附件必须是普通文件");
+    const path = realpathSync(original);
+    if (hashFile(path) !== sha256) fail("既有源码附件的 SHA256 不匹配");
+    const prefix = `workflowgenerator-${version}/`;
+    const members = capture("检查既有源码附件", "tar", ["-tzf", path]).split("\n").filter(Boolean);
+    if (!members.length || members.some((member) => !member.startsWith(prefix) || member.includes("\0") || member.split("/").includes(".."))) fail("既有源码附件的目录结构无效");
+    const packageVersion = JSON.parse(capture("检查既有源码版本", "tar", ["-xOzf", path, `${prefix}web/package.json`])).version;
+    const versionFile = capture("检查既有源码版本", "tar", ["-xOzf", path, `${prefix}VERSION`]).replace(/^v/, "");
+    if (packageVersion !== version || versionFile !== version) fail("既有源码附件与发布版本不一致");
+    return Object.freeze({ path, name, sha256 });
+}
+
+export function copyPreservedSource(input, destination) {
+    if (hashFile(input.path) !== input.sha256 || basename(destination) !== input.name) fail("既有源码附件已变化或目标文件名不一致");
+    copyFileSync(input.path, destination);
+    if (hashFile(destination) !== input.sha256) fail("既有源码附件复制验证失败");
+    return true;
 }
 
 function updaterSigner(config, version) {
@@ -214,18 +266,20 @@ function verifyArchive(archive, app, format, config, api, version) {
         }
         const extracted = join(temporary, APP_NAME);
         verifyBuiltApp(extracted, version);
+        assertPortableBundle(extracted, { projectRoot: repo });
         api.verifyApplication(extracted, config, { notarized: true });
         if (appContentsHash(extracted) !== appContentsHash(app)) fail("压缩包内的应用与最终公证应用不一致");
     } finally { rmSync(temporary, { recursive: true, force: true }); }
     return true;
 }
 
-function appBuildEnvironment() {
-    const env = { ...process.env };
+export function appBuildEnvironment(inheritedEnv = process.env) {
+    const env = { ...inheritedEnv, CARGO_TARGET_DIR: join(web, "src-tauri/target") };
     // This build only prepares an ad-hoc App; the explicit release pipeline owns
     // all Developer ID signing and notarization after the isolated copy is made.
     for (const key of ["TAURI_SIGNING_PRIVATE_KEY", "TAURI_SIGNING_PRIVATE_KEY_PATH", "TAURI_SIGNING_PRIVATE_KEY_PASSWORD", "APPLE_SIGNING_IDENTITY", "APPLE_CERTIFICATE", "APPLE_CERTIFICATE_PASSWORD", "APPLE_API_ISSUER", "APPLE_API_KEY", "APPLE_API_KEY_PATH", "APPLE_ID", "APPLE_PASSWORD", "APPLE_ID_PASSWORD", "APPLE_TEAM_ID"]) delete env[key];
-    return env;
+    delete env.CARGO_BUILD_TARGET;
+    return releaseBuildEnvironment({ projectRoot: repo, cargoDirectory: join(web, "src-tauri"), env });
 }
 
 function createDmg(app, destination, workDir, config, api) {
@@ -235,6 +289,7 @@ function createDmg(app, destination, workDir, config, api) {
         mkdirSync(contents);
         const copy = join(contents, APP_NAME);
         capture("暂存公证应用", "ditto", [app, copy]);
+        assertPortableBundle(copy, { projectRoot: repo });
         api.verifyApplication(copy, config, { notarized: true });
         if (appContentsHash(copy) !== appContentsHash(app)) fail("磁盘映像中的应用副本不一致");
         symlinkSync("/Applications", join(contents, "Applications"));
@@ -243,6 +298,29 @@ function createDmg(app, destination, workDir, config, api) {
         api.signDiskImage(dmg, config);
         renameSync(dmg, destination);
     } finally { rmSync(temporary, { recursive: true, force: true }); }
+}
+
+function verifyDmgContents(dmg, app, version, config, api) {
+    const temporary = mkdtempSync(join(tmpdir(), "wg-dmg-verify-"));
+    const mount = join(temporary, "volume");
+    mkdirSync(mount);
+    let mounted = false;
+    try {
+        capture("只读核对磁盘映像", "hdiutil", ["attach", "-readonly", "-nobrowse", "-mountpoint", mount, dmg]);
+        mounted = true;
+        const copy = join(mount, APP_NAME);
+        verifyBuiltApp(copy, version);
+        assertPortableBundle(copy, { projectRoot: repo });
+        api.verifyApplication(copy, config, { notarized: true });
+        if (appContentsHash(copy) !== appContentsHash(app)) fail("磁盘映像中的应用与最终公证应用不一致");
+    } finally {
+        if (mounted) {
+            capture("卸载核对用磁盘映像", "hdiutil", ["detach", mount]);
+            mounted = false;
+        }
+        if (!mounted) rmSync(temporary, { recursive: true, force: true });
+    }
+    return true;
 }
 
 async function verifyRemote() {
@@ -265,10 +343,16 @@ async function verifyRemote() {
     } finally { rmSync(temporary, { recursive: true, force: true }); }
 }
 
-function packageRelease(api, { version, sourceCommit, config, signing, signer, notes, outDir }) {
+function packageRelease(api, { version, sourceCommit, config, signing, signer, notes, outDir, preservedSource, baseManifest }) {
     const session = api.createReleaseSession({ outDir, version, sourceCommit, resume: true });
     try {
         assertSourceUnchanged(repo, sourceCommit);
+        const inputsPath = join(session.workDir, "release-inputs.json");
+        const sourceMode = preservedSource ? { mode: "preserved", name: preservedSource.name, sha256: preservedSource.sha256 } : { mode: "current", sourceCommit };
+        const inputs = { version, sourceCommit, notes, source: sourceMode, baseManifest: baseManifest ?? null };
+        if (existsSync(inputsPath)) {
+            if (!isDeepStrictEqual(json(inputsPath), inputs)) fail("本次发布参数与已有会话不一致；请使用原参数或新输出目录");
+        } else writeFileSync(inputsPath, `${JSON.stringify(inputs, null, 2)}\n`);
         const app = join(session.workDir, APP_NAME);
         const name = `WorkflowGenerator-${version}-macos-arm64`;
         const names = [`${name}.dmg`, `${name}.zip`, `${name}.updater.tar.gz`, `${name}.updater.tar.gz.sig`, `WorkflowGenerator-${version}-source.tar.gz`, "latest.json"];
@@ -278,21 +362,29 @@ function packageRelease(api, { version, sourceCommit, config, signing, signer, n
 
         session.step("build-app", () => {
             const env = appBuildEnvironment();
-            env.CARGO_TARGET_DIR = join(web, "src-tauri/target");
-            run("npm", ["run", "desktop:build", "--", "--config", join(scripts, "tauri.release-build.json"), "--target", "aarch64-apple-darwin", "--bundles", "app"], { cwd: web, env });
+            run("npm", ["run", "desktop:build", "--", "--config", join(scripts, "tauri.release-build.json"), "--target", "aarch64-apple-darwin", "--bundles", "app", "--", "--locked"], { cwd: web, env });
             const built = join(env.CARGO_TARGET_DIR, "aarch64-apple-darwin/release/bundle/macos", APP_NAME);
             verifyBuiltApp(built, version);
             rmSync(app, { recursive: true, force: true });
             capture("复制构建应用到发布会话", "ditto", [built, app]);
-        }, () => verifyBuiltApp(app, version));
+        }, () => {
+            verifyBuiltApp(app, version);
+            assertPortableBundle(app, { projectRoot: repo });
+            return true;
+        });
         // Building can take long enough for another process to edit or commit.
         assertSourceUnchanged(repo, sourceCommit);
-        session.step("sign-app", () => signReleaseApplication(app, signing, api), () => {
+        session.step("sign-app", () => {
+            assertPortableBundle(app, { projectRoot: repo });
+            return signReleaseApplication(app, signing, api);
+        }, () => {
+            assertPortableBundle(app, { projectRoot: repo });
             verifyRuntimeManifests(app);
             api.verifyApplication(app, signing, { notarized: false });
             return true;
         });
         session.step("notarize-app", () => api.notarizeAndStaple(app, signing, { stateDir: join(session.stateDir, "app") }), () => {
+            assertPortableBundle(app, { projectRoot: repo });
             api.verifyApplication(app, signing, { notarized: true });
             return true;
         });
@@ -308,23 +400,25 @@ function packageRelease(api, { version, sourceCommit, config, signing, signer, n
         });
         session.step("dmg", () => createDmg(app, path(names[0]), session.workDir, signing, api), () => {
             api.verifyDiskImage(path(names[0]), signing, { notarized: false });
-            return true;
+            return verifyDmgContents(path(names[0]), app, version, signing, api);
         });
         session.step("notarize-dmg", () => api.notarizeAndStaple(path(names[0]), signing, { stateDir: join(session.stateDir, "dmg") }), () => {
             api.verifyDiskImage(path(names[0]), signing, { notarized: true });
-            return true;
+            return verifyDmgContents(path(names[0]), app, version, signing, api);
         });
         const sourceProof = join(session.workDir, "source-archive-proof.json");
         session.step("metadata-and-source", () => {
-            const manifest = createUpdateManifest({ version, notes, signature: signature() });
+            const manifest = createUpdateManifest({ version, notes, signature: signature(), base: baseManifest });
             writeFileSync(path("latest.json"), `${JSON.stringify(manifest, null, 2)}\n`);
-            capture("导出当前提交源码", "git", ["archive", "--format=tar.gz", `--prefix=workflowgenerator-${version}/`, "-o", path(names[4]), sourceCommit], { cwd: repo });
-            writeFileSync(sourceProof, `${JSON.stringify({ sourceCommit, sha256: hashFile(path(names[4])) })}\n`);
+            if (preservedSource) copyPreservedSource(preservedSource, path(names[4]));
+            else capture("导出当前提交源码", "git", ["archive", "--format=tar.gz", `--prefix=workflowgenerator-${version}/`, "-o", path(names[4]), sourceCommit], { cwd: repo });
+            writeFileSync(sourceProof, `${JSON.stringify({ buildSourceCommit: sourceCommit, source: sourceMode, sha256: hashFile(path(names[4])) })}\n`);
         }, () => {
             const manifest = json(path("latest.json"));
-            if (!isDeepStrictEqual(manifest, createUpdateManifest({ version, notes, signature: signature(), pubDate: manifest.pub_date }))) fail("更新清单与最终更新包不一致");
+            if (!isDeepStrictEqual(manifest, createUpdateManifest({ version, notes, signature: signature(), pubDate: manifest.pub_date, base: baseManifest }))) fail("更新清单与最终更新包不一致");
             const proof = json(sourceProof);
-            if (proof.sourceCommit !== sourceCommit || proof.sha256 !== hashFile(path(names[4]))) fail("源码附件与本发布会话记录不一致");
+            const expected = { buildSourceCommit: sourceCommit, source: sourceMode, sha256: hashFile(path(names[4])) };
+            if (!isDeepStrictEqual(proof, expected) || (preservedSource && proof.sha256 !== preservedSource.sha256)) fail("源码附件与本发布会话记录不一致");
             return true;
         });
         session.step("checksums", () => writeReleaseChecksums(session.assetsDir, names), () => {
@@ -334,7 +428,7 @@ function packageRelease(api, { version, sourceCommit, config, signing, signer, n
         const whitelist = [...names, "SHA256SUMS.txt"];
         // Apple may have processed this session for a long time. Bind READY to
         // the same clean source captured before the build, not the current HEAD.
-        const ready = markReadyForSource(session, repo, sourceCommit, whitelist.map(path), whitelist);
+        const ready = markReadyForSource(session, repo, sourceCommit, whitelist.map(path), whitelist, { app });
         console.log(`✓ v${version}（${sourceCommit.slice(0, 12)}）已 READY：${session.assetsDir}`);
         console.log(`  只上传 release-assets.json 白名单中的 ${ready.assets.length} 个附件；此命令不会推送或发布。`);
         return ready;
@@ -348,13 +442,14 @@ function releaseArguments(args) {
         if (argument === "--help" || argument === "-h") options.help = true;
         else if (argument === "--check") options.checkOnly = true;
         else if (argument === "--verify-remote") options.verifyRemote = true;
-        else if (argument === "--notes" || argument === "--out") {
+        else if (["--notes", "--out", "--manifest", "--preserve-source", "--preserve-source-sha256"].includes(argument)) {
             const value = args[++index];
             if (!value || value.startsWith("--")) fail(`${argument} 需要参数`);
             options[argument.slice(2)] = value;
         } else fail("存在不支持的发布参数");
     }
     if (options.checkOnly && options.verifyRemote) fail("不能同时执行本机预检和远端验证");
+    if (Boolean(options["preserve-source"]) !== Boolean(options["preserve-source-sha256"])) fail("保留既有源码附件时必须同时提供文件和 SHA256");
     return options;
 }
 
@@ -362,6 +457,8 @@ async function main(args) {
     const options = releaseArguments(args);
     if (options.help) {
         console.log('Usage: npm run release:package -- --notes "更新说明" [--out <输出目录>]');
+        console.log("同版本附件：--manifest <既有 latest.json>，保留原更新元数据，仅更新 Mac 签名。");
+        console.log("同版本保留既有源码附件：--preserve-source <同版本源码包> --preserve-source-sha256 <SHA256>");
         console.log("npm run release:check 进行本机预检；相同源码/版本/out 的打包命令可恢复发布会话。");
         return;
     }
@@ -370,9 +467,13 @@ async function main(args) {
     const checkOnly = options.checkOnly;
     const version = releaseVersion();
     const config = json(join(web, "src-tauri/tauri.conf.json"));
+    const preservedSource = options["preserve-source"] ? preservedSourceInput({ source: options["preserve-source"], version, sha256: options["preserve-source-sha256"] }) : undefined;
     const sourceCommit = capture("读取源码提交", "git", ["rev-parse", "--verify", "HEAD"], { cwd: repo });
     const dirty = capture("检查源码工作区", "git", ["status", "--porcelain"], { cwd: repo });
-    const notes = options.notes;
+    const baseManifest = options.manifest ? validateBaseManifest(json(resolve(options.manifest)), version) : undefined;
+    const notes = options.notes ?? baseManifest?.notes;
+    if (baseManifest && notes !== baseManifest.notes) fail("使用既有更新清单时必须保留原更新说明");
+    if (preservedSource && !baseManifest) fail("保留既有源码附件时必须通过 --manifest 提供同版本更新清单");
     if (!checkOnly && !notes) fail("请用 --notes 提供更新清单中的说明");
     if (!checkOnly && dirty) fail("工作区有未提交的修改；正式发布包必须对应源码提交");
     const api = await import("./lib/macos-signing.mjs");
@@ -384,7 +485,7 @@ async function main(args) {
         return;
     }
     const outDir = resolve(options.out || join(repo, "..", "snapshots", `release-v${version}`));
-    return packageRelease(api, { version, sourceCommit, config, signing, signer, notes, outDir });
+    return packageRelease(api, { version, sourceCommit, config, signing, signer, notes, outDir, preservedSource, baseManifest });
 }
 
 function calledAsProgram() {

@@ -52,6 +52,12 @@ for (const source of sources) {
 }
 const xdir = resolve(cache, sources[1].directory),
     fdir = resolve(cache, sources[0].directory);
+async function cleanConfiguredBuild(directory, configuration) {
+    try { await access(resolve(directory, configuration)); } catch { return; }
+    run("make", ["distclean"], directory);
+}
+await cleanConfiguredBuild(xdir, "config.mak");
+await cleanConfiguredBuild(fdir, "ffbuild/config.mak");
 run("./configure", ["--prefix=" + prefix, "--enable-static", "--disable-cli", "--disable-opencl", "--bit-depth=8", "--chroma-format=420"], xdir);
 run("make", ["-j4"], xdir);
 run("make", ["install"], xdir);
@@ -59,7 +65,7 @@ const env = { ...process.env, PKG_CONFIG_PATH: resolve(prefix, "lib/pkgconfig") 
 run(
     "./configure",
     [
-        "--prefix=" + prefix,
+        "--prefix=/usr/local",
         "--disable-autodetect",
         "--disable-everything",
         "--disable-shared",
